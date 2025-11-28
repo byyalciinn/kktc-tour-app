@@ -1,0 +1,269 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  useColorScheme,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/Colors';
+import { Tour } from '@/types';
+
+interface TourCardProps {
+  tour: Tour;
+  onPress: (tour: Tour) => void;
+  getCategoryName?: (categoryId: string) => string;
+}
+
+/**
+ * Tour card component for home screen
+ */
+export function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
+
+  const categoryLabel = getCategoryName ? getCategoryName(tour.category) : tour.category;
+
+  return (
+    <TouchableOpacity
+      style={styles.container}
+      activeOpacity={0.95}
+      onPress={() => onPress(tour)}
+      accessibilityRole="button"
+      accessibilityLabel={`${tour.title}, ${tour.location}, ${tour.currency}${tour.price} kişi başı`}
+      accessibilityHint="Tur detaylarını görüntülemek için dokunun"
+    >
+      <Image
+        source={{ uri: tour.image }}
+        style={styles.image}
+        accessibilityIgnoresInvertColors
+      />
+      {/* Overlay gradient */}
+      <View style={styles.gradient} />
+
+      {/* Duration Tag */}
+      <View style={styles.durationTag}>
+        <Text style={styles.durationText}>{tour.duration}</Text>
+      </View>
+
+      {/* Arrow Button */}
+      <TouchableOpacity
+        style={styles.arrowButton}
+        accessibilityLabel="Detayları gör"
+      >
+        <Ionicons name="arrow-forward" size={20} color={colors.text} />
+      </TouchableOpacity>
+
+      {/* Bottom Content */}
+      <View style={styles.content}>
+        <View style={styles.leftContent}>
+          <Text style={styles.title} numberOfLines={1}>
+            {tour.title}
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {tour.location} • {categoryLabel}
+          </Text>
+        </View>
+        <View style={styles.rightContent}>
+          <Text style={styles.price}>
+            {tour.currency}{tour.price}
+          </Text>
+          <Text style={styles.priceLabel}>kişi başı</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * Compact tour card for related tours section
+ */
+export function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCategoryName'>) {
+  return (
+    <TouchableOpacity
+      style={styles.compactContainer}
+      activeOpacity={0.9}
+      onPress={() => onPress(tour)}
+      accessibilityRole="button"
+      accessibilityLabel={`${tour.title}, ${tour.location}`}
+    >
+      <Image
+        source={{ uri: tour.image }}
+        style={styles.compactImage}
+        accessibilityIgnoresInvertColors
+      />
+      <View style={styles.compactGradient} />
+      <TouchableOpacity style={styles.compactArrow}>
+        <Ionicons name="arrow-forward" size={16} color="#000" />
+      </TouchableOpacity>
+      <View style={styles.compactContent}>
+        <Text style={styles.compactTitle} numberOfLines={1}>
+          {tour.title}
+        </Text>
+        <View style={styles.compactMeta}>
+          <Text style={styles.compactLocation}>
+            {tour.location.split(',')[0]}
+          </Text>
+          <View style={styles.compactRating}>
+            <Ionicons name="star" size={12} color="#FFD700" />
+            <Text style={styles.compactRatingText}>{tour.rating}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  // Main tour card
+  container: {
+    width: '100%',
+    height: 280,
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  gradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  durationTag: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  durationText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#212529',
+  },
+  arrowButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    padding: 20,
+  },
+  leftContent: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 28,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  rightContent: {
+    alignItems: 'flex-end',
+  },
+  price: {
+    fontSize: 28,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  priceLabel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.85)',
+  },
+
+  // Compact tour card
+  compactContainer: {
+    width: 180,
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  compactImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  compactGradient: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  compactArrow: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+  },
+  compactTitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  compactMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  compactLocation: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  compactRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  compactRatingText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});
