@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
+  Animated,
+  Dimensions,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,56 +17,80 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores';
 
-// Membership level order for display
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH - 40;
+
+// Membership levels
 const membershipLevels = ['Normal', 'Gold', 'Business'] as const;
-type MembershipLevel = typeof membershipLevels[number];
+type MembershipLevel = (typeof membershipLevels)[number];
 
-// Member class configurations
-const memberClassConfig: Record<MembershipLevel, {
-  gradient: [string, string];
-  icon: string;
-  benefits: { text: string; highlight?: boolean }[];
-  price: number | null;
-  displayName: string;
-}> = {
+// Plan configurations matching the reference design
+const planConfigs: Record<
+  MembershipLevel,
+  {
+    name: string;
+    price: number | null;
+    originalPrice?: number;
+    description: string;
+    benefits: { text: string; included: boolean }[];
+    badge?: string;
+    isDark?: boolean;
+  }
+> = {
   Normal: {
-    gradient: ['#9CA3AF', '#D1D5DB'],
-    icon: 'person-circle-outline',
-    benefits: [
-      { text: 'Temel tur erişimi' },
-      { text: 'E-posta desteği' },
-    ],
+    name: 'Temel Üyelik',
     price: null,
-    displayName: 'Normal',
+    description:
+      'Temel tur erişimi ile KKTC\'yi keşfetmeye başlayın. Küçük gruplar için ideal.',
+    benefits: [
+      { text: 'Temel tur erişimi', included: true },
+      { text: 'E-posta desteği', included: true },
+      { text: 'Standart arama', included: true },
+      { text: 'Sınırlı favoriler (5 tur)', included: true },
+      { text: 'Reklamsız deneyim', included: false },
+      { text: 'Öncelikli destek', included: false },
+      { text: 'Özel indirimler', included: false },
+      { text: 'VIP etkinlik erişimi', included: false },
+    ],
+    badge: undefined,
   },
   Gold: {
-    gradient: ['#FFB800', '#F59E0B'],
-    icon: 'diamond-outline',
-    benefits: [
-      { text: 'Tüm Normal avantajları' },
-      { text: 'Genişletilmiş Favorilerim' },
-      { text: 'Reklamsız Uygulama Keyfi' },
-      { text: 'Öncelikli destek' },
-      { text: '%10 indirim' },
-    ],
+    name: 'Gold Üyelik',
     price: 299,
-    displayName: 'Gold',
+    originalPrice: 399,
+    description:
+      'Gelişmiş özellikler ve öncelikli destek ile tur deneyiminizi üst seviyeye taşıyın.',
+    benefits: [
+      { text: 'Temel tur erişimi', included: true },
+      { text: 'E-posta desteği', included: true },
+      { text: 'Gelişmiş arama filtreleri', included: true },
+      { text: 'Sınırsız favoriler', included: true },
+      { text: 'Reklamsız deneyim', included: true },
+      { text: 'Öncelikli destek', included: true },
+      { text: '%10 indirim', included: false },
+      { text: 'VIP etkinlik erişimi', included: false },
+    ],
+    badge: '%25 Tasarruf',
+    isDark: true,
   },
   Business: {
-    gradient: ['#3B82F6', '#1D4ED8'],
-    icon: 'briefcase-outline',
-    benefits: [
-      { text: 'Tüm Gold avantajları' },
-      { text: 'Genişletilmiş Favorilerim' },
-      { text: 'Reklamsız Uygulama Keyfi' },
-      { text: 'VIP destek hattı' },
-      { text: '%20 indirim' },
-      { text: 'İşletmenizi uygulamamıza ekleyerek potansiyel müşterilere ulaşın', highlight: true },
-    ],
+    name: 'Business Üyelik',
     price: 599,
-    displayName: 'Business',
+    description:
+      'Tüm premium özellikler ve işletme avantajları ile maksimum fayda sağlayın.',
+    benefits: [
+      { text: 'Temel tur erişimi', included: true },
+      { text: 'E-posta desteği', included: true },
+      { text: 'Gelişmiş arama filtreleri', included: true },
+      { text: 'Sınırsız favoriler', included: true },
+      { text: 'Reklamsız deneyim', included: true },
+      { text: 'VIP destek hattı', included: true },
+      { text: '%20 indirim', included: true },
+      { text: 'VIP etkinlik erişimi', included: true },
+    ],
+    badge: 'Popüler',
   },
 };
 
@@ -74,177 +99,256 @@ export default function MembershipCardScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { profile } = useAuth();
+  const profile = useAuthStore((state) => state.profile);
 
-  // Map old member_class values to new ones
-  const mapMemberClass = (memberClass: string | null | undefined): MembershipLevel => {
+  // Billing period toggle
+  const [isAnnual, setIsAnnual] = useState(true);
+
+  // Current plan index for horizontal scroll
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Map member_class to level
+  const mapMemberClass = (
+    memberClass: string | null | undefined
+  ): MembershipLevel => {
     if (memberClass === 'Silver') return 'Business';
-    if (memberClass === 'Gold' || memberClass === 'Business') return memberClass as MembershipLevel;
+    if (memberClass === 'Gold' || memberClass === 'Business')
+      return memberClass as MembershipLevel;
     return 'Normal';
   };
 
   const currentClass = mapMemberClass(profile?.member_class);
-  const config = memberClassConfig[currentClass];
-  
-  // Selected level for upgrade
-  const [selectedLevel, setSelectedLevel] = useState<MembershipLevel | null>(null);
+  const currentIndex = membershipLevels.indexOf(currentClass);
 
-  const handleUpgrade = () => {
-    if (!selectedLevel || selectedLevel === 'Normal') {
-      Alert.alert('Seçim Yapın', 'Lütfen yükseltmek istediğiniz üyelik seviyesini seçin.');
-      return;
-    }
-
-    const selectedConfig = memberClassConfig[selectedLevel];
+  const handlePurchase = (level: MembershipLevel) => {
+    if (level === 'Normal') return;
+    const config = planConfigs[level];
     Alert.alert(
       'Üyeliği Yükselt',
-      `${selectedConfig.displayName} üyeliğe yükseltmek için ${selectedConfig.price}₺ ödemeniz gerekmektedir.`,
+      `${config.name} için ${config.price}₺/${isAnnual ? 'yıl' : 'ay'} ödemeniz gerekmektedir.`,
       [
         { text: 'İptal', style: 'cancel' },
-        { text: 'Satın Al', onPress: () => {
-          // TODO: Implement payment
-          Alert.alert('Başarılı', 'Ödeme işlemi başlatılıyor...');
-        }},
+        {
+          text: '7 Gün Ücretsiz Dene',
+          onPress: () => {
+            Alert.alert('Başarılı', 'Deneme süresi başlatılıyor...');
+          },
+        },
       ]
     );
   };
 
-  // Check if upgrade button should be enabled
-  const isUpgradeEnabled = selectedLevel && selectedLevel !== 'Normal' && selectedLevel !== currentClass;
-  
-  // Get selected level price
-  const selectedPrice = selectedLevel ? memberClassConfig[selectedLevel].price : null;
+  // Page indicator dots
+  const renderDots = () => {
+    return (
+      <View style={styles.dotsContainer}>
+        {membershipLevels.map((_, index) => {
+          const inputRange = [
+            (index - 1) * CARD_WIDTH,
+            index * CARD_WIDTH,
+            (index + 1) * CARD_WIDTH,
+          ];
 
-  // Get benefits to display (selected level or current level)
-  const displayedBenefitsLevel = selectedLevel && selectedLevel !== currentClass ? selectedLevel : currentClass;
-  const displayedBenefitsConfig = memberClassConfig[displayedBenefitsLevel];
+          const dotWidth = scrollX.interpolate({
+            inputRange,
+            outputRange: [8, 24, 8],
+            extrapolate: 'clamp',
+          });
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          const dotColor = scrollX.interpolate({
+            inputRange,
+            outputRange: [
+              isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+              '#F59E0B',
+              isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+            ],
+            extrapolate: 'clamp',
+          });
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity 
-          style={[styles.backButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Üyelik Kartı</Text>
-        <View style={{ width: 44 }} />
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.dot,
+                {
+                  width: dotWidth,
+                  backgroundColor: dotColor,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
+    );
+  };
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Membership Card */}
-        <LinearGradient
-          colors={config.gradient as [string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.membershipCard}
+  // Render single plan card
+  const renderPlanCard = (level: MembershipLevel, index: number) => {
+    const config = planConfigs[level];
+    const isActive = level === currentClass;
+    const cardIsDark = config.isDark && !isDark;
+
+    const cardBg = cardIsDark
+      ? '#1F2937'
+      : isDark
+        ? 'rgba(255,255,255,0.08)'
+        : '#FFFBEB';
+
+    const cardBorder = cardIsDark
+      ? '#374151'
+      : isDark
+        ? 'rgba(255,255,255,0.1)'
+        : '#FEF3C7';
+
+    const textColor = cardIsDark ? '#fff' : colors.text;
+    const secondaryTextColor = cardIsDark
+      ? 'rgba(255,255,255,0.7)'
+      : colors.textSecondary;
+
+    return (
+      <View key={level} style={[styles.cardWrapper, { width: CARD_WIDTH }]}>
+        <View
+          style={[
+            styles.planCard,
+            {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+            },
+          ]}
         >
-          {/* Card Pattern */}
-          <View style={styles.cardPattern}>
-            <View style={[styles.patternCircle, styles.patternCircle1]} />
-            <View style={[styles.patternCircle, styles.patternCircle2]} />
-          </View>
-
-          {/* Card Content */}
-          <View style={styles.cardContent}>
-            {/* Top Row */}
-            <View style={styles.cardTopRow}>
-              <View style={styles.cardBadge}>
-                <Ionicons name={config.icon as any} size={20} color="#fff" />
-              </View>
-              <Text style={styles.cardType}>{currentClass.toUpperCase()} ÜYE</Text>
+          {/* Diagonal stripes for Gold */}
+          {config.isDark && (
+            <View style={styles.stripesContainer}>
+              {[...Array(20)].map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.stripe,
+                    {
+                      left: i * 20 - 100,
+                      backgroundColor: 'rgba(245,158,11,0.1)',
+                    },
+                  ]}
+                />
+              ))}
             </View>
+          )}
 
-            {/* Member Info */}
-            <View style={styles.cardMiddle}>
-              <Text style={styles.cardName}>
-                {profile?.full_name || 'Kullanıcı'}
-              </Text>
-              <Text style={styles.cardNumber}>
-                Üye No: {profile?.member_number || '------'}
-              </Text>
-            </View>
-
-            {/* Bottom Row */}
-            <View style={styles.cardBottomRow}>
-              <View>
-                <Text style={styles.cardLabel}>Üyelik Tarihi</Text>
-                <Text style={styles.cardValue}>
-                  {profile?.created_at 
-                    ? new Date(profile.created_at).toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })
-                    : '-'
-                  }
-                </Text>
-              </View>
-              <View style={styles.cardLogo}>
-                <Ionicons name="airplane" size={24} color="rgba(255,255,255,0.8)" />
-                <Text style={styles.cardLogoText}>KKTC Tour</Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-
-        {/* Benefits Section */}
-        <View style={styles.section}>
-          <View style={styles.benefitsSectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              ÜYELİK AVANTAJLARI
+          {/* Header with badge */}
+          <View style={styles.cardHeader}>
+            <Text style={[styles.planName, { color: textColor }]}>
+              {config.name}
             </Text>
-            {selectedLevel && selectedLevel !== currentClass && (
-              <View style={[styles.benefitsLevelBadge, { backgroundColor: displayedBenefitsConfig.gradient[0] + '20' }]}>
-                <Text style={[styles.benefitsLevelText, { color: displayedBenefitsConfig.gradient[0] }]}>
-                  {displayedBenefitsConfig.displayName}
-                </Text>
+            {config.badge && (
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: cardIsDark ? '#F59E0B' : '#22C55E',
+                  },
+                ]}
+              >
+                <Text style={styles.badgeText}>{config.badge}</Text>
+                <View
+                  style={[
+                    styles.badgeDot,
+                    { backgroundColor: cardIsDark ? '#FCD34D' : '#86EFAC' },
+                  ]}
+                />
+              </View>
+            )}
+            {isActive && (
+              <View style={[styles.badge, { backgroundColor: '#22C55E' }]}>
+                <Text style={styles.badgeText}>Aktif</Text>
+                <View style={[styles.badgeDot, { backgroundColor: '#86EFAC' }]} />
               </View>
             )}
           </View>
-          <View
-            style={[
-              styles.benefitsCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                borderColor: selectedLevel && selectedLevel !== currentClass 
-                  ? displayedBenefitsConfig.gradient[0] + '40'
-                  : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-              },
-            ]}
-          >
-            {displayedBenefitsConfig.benefits.map((benefit, index) => (
-              <View 
-                key={index} 
+
+          {/* Price */}
+          <View style={styles.priceContainer}>
+            {config.originalPrice && (
+              <Text style={[styles.originalPrice, { color: secondaryTextColor }]}>
+                {config.originalPrice}₺
+              </Text>
+            )}
+            {config.price ? (
+              <>
+                <Text style={[styles.price, { color: textColor }]}>
+                  {config.price}₺
+                </Text>
+                <Text style={[styles.pricePeriod, { color: secondaryTextColor }]}>
+                  / {isAnnual ? 'yıl' : 'ay'} (TRY)
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.price, { color: textColor }]}>Ücretsiz</Text>
+            )}
+          </View>
+
+          {/* Yearly billing note */}
+          {config.price && isAnnual && (
+            <Text style={[styles.billingNote, { color: secondaryTextColor }]}>
+              {Math.round(config.price / 12)}₺ aylık olarak faturalandırılır
+            </Text>
+          )}
+
+          {/* Description */}
+          <Text style={[styles.description, { color: secondaryTextColor }]}>
+            {config.description}
+          </Text>
+
+          {/* Dotted separator */}
+          <View style={styles.separator}>
+            {[...Array(40)].map((_, i) => (
+              <View
+                key={i}
                 style={[
-                  styles.benefitRow,
-                  benefit.highlight && styles.benefitRowHighlight,
-                  benefit.highlight && { backgroundColor: displayedBenefitsConfig.gradient[0] + '10' },
-                  index < displayedBenefitsConfig.benefits.length - 1 && [
-                    styles.benefitRowBorder,
-                    { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }
-                  ]
+                  styles.separatorDot,
+                  {
+                    backgroundColor: cardIsDark
+                      ? 'rgba(255,255,255,0.2)'
+                      : 'rgba(0,0,0,0.15)',
+                  },
                 ]}
-              >
-                <View style={[
-                  styles.benefitIcon, 
-                  { backgroundColor: benefit.highlight ? displayedBenefitsConfig.gradient[0] : displayedBenefitsConfig.gradient[0] + '20' }
-                ]}>
-                  <Ionicons 
-                    name={benefit.highlight ? 'star' : 'checkmark'} 
-                    size={16} 
-                    color={benefit.highlight ? '#fff' : displayedBenefitsConfig.gradient[0]} 
-                  />
+              />
+            ))}
+          </View>
+
+          {/* Benefits list */}
+          <View style={styles.benefitsList}>
+            {config.benefits.map((benefit, idx) => (
+              <View key={idx} style={styles.benefitRow}>
+                <View
+                  style={[
+                    styles.benefitIcon,
+                    {
+                      backgroundColor: benefit.included
+                        ? '#22C55E'
+                        : 'transparent',
+                    },
+                  ]}
+                >
+                  {benefit.included ? (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  ) : (
+                    <Ionicons
+                      name="close"
+                      size={16}
+                      color={secondaryTextColor}
+                    />
+                  )}
                 </View>
-                <Text style={[
-                  styles.benefitText, 
-                  { color: benefit.highlight ? displayedBenefitsConfig.gradient[0] : colors.text },
-                  benefit.highlight && styles.benefitTextHighlight
-                ]}>
+                <Text
+                  style={[
+                    styles.benefitText,
+                    {
+                      color: benefit.included ? textColor : secondaryTextColor,
+                      opacity: benefit.included ? 1 : 0.6,
+                    },
+                  ]}
+                >
                   {benefit.text}
                 </Text>
               </View>
@@ -252,111 +356,153 @@ export default function MembershipCardScreen() {
           </View>
         </View>
 
-        {/* Membership Levels */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary, marginBottom: 12 }]}>
-            ÜYELİK SEVİYELERİ
-          </Text>
-          <View style={styles.levelsContainer}>
-            {membershipLevels.map((level) => {
-              const levelConfig = memberClassConfig[level];
-              const isActive = level === currentClass;
-              const isSelected = level === selectedLevel;
-              const isPast = 
-                (currentClass === 'Gold' && level === 'Normal') ||
-                (currentClass === 'Business' && (level === 'Normal' || level === 'Gold'));
-              const canSelect = level !== 'Normal' && level !== currentClass && !isPast;
-              
-              return (
-                <TouchableOpacity 
-                  key={level}
-                  style={[
-                    styles.levelCard,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                      borderColor: isSelected 
-                        ? levelConfig.gradient[0] 
-                        : isActive 
-                          ? levelConfig.gradient[0] 
-                          : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                      borderWidth: isSelected || isActive ? 2 : 1,
-                    },
-                  ]}
-                  activeOpacity={canSelect ? 0.7 : 1}
-                  onPress={() => canSelect && setSelectedLevel(level)}
-                >
-                  <LinearGradient
-                    colors={levelConfig.gradient}
-                    style={styles.levelBadge}
-                  >
-                    <Ionicons name={levelConfig.icon as any} size={18} color="#fff" />
-                  </LinearGradient>
-                  <Text style={[styles.levelName, { color: colors.text }]}>
-                    {levelConfig.displayName}
-                  </Text>
-                  
-                  {/* Price for Gold and Business */}
-                  {levelConfig.price && !isActive && !isPast && (
-                    <Text style={[styles.levelPrice, { color: levelConfig.gradient[0] }]}>
-                      {levelConfig.price}₺
-                    </Text>
-                  )}
-                  
-                  {isActive && (
-                    <View style={[styles.activeIndicator, { backgroundColor: '#22C55E' }]}>
-                      <Text style={styles.activeText}>Aktif</Text>
-                    </View>
-                  )}
-                  {isSelected && !isActive && (
-                    <View style={[styles.selectedIndicator, { borderColor: levelConfig.gradient[0] }]}>
-                      <Ionicons name="checkmark" size={14} color={levelConfig.gradient[0]} />
-                    </View>
-                  )}
-                  {isPast && (
-                    <Ionicons name="checkmark-circle" size={18} color="#22C55E" style={styles.completedIcon} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Upgrade Button */}
-        {currentClass !== 'Business' && (
+        {/* CTA Button */}
+        {!isActive && config.price && (
           <TouchableOpacity
             style={[
-              styles.upgradeButton, 
-              { 
-                backgroundColor: isUpgradeEnabled ? colors.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-              }
+              styles.ctaButton,
+              {
+                backgroundColor: isDark ? '#fff' : '#1F2937',
+              },
             ]}
-            activeOpacity={isUpgradeEnabled ? 0.9 : 1}
-            onPress={handleUpgrade}
-            disabled={!isUpgradeEnabled}
+            activeOpacity={0.9}
+            onPress={() => handlePurchase(level)}
           >
-            <Ionicons name="arrow-up-circle" size={22} color={isUpgradeEnabled ? '#fff' : colors.textSecondary} />
-            <Text style={[
-              styles.upgradeButtonText,
-              { color: isUpgradeEnabled ? '#fff' : colors.textSecondary }
-            ]}>
-              {selectedPrice ? `${selectedPrice}₺ - Üyeliği Yükselt` : 'Üyelik Seçin'}
+            <Text
+              style={[
+                styles.ctaButtonText,
+                { color: isDark ? '#1F2937' : '#fff' },
+              ]}
+            >
+              7 Gün Ücretsiz Dene
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* Max Level Message */}
-        {currentClass === 'Business' && (
-          <View style={[styles.maxLevelCard, { backgroundColor: config.gradient[0] + '15' }]}>
-            <Ionicons name="trophy" size={32} color={config.gradient[0]} />
-            <Text style={[styles.maxLevelTitle, { color: config.gradient[0] }]}>
-              En Yüksek Seviye!
+        {isActive && level !== 'Normal' && (
+          <TouchableOpacity
+            style={[
+              styles.ctaButton,
+              {
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+              },
+            ]}
+            activeOpacity={0.9}
+          >
+            <Text
+              style={[
+                styles.ctaButtonText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              İptal Et
             </Text>
-            <Text style={[styles.maxLevelText, { color: colors.textSecondary }]}>
-              Tebrikler! Business üyelik ile tüm avantajlardan yararlanıyorsunuz.
-            </Text>
-          </View>
+          </TouchableOpacity>
         )}
-      </ScrollView>
+      </View>
+    );
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity
+          style={[
+            styles.backButton,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(0,0,0,0.05)',
+            },
+          ]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        {/* Billing Toggle */}
+        <View
+          style={[
+            styles.billingToggle,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255,255,255,0.1)'
+                : 'rgba(0,0,0,0.06)',
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.toggleOption,
+              isAnnual && [
+                styles.toggleOptionActive,
+                { backgroundColor: isDark ? '#374151' : '#1F2937' },
+              ],
+            ]}
+            onPress={() => setIsAnnual(true)}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                { color: isAnnual ? '#fff' : colors.textSecondary },
+              ]}
+            >
+              Yıllık
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleOption,
+              !isAnnual && [
+                styles.toggleOptionActive,
+                { backgroundColor: isDark ? '#374151' : '#1F2937' },
+              ],
+            ]}
+            onPress={() => setIsAnnual(false)}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                { color: !isAnnual ? '#fff' : colors.textSecondary },
+              ]}
+            >
+              Aylık
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ width: 44 }} />
+      </View>
+
+      {/* Title */}
+      <View style={styles.titleContainer}>
+        <Text style={[styles.title, { color: colors.text }]}>Üyelik</Text>
+        {renderDots()}
+      </View>
+
+      {/* Horizontal scroll cards */}
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.cardsContainer}
+        snapToInterval={CARD_WIDTH}
+        decelerationRate="fast"
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+        contentOffset={{ x: currentIndex * CARD_WIDTH, y: 0 }}
+      >
+        {membershipLevels.map((level, index) => renderPlanCard(level, index))}
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -379,268 +525,179 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
+  billingToggle: {
+    flexDirection: 'row',
+    borderRadius: 24,
+    padding: 4,
+  },
+  toggleOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  toggleOptionActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toggleText: {
+    fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-  },
-
-  // Membership Card
-  membershipCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    overflow: 'hidden',
-    minHeight: 200,
-  },
-  cardPattern: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  patternCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  patternCircle1: {
-    width: 200,
-    height: 200,
-    top: -80,
-    right: -60,
-  },
-  patternCircle2: {
-    width: 150,
-    height: 150,
-    bottom: -50,
-    left: -40,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  cardTopRow: {
+  titleContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  cardBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardType: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  cardMiddle: {
-    marginVertical: 20,
-  },
-  cardName: {
-    fontSize: 22,
+  title: {
+    fontSize: 34,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 4,
+    letterSpacing: -0.5,
   },
-  cardNumber: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
-    letterSpacing: 1,
-  },
-  cardBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  cardLabel: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 2,
-  },
-  cardValue: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    color: '#fff',
-  },
-  cardLogo: {
+  dotsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  cardLogoText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.8)',
+  dot: {
+    height: 8,
+    borderRadius: 4,
   },
-
-  // Sections
-  section: {
-    marginBottom: 24,
+  cardsContainer: {
+    paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    marginLeft: 4,
+  cardWrapper: {
+    paddingRight: 0,
   },
-
-  // Benefits
-  benefitsSectionHeader: {
+  planCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    overflow: 'hidden',
+  },
+  stripesContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  stripe: {
+    position: 'absolute',
+    width: 8,
+    height: 600,
+    transform: [{ rotate: '45deg' }],
+    top: -100,
+  },
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  benefitsLevelBadge: {
+  planName: {
+    fontSize: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '600',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 6,
   },
-  benefitsLevelText: {
+  badgeText: {
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
+    color: '#fff',
   },
-  benefitsCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginBottom: 4,
+  },
+  originalPrice: {
+    fontSize: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '500',
+    textDecorationLine: 'line-through',
+    marginRight: 8,
+  },
+  price: {
+    fontSize: 48,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  pricePeriod: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '400',
+  },
+  billingNote: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  separator: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  separatorDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  benefitsList: {
+    gap: 14,
   },
   benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
     gap: 12,
   },
-  benefitRowBorder: {
-    borderBottomWidth: 1,
-  },
   benefitIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
   },
   benefitText: {
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '400',
     flex: 1,
   },
-  benefitRowHighlight: {
+  ctaButton: {
+    marginTop: 20,
     paddingVertical: 16,
-  },
-  benefitTextHighlight: {
-    fontWeight: '600',
-  },
-
-  // Levels
-  levelsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  levelCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    gap: 8,
-  },
-  levelBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  levelName: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-  },
-  levelPrice: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
-    fontWeight: '700',
-  },
-  selectedIndicator: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  activeText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    color: '#fff',
-  },
-  completedIcon: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-
-  // Upgrade Button
-  upgradeButton: {
-    flexDirection: 'row',
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginBottom: 20,
   },
-  upgradeButtonText: {
+  ctaButtonText: {
     fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
-    color: '#fff',
-  },
-
-  // Max Level
-  maxLevelCard: {
-    alignItems: 'center',
-    padding: 24,
-    borderRadius: 16,
-    gap: 8,
-    marginBottom: 20,
-  },
-  maxLevelTitle: {
-    fontSize: 18,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
-    fontWeight: '700',
-  },
-  maxLevelText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    textAlign: 'center',
   },
 });

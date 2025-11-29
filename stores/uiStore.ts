@@ -6,6 +6,7 @@ interface UIState {
   isSearchVisible: boolean;
   isProfileSheetVisible: boolean;
   isTourDetailVisible: boolean;
+  isNotificationSheetVisible: boolean;
 
   // Selected items
   selectedTour: Tour | null;
@@ -26,6 +27,9 @@ interface UIState {
   openTourDetail: (tour: Tour) => void;
   closeTourDetail: () => void;
 
+  openNotificationSheet: () => void;
+  closeNotificationSheet: () => void;
+
   // Actions - Selected items
   setSelectedTour: (tour: Tour | null) => void;
 
@@ -43,6 +47,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   isSearchVisible: false,
   isProfileSheetVisible: false,
   isTourDetailVisible: false,
+  isNotificationSheetVisible: false,
   selectedTour: null,
   isGlobalLoading: false,
   toastMessage: null,
@@ -67,6 +72,10 @@ export const useUIStore = create<UIState>((set, get) => ({
     // Keep selectedTour briefly for closing animation
     // It will be cleared on next open
   }),
+
+  // Notification sheet
+  openNotificationSheet: () => set({ isNotificationSheetVisible: true }),
+  closeNotificationSheet: () => set({ isNotificationSheetVisible: false }),
 
   // Selected tour
   setSelectedTour: (tour) => set({ selectedTour: tour }),
@@ -94,6 +103,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     isSearchVisible: false,
     isProfileSheetVisible: false,
     isTourDetailVisible: false,
+    isNotificationSheetVisible: false,
   }),
 }));
 

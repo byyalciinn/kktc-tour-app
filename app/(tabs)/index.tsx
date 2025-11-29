@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DestinationSearch, ProfileSheet, TourDetailSheet } from '@/components/sheets';
+import { DestinationSearch, ProfileSheet, TourDetailSheet, NotificationSheet } from '@/components/sheets';
 import { HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/components/ui';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
@@ -47,6 +47,7 @@ export default function HomeScreen() {
     isSearchVisible,
     isProfileSheetVisible,
     isTourDetailVisible,
+    isNotificationSheetVisible,
     selectedTour,
     openSearch,
     closeSearch,
@@ -54,6 +55,8 @@ export default function HomeScreen() {
     closeProfileSheet,
     openTourDetail,
     closeTourDetail,
+    openNotificationSheet,
+    closeNotificationSheet,
   } = useUIStore();
 
   const { profile } = useAuthStore();
@@ -173,8 +176,16 @@ export default function HomeScreen() {
             </View>
             
             {/* Notification Button */}
-            <TouchableOpacity style={[styles.notificationButton, { backgroundColor: colors.card }]}>
+            <TouchableOpacity 
+              style={[styles.notificationButton, { backgroundColor: colors.card }]}
+              onPress={openNotificationSheet}
+              activeOpacity={0.8}
+            >
               <Ionicons name="notifications-outline" size={24} color={colors.text} />
+              {/* Notification badge */}
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>2</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -318,6 +329,12 @@ export default function HomeScreen() {
         visible={isProfileSheetVisible}
         onClose={closeProfileSheet}
       />
+
+      {/* Notification Sheet */}
+      <NotificationSheet
+        visible={isNotificationSheetVisible}
+        onClose={closeNotificationSheet}
+      />
     </View>
   );
 }
@@ -397,6 +414,25 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F03A52',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   searchWrapper: {
     marginBottom: 24,

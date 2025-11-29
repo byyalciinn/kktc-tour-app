@@ -19,14 +19,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores';
 
 export default function PersonalInfoScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
 
   // Form state
   const [avatar, setAvatar] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop');
