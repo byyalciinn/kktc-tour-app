@@ -17,12 +17,15 @@ import {
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Keyboard,
+  KeyboardEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useUIStore } from '@/stores';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,12 +43,12 @@ interface ValidationResult {
 /**
  * Validates email format
  */
-const validateEmail = (email: string): ValidationResult => {
+const validateEmail = (email: string, t: (key: string) => string): ValidationResult => {
   if (!email.trim()) {
-    return { isValid: false, message: 'E-posta adresi gerekli' };
+    return { isValid: false, message: t('auth.emailRequired') };
   }
   if (!EMAIL_REGEX.test(email.trim())) {
-    return { isValid: false, message: 'Geçerli bir e-posta adresi girin' };
+    return { isValid: false, message: t('auth.invalidEmailFormat') };
   }
   return { isValid: true, message: '' };
 };
@@ -57,21 +60,21 @@ const validateEmail = (email: string): ValidationResult => {
  * - At least one lowercase letter
  * - At least one number
  */
-const validatePassword = (password: string): ValidationResult => {
+const validatePassword = (password: string, t: (key: string) => string): ValidationResult => {
   if (!password) {
-    return { isValid: false, message: 'Şifre gerekli' };
+    return { isValid: false, message: t('auth.passwordRequired') };
   }
   if (password.length < 8) {
-    return { isValid: false, message: 'Şifre en az 8 karakter olmalıdır' };
+    return { isValid: false, message: t('auth.passwordMinLength') };
   }
   if (!/[A-Z]/.test(password)) {
-    return { isValid: false, message: 'Şifre en az bir büyük harf içermelidir' };
+    return { isValid: false, message: t('auth.passwordNeedsUppercase') };
   }
   if (!/[a-z]/.test(password)) {
-    return { isValid: false, message: 'Şifre en az bir küçük harf içermelidir' };
+    return { isValid: false, message: t('auth.passwordNeedsLowercase') };
   }
   if (!/[0-9]/.test(password)) {
-    return { isValid: false, message: 'Şifre en az bir rakam içermelidir' };
+    return { isValid: false, message: t('auth.passwordNeedsNumber') };
   }
   return { isValid: true, message: '' };
 };
@@ -79,12 +82,12 @@ const validatePassword = (password: string): ValidationResult => {
 /**
  * Validates full name
  */
-const validateName = (name: string): ValidationResult => {
+const validateName = (name: string, t: (key: string) => string): ValidationResult => {
   if (!name.trim()) {
-    return { isValid: false, message: 'Ad Soyad gerekli' };
+    return { isValid: false, message: t('auth.nameRequired') };
   }
   if (name.trim().length < 2) {
-    return { isValid: false, message: 'Ad Soyad en az 2 karakter olmalıdır' };
+    return { isValid: false, message: t('auth.nameTooShort') };
   }
   return { isValid: true, message: '' };
 };
@@ -93,12 +96,12 @@ const IMAGE_BORDER_RADIUS = 32;
 
 // Slider images for hero section
 const SLIDER_IMAGES = [
-  'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=1200&fit=crop',
-  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=1200&fit=crop',
-];
+  require('../../public/auth-page-image-header-1.jpg'),
+  require('../../public/auth-page-image-header-2.jpg'),
+  require('../../public/auth-page-image-header-3.png'),
+] as const;
 
-// Custom Bottom Sheet Component with spring animation
+// Custom Bottom Sheet Component with spring animation and keyboard handling
 interface BottomSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -109,6 +112,39 @@ interface BottomSheetProps {
 function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomSheetProps) {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const keyboardAnim = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Klavye event listener'ları - sheet'i yukarı kaydır
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        Animated.spring(keyboardAnim, {
+          toValue: -e.endCoordinates.height,
+          useNativeDriver: true,
+          damping: 20,
+          stiffness: 300,
+        }).start();
+      }
+    );
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        Animated.spring(keyboardAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+          stiffness: 300,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, [keyboardAnim]);
 
   const openSheet = useCallback(() => {
     Animated.parallel([
@@ -127,6 +163,7 @@ function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomShee
   }, [slideAnim, fadeAnim]);
 
   const closeSheet = useCallback(() => {
+    Keyboard.dismiss();
     Animated.parallel([
       Animated.spring(slideAnim, {
         toValue: height,
@@ -147,8 +184,11 @@ function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomShee
   useEffect(() => {
     if (visible) {
       openSheet();
+    } else {
+      // Reset keyboard animation when sheet closes
+      keyboardAnim.setValue(0);
     }
-  }, [visible, openSheet]);
+  }, [visible, openSheet, keyboardAnim]);
 
   if (!visible) return null;
 
@@ -160,39 +200,47 @@ function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomShee
       statusBarTranslucent
       onRequestClose={closeSheet}
     >
-      <TouchableWithoutFeedback onPress={closeSheet}>
-        <Animated.View style={[sheetStyles.backdrop, { opacity: fadeAnim }]} />
-      </TouchableWithoutFeedback>
-      
-      <Animated.View
-        style={[
-          sheetStyles.sheetContainer,
-          { maxHeight: sheetHeight, transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        <View style={sheetStyles.sheet}>
-          <View style={sheetStyles.handleContainer}>
-            <View style={sheetStyles.handle} />
-          </View>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-          >
+      <View style={sheetStyles.modalContainer}>
+        <TouchableWithoutFeedback onPress={closeSheet}>
+          <Animated.View style={[sheetStyles.backdrop, { opacity: fadeAnim }]} />
+        </TouchableWithoutFeedback>
+        
+        <Animated.View
+          style={[
+            sheetStyles.sheetContainer,
+            { 
+              maxHeight: sheetHeight,
+              transform: [
+                { translateY: slideAnim },
+                { translateY: keyboardAnim }
+              ] 
+            },
+          ]}
+        >
+          <View style={sheetStyles.sheet}>
+            <View style={sheetStyles.handleContainer}>
+              <View style={sheetStyles.handle} />
+            </View>
             <ScrollView
+              ref={scrollViewRef}
               contentContainerStyle={sheetStyles.content}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              bounces={false}
             >
               {children}
             </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
-      </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
 
 const sheetStyles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -268,6 +316,7 @@ export default function WelcomeScreen() {
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
   
   const { signIn, signUp, resetPassword } = useAuthStore();
+  const { t } = useTranslation();
 
   // Auto-slide effect
   useEffect(() => {
@@ -306,15 +355,15 @@ export default function WelcomeScreen() {
 
   const handleLogin = async () => {
     // Validate email
-    const emailValidation = validateEmail(loginEmail);
+    const emailValidation = validateEmail(loginEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert('Hata', emailValidation.message);
+      Alert.alert(t('common.error'), emailValidation.message);
       return;
     }
 
     // Basic password check for login (not full strength check)
     if (!loginPassword) {
-      Alert.alert('Hata', 'Şifre gerekli');
+      Alert.alert(t('common.error'), t('auth.passwordRequired'));
       return;
     }
 
@@ -322,7 +371,7 @@ export default function WelcomeScreen() {
     const { error } = await signIn(loginEmail.trim(), loginPassword);
     setLoginLoading(false);
     if (error) {
-      Alert.alert('Giriş Hatası', error.message);
+      Alert.alert(t('auth.loginErrorTitle'), error.message);
     } else {
       setLoginVisible(false);
       router.replace('/(tabs)');
@@ -331,23 +380,23 @@ export default function WelcomeScreen() {
 
   const handleRegister = async () => {
     // Validate name
-    const nameValidation = validateName(registerName);
+    const nameValidation = validateName(registerName, t);
     if (!nameValidation.isValid) {
-      Alert.alert('Hata', nameValidation.message);
+      Alert.alert(t('common.error'), nameValidation.message);
       return;
     }
 
     // Validate email
-    const emailValidation = validateEmail(registerEmail);
+    const emailValidation = validateEmail(registerEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert('Hata', emailValidation.message);
+      Alert.alert(t('common.error'), emailValidation.message);
       return;
     }
 
     // Validate password strength
-    const passwordValidation = validatePassword(registerPassword);
+    const passwordValidation = validatePassword(registerPassword, t);
     if (!passwordValidation.isValid) {
-      Alert.alert('Hata', passwordValidation.message);
+      Alert.alert(t('common.error'), passwordValidation.message);
       return;
     }
 
@@ -355,14 +404,10 @@ export default function WelcomeScreen() {
     const { error } = await signUp(registerEmail.trim(), registerPassword, registerName.trim());
     setRegisterLoading(false);
     if (error) {
-      Alert.alert('Kayıt Hatası', error.message);
+      Alert.alert(t('auth.registerErrorTitle'), error.message);
     } else {
-      Alert.alert('Başarılı', 'Hesabınız oluşturuldu!', [
-        { text: 'Tamam', onPress: () => {
-          setRegisterVisible(false);
-          router.replace('/(tabs)');
-        }}
-      ]);
+      setRegisterVisible(false);
+      useUIStore.getState().showToast(t('auth.registerSuccess'), 'success');
     }
   };
 
@@ -384,9 +429,9 @@ export default function WelcomeScreen() {
 
   const handleForgotPassword = async () => {
     // Validate email
-    const emailValidation = validateEmail(forgotEmail);
+    const emailValidation = validateEmail(forgotEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert('Hata', emailValidation.message);
+      Alert.alert(t('common.error'), emailValidation.message);
       return;
     }
 
@@ -394,7 +439,7 @@ export default function WelcomeScreen() {
     const { error } = await resetPassword(forgotEmail.trim());
     setForgotLoading(false);
     if (error) {
-      Alert.alert('Hata', error.message);
+      Alert.alert(t('common.error'), error.message);
     } else {
       setForgotEmailSent(true);
     }
@@ -422,10 +467,10 @@ export default function WelcomeScreen() {
           scrollEventThrottle={16}
           style={styles.slider}
         >
-          {SLIDER_IMAGES.map((uri, index) => (
+          {SLIDER_IMAGES.map((imageSource, index) => (
             <View key={index} style={styles.slideContainer}>
               <Image
-                source={{ uri }}
+                source={imageSource}
                 style={styles.backgroundImage}
                 resizeMode="cover"
               />
@@ -443,10 +488,10 @@ export default function WelcomeScreen() {
         {/* Hero Text */}
         <View style={styles.heroSection} pointerEvents="none">
           <Text style={styles.heroTitle}>
-            KKTC'nin{'\n'}güzelliklerini{'\n'}keşfedin
+            {t('auth.heroTitle')}
           </Text>
           <Text style={styles.heroSubtitle}>
-            Unutulmaz deneyimler sizi bekliyor
+            {t('auth.heroSubtitle')}
           </Text>
           
           {/* Slider Dots */}
@@ -472,21 +517,21 @@ export default function WelcomeScreen() {
             style={styles.loginButton}
             onPress={() => setLoginVisible(true)}
           >
-            <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
             style={styles.signUpButton}
             onPress={() => setRegisterVisible(true)}
           >
-            <Text style={styles.signUpButtonText}>Kayıt Ol</Text>
+            <Text style={styles.signUpButtonText}>{t('auth.register')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Divider */}
         <View style={styles.dividerContainer}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>veya</Text>
+          <Text style={styles.dividerText}>{t('auth.or')}</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -498,7 +543,7 @@ export default function WelcomeScreen() {
                 <View style={styles.googleIconContainer}>
                   <Text style={styles.googleG}>G</Text>
                 </View>
-                <Text style={styles.socialButtonTextGlass}>Google ile devam et</Text>
+                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithGoogle')}</Text>
               </View>
             </BlurView>
           </TouchableOpacity>
@@ -509,7 +554,7 @@ export default function WelcomeScreen() {
                 <View style={styles.socialIconContainer}>
                   <Ionicons name="logo-facebook" size={20} color="#1877F2" />
                 </View>
-                <Text style={styles.socialButtonTextGlass}>Facebook ile devam et</Text>
+                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithFacebook')}</Text>
               </View>
             </BlurView>
           </TouchableOpacity>
@@ -520,7 +565,7 @@ export default function WelcomeScreen() {
                 <View style={styles.socialIconContainer}>
                   <Ionicons name="logo-apple" size={20} color="#000" />
                 </View>
-                <Text style={styles.socialButtonTextGlass}>Apple ile devam et</Text>
+                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithApple')}</Text>
               </View>
             </BlurView>
           </TouchableOpacity>
@@ -533,14 +578,14 @@ export default function WelcomeScreen() {
         onClose={() => setLoginVisible(false)}
         sheetHeight={height * 0.55}
       >
-        <Text style={styles.sheetTitle}>Hoş Geldiniz</Text>
-        <Text style={styles.sheetSubtitle}>Hesabınıza giriş yapın</Text>
+        <Text style={styles.sheetTitle}>{t('auth.loginSheetTitle')}</Text>
+        <Text style={styles.sheetSubtitle}>{t('auth.loginSheetSubtitle')}</Text>
         
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="E-posta"
+            placeholder={t('auth.email')}
             placeholderTextColor="#999"
             value={loginEmail}
             onChangeText={setLoginEmail}
@@ -553,7 +598,7 @@ export default function WelcomeScreen() {
           <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Şifre"
+            placeholder={t('auth.password')}
             placeholderTextColor="#999"
             value={loginPassword}
             onChangeText={setLoginPassword}
@@ -569,7 +614,7 @@ export default function WelcomeScreen() {
         </View>
         
         <TouchableOpacity style={styles.forgotPassword} onPress={openForgotPassword}>
-          <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
+          <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -580,14 +625,14 @@ export default function WelcomeScreen() {
           {loginLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.sheetButtonText}>Giriş Yap</Text>
+            <Text style={styles.sheetButtonText}>{t('auth.login')}</Text>
           )}
         </TouchableOpacity>
         
         <View style={styles.sheetFooter}>
-          <Text style={styles.sheetFooterText}>Hesabınız yok mu? </Text>
+          <Text style={styles.sheetFooterText}>{t('auth.noAccount')} </Text>
           <TouchableOpacity onPress={switchToRegister}>
-            <Text style={styles.sheetFooterLink}>Kayıt Ol</Text>
+            <Text style={styles.sheetFooterLink}>{t('auth.register')}</Text>
           </TouchableOpacity>
         </View>
       </AuthBottomSheet>
@@ -598,14 +643,14 @@ export default function WelcomeScreen() {
         onClose={() => setRegisterVisible(false)}
         sheetHeight={height * 0.60}
       >
-        <Text style={styles.sheetTitle}>Hesap Oluştur</Text>
-        <Text style={styles.sheetSubtitle}>KKTC'yi keşfetmeye başlayın</Text>
+        <Text style={styles.sheetTitle}>{t('auth.registerSheetTitle')}</Text>
+        <Text style={styles.sheetSubtitle}>{t('auth.registerSheetSubtitle')}</Text>
         
         <View style={styles.inputContainer}>
           <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Ad Soyad"
+            placeholder={t('auth.fullName')}
             placeholderTextColor="#999"
             value={registerName}
             onChangeText={setRegisterName}
@@ -617,7 +662,7 @@ export default function WelcomeScreen() {
           <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="E-posta"
+            placeholder={t('auth.email')}
             placeholderTextColor="#999"
             value={registerEmail}
             onChangeText={setRegisterEmail}
@@ -630,7 +675,7 @@ export default function WelcomeScreen() {
           <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Şifre"
+            placeholder={t('auth.password')}
             placeholderTextColor="#999"
             value={registerPassword}
             onChangeText={setRegisterPassword}
@@ -653,14 +698,14 @@ export default function WelcomeScreen() {
           {registerLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.sheetButtonText}>Kayıt Ol</Text>
+            <Text style={styles.sheetButtonText}>{t('auth.register')}</Text>
           )}
         </TouchableOpacity>
         
         <View style={styles.sheetFooter}>
-          <Text style={styles.sheetFooterText}>Zaten hesabınız var mı? </Text>
+          <Text style={styles.sheetFooterText}>{t('auth.hasAccount')} </Text>
           <TouchableOpacity onPress={switchToLogin}>
-            <Text style={styles.sheetFooterLink}>Giriş Yap</Text>
+            <Text style={styles.sheetFooterLink}>{t('auth.login')}</Text>
           </TouchableOpacity>
         </View>
       </AuthBottomSheet>
@@ -677,21 +722,21 @@ export default function WelcomeScreen() {
             <View style={styles.forgotSuccessIcon}>
               <Ionicons name="mail-open-outline" size={48} color="#4CAF50" />
             </View>
-            <Text style={styles.sheetTitle}>E-posta Gönderildi!</Text>
+            <Text style={styles.sheetTitle}>{t('auth.emailSentTitle')}</Text>
             <Text style={[styles.sheetSubtitle, { textAlign: 'center', marginBottom: 24 }]}>
-              Şifre sıfırlama bağlantısı {forgotEmail} adresine gönderildi.
+              {t('auth.emailSentMessage', { email: forgotEmail })}
             </Text>
             <TouchableOpacity
               style={styles.sheetButton}
               onPress={closeForgotPassword}
             >
-              <Text style={styles.sheetButtonText}>Tamam</Text>
+              <Text style={styles.sheetButtonText}>{t('common.done')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.backToLoginButton}
               onPress={switchToLogin}
             >
-              <Text style={styles.backToLoginText}>Giriş sayfasına dön</Text>
+              <Text style={styles.backToLoginText}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -700,16 +745,16 @@ export default function WelcomeScreen() {
             <View style={styles.forgotIconContainer}>
               <Ionicons name="key-outline" size={36} color="#333" />
             </View>
-            <Text style={styles.sheetTitle}>Şifremi Unuttum</Text>
+            <Text style={styles.sheetTitle}>{t('auth.forgotPasswordTitle')}</Text>
             <Text style={styles.sheetSubtitle}>
-              E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim
+              {t('auth.forgotPasswordSubtitle')}
             </Text>
             
             <View style={styles.inputContainer}>
               <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="E-posta"
+                placeholder={t('auth.email')}
                 placeholderTextColor="#999"
                 value={forgotEmail}
                 onChangeText={setForgotEmail}
@@ -726,7 +771,7 @@ export default function WelcomeScreen() {
               {forgotLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.sheetButtonText}>Şifre Sıfırlama Linki Gönder</Text>
+                <Text style={styles.sheetButtonText}>{t('auth.sendResetLink')}</Text>
               )}
             </TouchableOpacity>
             
@@ -735,7 +780,7 @@ export default function WelcomeScreen() {
               onPress={switchToLogin}
             >
               <Ionicons name="arrow-back" size={16} color="#666" />
-              <Text style={styles.backToLoginText}>Giriş sayfasına dön</Text>
+              <Text style={styles.backToLoginText}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
           </>
         )}

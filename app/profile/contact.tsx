@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -18,50 +18,61 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
+import { useTranslation } from 'react-i18next';
 
 // Contact methods
-const contactMethods = [
+const CONTACT_METHODS = [
   {
     id: 'phone',
-    label: 'Telefon',
     value: '+90 392 123 45 67',
     icon: 'call-outline',
     action: 'tel:+903921234567',
   },
   {
     id: 'email',
-    label: 'E-posta',
     value: 'destek@kktctour.com',
     icon: 'mail-outline',
     action: 'mailto:destek@kktctour.com',
   },
   {
     id: 'whatsapp',
-    label: 'WhatsApp',
     value: '+90 533 123 45 67',
     icon: 'logo-whatsapp',
     action: 'https://wa.me/905331234567',
   },
-];
+] as const;
 
 // Message subjects
-const subjects = [
-  'Genel Soru',
-  'Teknik Destek',
-  'Üyelik & Ödeme',
-  'Şikayet & Öneri',
-  'İş Birliği',
-];
+const SUBJECT_KEYS = ['general', 'technical', 'membership', 'feedback', 'partnership'] as const;
 
 export default function ContactScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+
+  const contactMethods = useMemo(
+    () =>
+      CONTACT_METHODS.map((method) => ({
+        ...method,
+        label: t(`contact.methods.${method.id}`),
+      })),
+    [t]
+  );
+
+  const subjectOptions = useMemo(
+    () =>
+      SUBJECT_KEYS.map((key) => ({
+        key,
+        label: t(`contact.subjects.${key}`),
+      })),
+    [t]
+  );
 
   const handleContactMethod = async (action: string) => {
     try {
@@ -69,20 +80,20 @@ export default function ContactScreen() {
       if (supported) {
         await Linking.openURL(action);
       } else {
-        Alert.alert('Hata', 'Bu işlem desteklenmiyor.');
+        Alert.alert(t('errors.generic'), t('errors.unsupported'));
       }
     } catch (error) {
-      Alert.alert('Hata', 'Bir hata oluştu.');
+      Alert.alert(t('errors.generic'), t('errors.generic'));
     }
   };
 
   const handleSendMessage = async () => {
     if (!selectedSubject) {
-      Alert.alert('Uyarı', 'Lütfen bir konu seçin.');
+      Alert.alert(t('common.warning'), t('validation.topicRequired'));
       return;
     }
     if (!message.trim()) {
-      Alert.alert('Uyarı', 'Lütfen mesajınızı yazın.');
+      Alert.alert(t('common.warning'), t('validation.messageRequired'));
       return;
     }
 
@@ -92,9 +103,9 @@ export default function ContactScreen() {
     setTimeout(() => {
       setIsSending(false);
       Alert.alert(
-        'Mesaj Gönderildi',
-        'Mesajınız başarıyla iletildi. En kısa sürede size dönüş yapacağız.',
-        [{ text: 'Tamam', onPress: () => router.back() }]
+        t('contact.messageSentTitle'),
+        t('contact.messageSentDescription'),
+        [{ text: t('common.done'), onPress: () => router.back() }]
       );
     }, 1500);
   };
@@ -111,7 +122,7 @@ export default function ContactScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>İletişim</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('contact.title')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -124,7 +135,7 @@ export default function ContactScreen() {
         {/* Quick Contact Methods */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            HIZLI İLETİŞİM
+            {t('contact.quickContactTitle')}
           </Text>
           <View style={styles.contactMethodsContainer}>
             {contactMethods.map((method) => (
@@ -157,7 +168,7 @@ export default function ContactScreen() {
         {/* Message Form */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            MESAJ GÖNDER
+            {t('contact.messageSectionTitle')}
           </Text>
           <View
             style={[
@@ -170,32 +181,34 @@ export default function ContactScreen() {
           >
             {/* Subject Selection */}
             <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Konu</Text>
+              <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
+                {t('contact.subjectLabel')}
+              </Text>
               <View style={styles.subjectsContainer}>
-                {subjects.map((subject) => (
+                {subjectOptions.map(({ key, label }) => (
                   <TouchableOpacity
-                    key={subject}
+                    key={key}
                     style={[
                       styles.subjectChip,
                       {
-                        backgroundColor: selectedSubject === subject 
+                        backgroundColor: selectedSubject === key 
                           ? colors.primary 
                           : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                        borderColor: selectedSubject === subject 
+                        borderColor: selectedSubject === key 
                           ? colors.primary 
                           : 'transparent',
                       },
                     ]}
                     activeOpacity={0.7}
-                    onPress={() => setSelectedSubject(subject)}
+                    onPress={() => setSelectedSubject(key)}
                   >
                     <Text
                       style={[
                         styles.subjectChipText,
-                        { color: selectedSubject === subject ? '#fff' : colors.text },
+                        { color: selectedSubject === key ? '#fff' : colors.text },
                       ]}
                     >
-                      {subject}
+                      {label}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -204,7 +217,9 @@ export default function ContactScreen() {
 
             {/* Message Input */}
             <View style={[styles.formSection, styles.formSectionBorder, { borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-              <Text style={[styles.formLabel, { color: colors.textSecondary }]}>Mesajınız</Text>
+              <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
+                {t('contact.messageLabel')}
+              </Text>
               <TextInput
                 style={[
                   styles.messageInput,
@@ -213,7 +228,7 @@ export default function ContactScreen() {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                   },
                 ]}
-                placeholder="Mesajınızı buraya yazın..."
+                placeholder={t('contact.messagePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={message}
                 onChangeText={setMessage}
@@ -248,7 +263,7 @@ export default function ContactScreen() {
                 styles.sendButtonText,
                 { color: (selectedSubject && message.trim()) ? '#fff' : colors.textSecondary }
               ]}>
-                Mesaj Gönder
+                {t('contact.sendButton')}
               </Text>
             </>
           )}
@@ -261,7 +276,7 @@ export default function ContactScreen() {
         ]}>
           <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
           <Text style={[styles.workingHoursText, { color: colors.textSecondary }]}>
-            Çalışma Saatleri: Hafta içi 09:00 - 18:00
+            {t('contact.workingHours')}
           </Text>
         </View>
       </ScrollView>

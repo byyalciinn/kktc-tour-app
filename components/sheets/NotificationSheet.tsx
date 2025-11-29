@@ -12,11 +12,18 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
+import { useAuthStore, useUIStore, useThemeStore } from '@/stores';
+import {
+  getUserNotifications,
+  markNotificationAsRead,
+  deleteUserNotification,
+  NotificationData,
+} from '@/lib/notificationService';
 
 const { height, width } = Dimensions.get('window');
 
@@ -35,36 +42,32 @@ interface NotificationSheetProps {
   onClose: () => void;
 }
 
-// Dummy notifications
-const initialNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'promo',
-    title: 'Özel Teklif!',
-    message: 'Gold üyeliğe geçin ve tüm turlarda %15 indirim kazanın. Sınırlı süre!',
-    time: '2 saat önce',
-    read: false,
-    icon: 'gift-outline',
-  },
-  {
-    id: '2',
-    type: 'tour',
-    title: 'Tur Hatırlatması',
-    message: 'Girne Kalesi turu yarın saat 09:00\'da başlıyor. Hazır mısınız?',
-    time: '5 saat önce',
-    read: false,
-    icon: 'calendar-outline',
-  },
-  {
-    id: '3',
-    type: 'system',
-    title: 'Hoş Geldiniz!',
-    message: 'KKTC Tour ailesine katıldığınız için teşekkürler. Keşfetmeye başlayın!',
-    time: '1 gün önce',
-    read: true,
-    icon: 'heart-outline',
-  },
-];
+// Helper to format relative time
+const formatRelativeTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Az önce';
+  if (diffMins < 60) return `${diffMins} dakika önce`;
+  if (diffHours < 24) return `${diffHours} saat önce`;
+  if (diffDays < 7) return `${diffDays} gün önce`;
+  return date.toLocaleDateString('tr-TR');
+};
+
+// Convert NotificationData to local Notification format
+const mapToLocalNotification = (data: NotificationData & { read?: boolean }): Notification => ({
+  id: data.id,
+  type: data.type as Notification['type'],
+  title: data.title,
+  message: data.message,
+  time: formatRelativeTime(data.created_at),
+  read: data.read || false,
+  icon: data.icon,
+});
 
 // Swipeable notification item
 function NotificationItem({
@@ -251,7 +254,7 @@ function NotificationItem({
 }
 
 export default function NotificationSheet({ visible, onClose }: NotificationSheetProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
@@ -259,9 +262,34 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuthStore();
+  const { setUnreadNotificationCount } = useUIStore();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // Update global unread count when notifications change
+  useEffect(() => {
+    setUnreadNotificationCount(unreadCount);
+  }, [unreadCount, setUnreadNotificationCount]);
+
+  // Load notifications from Supabase
+  const loadNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    const { data } = await getUserNotifications(user.id);
+    setNotifications(data.map(mapToLocalNotification));
+    setIsLoading(false);
+  }, [user?.id]);
+
+  // Load notifications when sheet opens
+  useEffect(() => {
+    if (visible && user?.id) {
+      loadNotifications();
+    }
+  }, [visible, user?.id, loadNotifications]);
 
   const openSheet = useCallback(() => {
     Animated.parallel([
@@ -303,22 +331,26 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
     }
   }, [visible, openSheet]);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!user?.id) return;
+    
+    // Optimistic update
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+    
+    // Persist to database
+    await deleteUserNotification(user.id, id);
   };
 
-  const handleMarkRead = (id: string) => {
+  const handleMarkRead = async (id: string) => {
+    if (!user?.id) return;
+    
+    // Optimistic update
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-  };
-
-  const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const handleClearAll = () => {
-    setNotifications([]);
+    
+    // Persist to database
+    await markNotificationAsRead(user.id, id);
   };
 
   if (!visible) return null;
@@ -353,7 +385,6 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
           styles.sheetContainer,
           {
             transform: [{ translateY: slideAnim }],
-            paddingBottom: insets.bottom,
           },
         ]}
       >
@@ -365,7 +396,8 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
             {
               backgroundColor: isDark
                 ? 'rgba(30, 30, 30, 0.85)'
-                : 'rgba(255, 255, 255, 0.75)',
+                : 'rgba(255, 255, 255, 0.95)',
+              paddingBottom: insets.bottom,
             },
           ]}
         >
@@ -381,45 +413,8 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
 
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>
-                Bildirimler
-              </Text>
-              {unreadCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.badgeText}>{unreadCount}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.headerActions}>
-              {notifications.length > 0 && (
-                <>
-                  <TouchableOpacity
-                    style={styles.headerButton}
-                    onPress={handleMarkAllRead}
-                  >
-                    <Text style={[styles.headerButtonText, { color: colors.primary }]}>
-                      Tümünü Oku
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.headerButton}
-                    onPress={handleClearAll}
-                  >
-                    <Text style={[styles.headerButtonText, { color: '#EF4444' }]}>
-                      Temizle
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Swipe hint */}
-          <View style={styles.swipeHint}>
-            <Ionicons name="swap-horizontal" size={14} color={colors.textSecondary} />
-            <Text style={[styles.swipeHintText, { color: colors.textSecondary }]}>
-              Sola kaydır: Sil • Sağa kaydır: Okundu
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Bildirimler
             </Text>
           </View>
 
@@ -470,9 +465,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    maxHeight: height * 0.75,
+    height: height * 0.65,
   },
   sheet: {
+    flex: 1,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     overflow: 'hidden',
@@ -489,59 +485,20 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    position: 'relative',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
-    fontWeight: '700',
-  },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
-    color: '#fff',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  headerButton: {
-    paddingVertical: 4,
-  },
-  headerButtonText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '500',
-  },
-  swipeHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingBottom: 12,
-  },
-  swipeHintText: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    textAlign: 'center',
   },
   notificationsList: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingBottom: 24,
     gap: 12,

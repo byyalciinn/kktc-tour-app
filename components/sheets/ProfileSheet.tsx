@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
+  Alert,
   Animated,
   Dimensions,
   Image,
@@ -12,12 +13,12 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
 
 const { height } = Dimensions.get('window');
@@ -27,29 +28,73 @@ interface ProfileSheetProps {
   onClose: () => void;
 }
 
+// Member class badge colors
+const memberClassColors: Record<string, string> = {
+  'Normal': '#6B7280',
+  'Gold': '#FFB800',
+  'Business': '#3B82F6',
+};
+
 const personalDetailsItems = [
-  { label: 'Kişisel Bilgiler', icon: 'person-outline' },
-  { label: 'Kimlik Bilgileri', icon: 'card-outline' },
-  { label: 'Ödeme Yöntemleri', icon: 'wallet-outline' },
-  { label: 'Tur Tercihleri', icon: 'options-outline' },
+  { label: 'Kişisel Bilgiler', icon: 'person-outline', route: '/profile/personal-info' },
+  { label: 'Kimlik Bilgileri', icon: 'card-outline', route: '' },
+  { label: 'Ödeme Yöntemleri', icon: 'wallet-outline', route: '' },
+  { label: 'Tur Tercihleri', icon: 'options-outline', route: '' },
+];
+
+const supportItems = [
+  { label: 'Yardım', route: '/profile/help' },
+  { label: 'İletişim', route: '/profile/contact' },
+];
+
+const adminMenuItems = [
+  { label: 'Yönetim Menüsü', icon: 'settings-outline', route: '/admin/menu' },
 ];
 
 export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
 
   // Auth store
-  const { profile, user } = useAuthStore();
+  const { profile, user, signOut } = useAuthStore();
+
+  // Get member class color
+  const memberClassColor = memberClassColors[profile?.member_class || 'Normal'] || '#6B7280';
 
   // Dynamic account info based on profile
   const accountInfoItems = [
-    { label: 'Üye No', value: profile?.member_number || '-' },
-    { label: 'Toplanan Puan', value: '0' },
-    { label: 'Üyelik Sınıfı', value: profile?.member_class || 'Standart' },
-    { label: 'Üyelik Kartı', value: '', hasArrow: true },
+    { label: 'Üye No', value: profile?.member_number || '-', route: '' },
+    { label: 'Üyelik Sınıfı', value: profile?.member_class || 'Normal', route: '' },
+    { label: 'Üyelik Kartı', value: '', hasArrow: true, route: '/profile/membership-card' },
   ];
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Çıkış Yap',
+      'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Çıkış Yap',
+          style: 'destructive',
+          onPress: async () => {
+            closeSheet();
+            await signOut();
+            router.replace('/(auth)');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleNavigate = (route: string) => {
+    if (route) {
+      closeSheet();
+      router.push(route as any);
+    }
+  };
 
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -123,7 +168,6 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
           styles.sheetContainer,
           {
             transform: [{ translateY: slideAnim }],
-            paddingBottom: insets.bottom,
           },
         ]}
       >
@@ -132,6 +176,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
             styles.sheet,
             {
               backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+              paddingBottom: insets.bottom,
             },
           ]}
         >
@@ -147,12 +192,18 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
 
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={closeSheet} style={styles.headerButton}>
+            <TouchableOpacity onPress={closeSheet} style={styles.closeButton}>
               <Text style={[styles.doneText, { color: colors.primary }]}>Kapat</Text>
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.text }]}>Profil</Text>
-            <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="settings-outline" size={24} color={colors.text} />
+            <TouchableOpacity 
+              style={[
+                styles.settingsButton,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+              ]}
+              onPress={() => handleNavigate('/profile/settings')}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -168,14 +219,12 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                   source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }} 
                   style={styles.avatar} 
                 />
-                <View style={[styles.badgeIndicator, { backgroundColor: '#FFD700' }]} />
               </View>
               <Text style={[styles.userName, { color: colors.text }]}>
-                {profile?.full_name || 'Kullanıcı'}
+                {profile?.full_name || user?.user_metadata?.full_name || 'Kullanıcı'}
               </Text>
-              <Text style={[styles.memberType, { color: '#FFB800' }]}>
-                {profile?.member_class === 'gold' ? 'Gold Üye' : 
-                 profile?.member_class === 'silver' ? 'Silver Üye' : 'Standart Üye'}
+              <Text style={[styles.memberType, { color: memberClassColor }]}>
+                {profile?.member_class || 'Normal'} Üye
               </Text>
             </View>
 
@@ -188,7 +237,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                 style={[
                   styles.sectionCard,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
                     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
                   },
                 ]}
@@ -204,6 +253,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                       ],
                     ]}
                     activeOpacity={item.hasArrow ? 0.7 : 1}
+                    onPress={() => handleNavigate(item.route)}
                   >
                     <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
                     <View style={styles.infoValueContainer}>
@@ -230,7 +280,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                 style={[
                   styles.sectionCard,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
                     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
                   },
                 ]}
@@ -246,8 +296,82 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                       ],
                     ]}
                     activeOpacity={0.7}
+                    onPress={() => handleNavigate(item.route)}
                   >
                     <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Support Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                DESTEK
+              </Text>
+              <View
+                style={[
+                  styles.sectionCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  },
+                ]}
+              >
+                {supportItems.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.infoRow,
+                      index < supportItems.length - 1 && [
+                        styles.infoRowBorder,
+                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                      ],
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => handleNavigate(item.route)}
+                  >
+                    <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Admin Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                YÖNETİM
+              </Text>
+              <View
+                style={[
+                  styles.sectionCard,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  },
+                ]}
+              >
+                {adminMenuItems.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.infoRow,
+                      index < adminMenuItems.length - 1 && [
+                        styles.infoRowBorder,
+                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                      ],
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => handleNavigate(item.route)}
+                  >
+                    <View style={styles.adminMenuItem}>
+                      <View style={[styles.adminMenuIcon, { backgroundColor: colors.primary + '15' }]}>
+                        <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+                      </View>
+                      <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                    </View>
                     <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
@@ -263,10 +387,16 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                 },
               ]}
               activeOpacity={0.7}
+              onPress={handleLogout}
             >
               <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
               <Text style={styles.logoutText}>Çıkış Yap</Text>
             </TouchableOpacity>
+
+            {/* App Version */}
+            <Text style={[styles.versionText, { color: colors.textSecondary }]}>
+              Versiyon 1.0.0
+            </Text>
           </ScrollView>
         </View>
       </Animated.View>
@@ -283,9 +413,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    maxHeight: height * 0.9,
+    height: height * 0.85,
   },
   sheet: {
+    flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
@@ -311,8 +442,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  headerButton: {
-    width: 60,
+  closeButton: {
+    minWidth: 60,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   doneText: {
     fontSize: 17,
@@ -380,6 +518,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   infoRow: {
     flexDirection: 'row',
@@ -406,6 +549,18 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '400',
   },
+  adminMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  adminMenuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -414,11 +569,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 8,
+    marginBottom: 16,
   },
   logoutText: {
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
     color: '#FF3B30',
+  },
+  versionText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });

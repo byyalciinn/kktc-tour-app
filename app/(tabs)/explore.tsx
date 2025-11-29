@@ -16,13 +16,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useTourStore, useUIStore, selectTours, selectCategories } from '@/stores';
+import { useTourStore, useUIStore, useThemeStore, selectTours, selectCategories } from '@/stores';
 import { Tour, Category } from '@/types';
 import { TourDetailSheet } from '@/components/sheets';
 
@@ -42,10 +42,11 @@ const DEFAULT_REGION = {
 };
 
 export default function ExploreScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
 
   // Zustand stores with optimized selectors
@@ -60,7 +61,7 @@ export default function ExploreScreen() {
   const closeTourDetail = useUIStore((state) => state.closeTourDetail);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [address, setAddress] = useState<string>('Konum alınıyor...');
+  const [address, setAddress] = useState<string>(t('explore.addressFetching'));
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [region, setRegion] = useState(DEFAULT_REGION);
@@ -131,7 +132,7 @@ export default function ExploreScreen() {
 
   // All categories with "Tümü" option - filter out any existing 'all' category to avoid duplicates
   const allCategories: Category[] = [
-    { id: 'all', name: 'Tümü', icon: 'apps-outline', sort_order: 0 },
+    { id: 'all', name: t('home.allCategories'), icon: 'apps-outline', sort_order: 0 },
     ...categories.filter((c: Category) => c.id !== 'all'),
   ];
 
@@ -139,7 +140,7 @@ export default function ExploreScreen() {
   useEffect(() => {
     fetchCategories();
     fetchTours();
-  }, []);
+  }, [fetchCategories, fetchTours]);
 
   // Request location permission and get current location
   const requestLocationPermission = async () => {
@@ -149,7 +150,7 @@ export default function ExploreScreen() {
       
       if (status !== 'granted') {
         setLocationPermissionDenied(true);
-        setAddress('Girne, Kuzey Kıbrıs');
+        setAddress(t('home.defaultLocation'));
         setLoading(false);
         return;
       }
@@ -185,11 +186,11 @@ export default function ExploreScreen() {
         ]
           .filter(Boolean)
           .join(', ');
-        setAddress(formattedAddress || 'Girne, Kuzey Kıbrıs');
+        setAddress(formattedAddress || t('explore.currentLocation'));
       }
     } catch (error) {
       console.log('Location error:', error);
-      setAddress('Girne, Kuzey Kıbrıs');
+      setAddress(t('home.defaultLocation'));
     } finally {
       setLoading(false);
     }
@@ -215,9 +216,11 @@ export default function ExploreScreen() {
   };
 
   const getCategoryTitle = () => {
-    if (activeCategory === 'all') return 'Keşfedilecek Turlar';
+    if (activeCategory === 'all') return t('explore.nearbyTitleDefault');
     const category = categories.find((c: Category) => c.id === activeCategory);
-    return category ? `${category.name} Turları` : 'Keşfedilecek Turlar';
+    return category
+      ? t('explore.categoryTitle', { category: category.name })
+      : t('explore.nearbyTitleDefault');
   };
 
   // Handle tour marker press
@@ -230,9 +233,9 @@ export default function ExploreScreen() {
   const toggleLocationTracking = () => {
     if (!location && !isLocationEnabled) {
       Alert.alert(
-        'Konum İzni',
-        'Konumunuzu görmek için konum izni vermeniz gerekmektedir.',
-        [{ text: 'Tamam' }]
+        t('explore.locationPermissionTitle'),
+        t('explore.locationPermissionSubtitle'),
+        [{ text: t('common.done') }]
       );
       return;
     }
@@ -399,10 +402,10 @@ export default function ExploreScreen() {
                 <Ionicons name="location-outline" size={20} color={colors.primary} />
                 <View style={styles.permissionBannerText}>
                   <Text style={[styles.permissionTitle, { color: colors.text }]}>
-                    Konum İzni Gerekli
+                    {t('explore.locationPermissionTitle')}
                   </Text>
                   <Text style={[styles.permissionSubtitle, { color: colors.textSecondary }]}>
-                    Yakınındaki yerleri görmek için dokunun
+                    {t('explore.locationPermissionSubtitle')}
                   </Text>
                 </View>
               </View>
@@ -425,7 +428,7 @@ export default function ExploreScreen() {
               style={[styles.searchText, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {loading ? 'Konum alınıyor...' : address}
+              {loading ? t('explore.addressFetching') : address}
             </Text>
           </View>
 
@@ -484,7 +487,7 @@ export default function ExploreScreen() {
               </Text>
               <TouchableOpacity>
                 <Text style={[styles.seeAllText, { color: colors.primary }]}>
-                  Tümünü Gör
+                  {t('home.seeAll')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -545,7 +548,7 @@ export default function ExploreScreen() {
               <View style={styles.emptyState}>
                 <Ionicons name="map-outline" size={48} color={colors.textSecondary} />
                 <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-                  Bu kategoride tur bulunamadı
+                  {t('tours.noTours')}
                 </Text>
               </View>
             )}

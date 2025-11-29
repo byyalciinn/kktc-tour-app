@@ -9,7 +9,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   RefreshControl,
   ActivityIndicator,
   Alert,
@@ -18,16 +17,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
-import { useFavoritesStore, useAuthStore, useUIStore } from '@/stores';
+import { useFavoritesStore, useAuthStore, useUIStore, useThemeStore } from '@/stores';
 import { TourDetailSheet } from '@/components/sheets';
 import { FavoritesEmptyState, LoginRequiredEmptyState, FavoritesScreenSkeleton } from '@/components/ui';
+import { useTranslation } from 'react-i18next';
 import { FavoriteCard } from '@/components/cards';
 
 export default function FavoritesScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
-  
+  const { t } = useTranslation();
+
   // Zustand stores
   const { user } = useAuthStore();
   const { 
@@ -64,12 +65,12 @@ export default function FavoritesScreen() {
     if (!user) return;
 
     Alert.alert(
-      'Favorilerden Kaldır',
-      'Bu turu favorilerden kaldırmak istediğinize emin misiniz?',
+      t('favorites.removeConfirmTitle'),
+      t('favorites.removeConfirmMessage'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Kaldır',
+          text: t('favorites.remove'),
           style: 'destructive',
           onPress: async () => {
             await removeFavorite(user.id, tourId);
@@ -86,10 +87,8 @@ export default function FavoritesScreen() {
 
   const handleCloseSheet = () => {
     closeTourDetail();
-    // Refresh favorites when sheet closes (in case favorite was toggled)
-    if (user) {
-      fetchFavorites(user.id);
-    }
+    // Note: No need to refetch here - favorites store uses optimistic updates
+    // The toggleFavorite action in favoritesStore already updates local state
   };
 
   return (
@@ -114,11 +113,11 @@ export default function FavoritesScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            Favorilerim
+            {t('favorites.title')}
           </Text>
           {favorites.length > 0 && (
-            <Text style={[styles.headerCount, { color: colors.textSecondary }]}>
-              {favorites.length} tur
+            <Text style={[styles.headerCount, { color: colors.textSecondary }]}> 
+              {t('favorites.countLabel', { count: favorites.length })}
             </Text>
           )}
         </View>
@@ -136,10 +135,10 @@ export default function FavoritesScreen() {
               color={colors.textSecondary}
             />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              Giriş Yapın
+              {t('favorites.loginTitle')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Favorilerinizi görmek için giriş yapın
+              {t('favorites.loginSubtitle')}
             </Text>
           </View>
         ) : favorites.length > 0 ? (
@@ -187,10 +186,10 @@ export default function FavoritesScreen() {
               color={colors.textSecondary}
             />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              Henüz favori yok
+              {t('favorites.empty')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Beğendiğiniz turları favorilere ekleyin
+              {t('favorites.emptySubtitle')}
             </Text>
           </View>
         )}

@@ -6,11 +6,14 @@ import {
   VectorIcon,
 } from 'expo-router/unstable-native-tabs';
 import { Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 // KKTC Tour App - Primary color: #F03A52
 const PRIMARY_COLOR = '#F03A52';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+
   return (
     <NativeTabs
       minimizeBehavior="onScrollDown"
@@ -18,7 +21,7 @@ export default function TabLayout() {
     >
       {/* Home Tab */}
       <NativeTabs.Trigger name="index">
-        <Label>Ana Sayfa</Label>
+        <Label>{t('tabs.home')}</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'house', selected: 'house.fill' }} />,
           default: (
@@ -31,7 +34,7 @@ export default function TabLayout() {
 
       {/* Explore Tab */}
       <NativeTabs.Trigger name="explore">
-        <Label>Keşfet</Label>
+        <Label>{t('tabs.explore')}</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'safari', selected: 'safari.fill' }} />,
           default: (
@@ -44,7 +47,7 @@ export default function TabLayout() {
 
       {/* Favorites Tab */}
       <NativeTabs.Trigger name="favorites">
-        <Label>Favoriler</Label>
+        <Label>{t('tabs.favorites')}</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />,
           default: (
@@ -57,7 +60,7 @@ export default function TabLayout() {
 
       {/* Profile Tab */}
       <NativeTabs.Trigger name="profile">
-        <Label>Profil</Label>
+        <Label>{t('tabs.profile')}</Label>
         {Platform.select({
           ios: <Icon sf={{ default: 'person', selected: 'person.fill' }} />,
           default: (

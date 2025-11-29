@@ -11,7 +11,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   RefreshControl,
   Animated,
   ActivityIndicator,
@@ -19,21 +18,24 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DestinationSearch, ProfileSheet, TourDetailSheet, NotificationSheet } from '@/components/sheets';
+import { useTranslation } from 'react-i18next';
 import { HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/components/ui';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
-import { useTourStore, useUIStore, useAuthStore } from '@/stores';
+import { useTourStore, useUIStore, useAuthStore, useThemeStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
+import { getUnreadCount, subscribeToNotifications } from '@/lib/notificationService';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pullAnim = useRef(new Animated.Value(0)).current;
   const [pullDistance, setPullDistance] = useState(0);
+  const { t } = useTranslation();
 
   // Zustand stores
   const { 
@@ -53,6 +55,9 @@ export default function HomeScreen() {
     isTourDetailVisible,
     isNotificationSheetVisible,
     selectedTour,
+    unreadNotificationCount,
+    setUnreadNotificationCount,
+    incrementUnreadNotificationCount,
     openSearch,
     closeSearch,
     openProfileSheet,
@@ -85,11 +90,56 @@ export default function HomeScreen() {
     outputRange: ['0deg', '360deg'],
   });
 
-  // Initial load
+  // Initial load with cleanup guard
   useEffect(() => {
-    fetchCategories();
-    fetchTours();
+    let isMounted = true;
+    
+    const loadData = async () => {
+      // Only update state if component is still mounted
+      if (isMounted) {
+        await fetchCategories();
+        await fetchTours();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  // Load notification count on mount and subscribe to realtime updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Initial load
+    const loadNotificationCount = async () => {
+      const count = await getUnreadCount(user.id);
+      setUnreadNotificationCount(count);
+    };
+    
+    loadNotificationCount();
+
+    // Subscribe to realtime notification updates
+    const unsubscribe = subscribeToNotifications(
+      user.id,
+      // On new notification - increment count
+      () => {
+        incrementUnreadNotificationCount();
+      },
+      // On notification update - reload count
+      async () => {
+        const count = await getUnreadCount(user.id);
+        setUnreadNotificationCount(count);
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.id, setUnreadNotificationCount, incrementUnreadNotificationCount]);
 
   // Handle category change
   const handleCategoryPress = (categoryId: string) => {
@@ -157,11 +207,11 @@ export default function HomeScreen() {
           <Text style={styles.tripCardPrice}>
             {tour.currency}{tour.price}
           </Text>
-          <Text style={styles.tripCardPriceLabel}>kişi başı</Text>
+          <Text style={styles.tripCardPriceLabel}>{t('home.perPerson')}</Text>
         </View>
       </View>
     </TouchableOpacity>
-  ), [colors.text, getCategoryName, handleTourPress]);
+  ), [colors.text, getCategoryName, handleTourPress, t]);
 
   // Header component for FlatList
   const ListHeader = useCallback(() => (
@@ -172,7 +222,9 @@ export default function HomeScreen() {
           <Animated.View style={[styles.refreshIconWrapper, { transform: [{ rotate: spin }] }]}>
             <Ionicons name="refresh" size={20} color={colors.primary} />
           </Animated.View>
-          <Text style={[styles.refreshText, { color: colors.textSecondary }]}>Güncelleniyor...</Text>
+          <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
+            {t('home.refreshing')}
+          </Text>
         </View>
       )}
 
@@ -192,10 +244,14 @@ export default function HomeScreen() {
         
         {/* Location Center */}
         <View style={styles.locationCenter}>
-          <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>Konum</Text>
+          <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>
+            {t('home.locationLabel')}
+          </Text>
           <TouchableOpacity style={styles.locationRow}>
             <Ionicons name="location" size={16} color={colors.primary} />
-            <Text style={[styles.locationText, { color: colors.text }]}>Kuzey Kıbrıs, KKTC</Text>
+            <Text style={[styles.locationText, { color: colors.text }]}>
+              {t('home.defaultLocation')}
+            </Text>
             <Ionicons name="chevron-down" size={16} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -207,10 +263,14 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="notifications-outline" size={24} color={colors.text} />
-          {/* Notification badge */}
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationBadgeText}>2</Text>
-          </View>
+          {/* Notification badge - only show if there are unread notifications */}
+          {unreadNotificationCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -222,7 +282,9 @@ export default function HomeScreen() {
           activeOpacity={0.7}
         >
           <Ionicons name="search-outline" size={22} color={colors.textSecondary} />
-          <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Destinasyon ara</Text>
+          <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
+            {t('home.searchPlaceholder')}
+          </Text>
         </TouchableOpacity>
       </View>
       
@@ -277,7 +339,24 @@ export default function HomeScreen() {
       )}
       {!isLoading && filteredTours.length === 0 && <NoToursEmptyState />}
     </View>
-  ), [isRefreshing, spin, colors, profile, user, openProfileSheet, openNotificationSheet, openSearch, categories, activeCategoryIndex, handleCategoryPress, isLoading, tours.length, filteredTours.length]);
+  ), [
+    isRefreshing,
+    spin,
+    colors,
+    profile,
+    user,
+    openProfileSheet,
+    openNotificationSheet,
+    openSearch,
+    categories,
+    activeCategoryIndex,
+    handleCategoryPress,
+    isLoading,
+    tours.length,
+    filteredTours.length,
+    unreadNotificationCount,
+    t,
+  ]);
 
   // Key extractor for FlatList
   const keyExtractor = useCallback((item: Tour) => item.id, []);

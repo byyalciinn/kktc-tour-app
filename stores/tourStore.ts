@@ -14,6 +14,9 @@ import {
 } from '@/lib/tourService';
 import { featuredTours } from '@/constants/Tours';
 
+// Track the latest category fetch request to prevent race conditions
+let latestCategoryFetchId = 0;
+
 interface TourState {
   // State
   tours: Tour[];
@@ -139,12 +142,20 @@ export const useTourStore = create<TourState>((set, get) => ({
     }
   },
 
-  // Fetch tours by category
+  // Fetch tours by category with race condition protection
   fetchToursByCategory: async (categoryId: string) => {
+    // Increment request ID to track latest request
+    const requestId = ++latestCategoryFetchId;
+    
     set({ isLoading: true, error: null });
 
     try {
       const { data, error } = await getToursByCategory(categoryId);
+
+      // Only update state if this is still the latest request
+      if (requestId !== latestCategoryFetchId) {
+        return; // Stale request, ignore results
+      }
 
       if (error) {
         set({ error, isLoading: false });
@@ -158,6 +169,10 @@ export const useTourStore = create<TourState>((set, get) => ({
         lastFetched: Date.now(),
       });
     } catch (err: any) {
+      // Only update state if this is still the latest request
+      if (requestId !== latestCategoryFetchId) {
+        return;
+      }
       set({ 
         error: err.message,
         isLoading: false,

@@ -3,3 +3,4 @@
  */
 
 export { useDebounce, useDebouncedCallback, useThrottledCallback } from './useDebounce';
+export { usePushNotifications } from './usePushNotifications';

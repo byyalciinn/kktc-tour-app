@@ -8,17 +8,21 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
-  useColorScheme,
   Switch,
   Alert,
+  Modal,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 import { useToast } from '@/components/ui';
+import { languages, changeLanguage, getCurrentLanguage, LanguageCode } from '@/lib/i18n';
 
 interface SettingItemProps {
   label: string;
@@ -43,7 +47,7 @@ function SettingItem({
   danger = false,
   isLast = false,
 }: SettingItemProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
 
@@ -91,31 +95,77 @@ function SettingItem({
 }
 
 export default function SettingsScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme, toggleDarkMode } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const toast = useToast();
+  const { t } = useTranslation();
 
   const { signOut } = useAuthStore();
 
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(isDark);
+  const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage());
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  
+  // Animation for language modal
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const openLanguageModal = () => {
+    setLanguageModalVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeLanguageModal = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 300,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setLanguageModalVisible(false);
+    });
+  };
+
+  const handleLanguageChange = async (langCode: LanguageCode) => {
+    await changeLanguage(langCode);
+    setCurrentLang(langCode);
+    closeLanguageModal();
+    toast.success(langCode === 'tr' ? 'Dil Türkçe olarak değiştirildi' : 'Language changed to English');
+  };
 
   const handleClearCache = () => {
     Alert.alert(
-      'Önbelleği Temizle',
-      'Tüm önbellek verileri silinecek. Devam etmek istiyor musunuz?',
+      t('settings.clearCache'),
+      t('settings.clearCacheConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Temizle',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             // TODO: Implement cache clearing
-            toast.success('Önbellek temizlendi');
+            toast.success(t('settings.cacheCleared'));
           },
         },
       ]
@@ -124,16 +174,16 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Hesabı Sil',
-      'Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz kalıcı olarak silinecek.',
+      t('settings.deleteAccount'),
+      t('settings.deleteAccountConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Hesabı Sil',
+          text: t('settings.deleteAccount'),
           style: 'destructive',
           onPress: () => {
             // TODO: Implement account deletion
-            toast.error('Bu özellik henüz aktif değil');
+            toast.error(t('settings.comingSoon'));
           },
         },
       ]
@@ -142,12 +192,12 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Çıkış Yap',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -175,7 +225,7 @@ export default function SettingsScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Ayarlar</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -187,10 +237,10 @@ export default function SettingsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notifications Section */}
+        {/* Preferences Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Tercihler
+            {t('settings.preferences')}
           </Text>
           <BlurView
             intensity={isDark ? 40 : 80}
@@ -204,30 +254,30 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingItem
-              label="Bildirimler"
+              label={t('settings.notificationsEnabled')}
               hasSwitch
               switchValue={notificationsEnabled}
               onSwitchChange={setNotificationsEnabled}
               hasArrow={false}
             />
             <SettingItem
-              label="Konum Servisleri"
+              label={t('settings.locationServices')}
               hasSwitch
               switchValue={locationEnabled}
               onSwitchChange={setLocationEnabled}
               hasArrow={false}
             />
             <SettingItem
-              label="Karanlık Mod"
+              label={t('settings.darkMode')}
               hasSwitch
-              switchValue={darkModeEnabled}
-              onSwitchChange={setDarkModeEnabled}
+              switchValue={isDark}
+              onSwitchChange={toggleDarkMode}
               hasArrow={false}
             />
             <SettingItem
-              label="Dil"
-              value="Türkçe"
-              onPress={() => toast.info('Dil ayarları yakında eklenecek')}
+              label={t('settings.language')}
+              value={languages[currentLang].nativeName}
+              onPress={openLanguageModal}
               isLast
             />
           </BlurView>
@@ -236,7 +286,7 @@ export default function SettingsScreen() {
         {/* Privacy Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Gizlilik ve Güvenlik
+            {t('settings.privacySecurity')}
           </Text>
           <BlurView
             intensity={isDark ? 40 : 80}
@@ -250,15 +300,15 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingItem
-              label="Şifre Değiştir"
+              label={t('settings.changePassword')}
               onPress={() => router.push('/profile/change-password')}
             />
             <SettingItem
-              label="Gizlilik Politikası"
+              label={t('settings.privacyPolicy')}
               onPress={() => router.push('/profile/privacy-policy')}
             />
             <SettingItem
-              label="Kullanım Koşulları"
+              label={t('settings.termsOfService')}
               onPress={() => router.push('/profile/terms-of-use')}
               isLast
             />
@@ -268,7 +318,7 @@ export default function SettingsScreen() {
         {/* Data Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Veri Yönetimi
+            {t('settings.dataManagement')}
           </Text>
           <BlurView
             intensity={isDark ? 40 : 80}
@@ -282,12 +332,12 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingItem
-              label="Önbelleği Temizle"
+              label={t('settings.clearCache')}
               onPress={handleClearCache}
             />
             <SettingItem
-              label="Verilerimi İndir"
-              onPress={() => toast.info('Veri indirme yakında eklenecek')}
+              label={t('settings.downloadData')}
+              onPress={() => toast.info(t('settings.comingSoon'))}
               isLast
             />
           </BlurView>
@@ -296,7 +346,7 @@ export default function SettingsScreen() {
         {/* Account Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            Hesap
+            {t('settings.account')}
           </Text>
           <BlurView
             intensity={isDark ? 40 : 80}
@@ -310,13 +360,13 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingItem
-              label="Çıkış Yap"
+              label={t('auth.logout')}
               onPress={handleLogout}
               danger
               hasArrow={false}
             />
             <SettingItem
-              label="Hesabı Sil"
+              label={t('settings.deleteAccount')}
               onPress={handleDeleteAccount}
               danger
               hasArrow={false}
@@ -331,10 +381,120 @@ export default function SettingsScreen() {
             Tour App v1.0.0
           </Text>
           <Text style={[styles.appCopyright, { color: colors.textSecondary }]}>
-            © 2024 Tour App. Tüm hakları saklıdır.
+            © 2024 Tour App. {t('common.allRightsReserved') || 'Tüm hakları saklıdır.'}
           </Text>
         </View>
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <Modal
+        visible={languageModalVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={closeLanguageModal}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={closeLanguageModal}
+        >
+          <Animated.View
+            style={[
+              styles.modalOverlay,
+              {
+                backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
+                opacity: fadeAnim,
+              },
+            ]}
+          />
+        </TouchableOpacity>
+
+        <Animated.View
+          style={[
+            styles.languageModalContainer,
+            {
+              transform: [{ translateY: slideAnim }],
+              paddingBottom: insets.bottom + 20,
+            },
+          ]}
+        >
+          <BlurView
+            intensity={isDark ? 60 : 90}
+            tint={isDark ? 'dark' : 'light'}
+            style={[
+              styles.languageModal,
+              {
+                backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+              },
+            ]}
+          >
+            {/* Modal Handle */}
+            <View style={styles.modalHandle}>
+              <View
+                style={[
+                  styles.handleBar,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' },
+                ]}
+              />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t('settings.language')}
+            </Text>
+
+            {/* Language Options */}
+            <View style={styles.languageOptions}>
+              {(Object.keys(languages) as LanguageCode[]).map((langCode) => (
+                <TouchableOpacity
+                  key={langCode}
+                  style={[
+                    styles.languageOption,
+                    {
+                      backgroundColor: currentLang === langCode
+                        ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,122,255,0.1)')
+                        : 'transparent',
+                      borderColor: currentLang === langCode
+                        ? colors.primary
+                        : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                    },
+                  ]}
+                  onPress={() => handleLanguageChange(langCode)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.languageFlag}>{languages[langCode].flag}</Text>
+                  <View style={styles.languageTextContainer}>
+                    <Text style={[styles.languageName, { color: colors.text }]}>
+                      {languages[langCode].nativeName}
+                    </Text>
+                    <Text style={[styles.languageNameSecondary, { color: colors.textSecondary }]}>
+                      {languages[langCode].name}
+                    </Text>
+                  </View>
+                  {currentLang === langCode && (
+                    <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={[
+                styles.cancelButton,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+              ]}
+              onPress={closeLanguageModal}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
+          </BlurView>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -424,5 +584,77 @@ const styles = StyleSheet.create({
   appCopyright: {
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  // Language Modal Styles
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+  },
+  languageModalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  languageModal: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  modalHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  handleBar: {
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  languageOptions: {
+    gap: 12,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+  },
+  languageFlag: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  languageTextContainer: {
+    flex: 1,
+  },
+  languageName: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  languageNameSecondary: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  cancelButton: {
+    marginTop: 16,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
   },
 });

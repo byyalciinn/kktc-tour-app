@@ -28,11 +28,25 @@ const ExpoSecureStoreAdapter = {
 };
 
 // Supabase configuration
-// TODO: Bu değerleri kendi Supabase projenizden alın
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Runtime validation for required environment variables
+if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL') {
+  console.error(
+    '❌ EXPO_PUBLIC_SUPABASE_URL is not configured.\n' +
+    'Please copy .env.example to .env and fill in your Supabase project URL.'
+  );
+}
+
+if (!supabaseAnonKey || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
+  console.error(
+    '❌ EXPO_PUBLIC_SUPABASE_ANON_KEY is not configured.\n' +
+    'Please copy .env.example to .env and fill in your Supabase anon key.'
+  );
+}
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,

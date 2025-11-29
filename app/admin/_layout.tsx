@@ -60,6 +60,10 @@ export default function AdminLayout() {
       }}
     >
       <Stack.Screen 
+        name="menu" 
+        options={{ title: 'Yönetim Menüsü' }}
+      />
+      <Stack.Screen 
         name="index" 
         options={{ title: 'Tur Yönetimi' }}
       />

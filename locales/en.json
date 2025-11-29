@@ -13,7 +13,19 @@
     "done": "Done",
     "search": "Search",
     "retry": "Retry",
-    "close": "Close"
+    "close": "Close",
+    "send": "Send",
+    "sent": "Sent",
+    "remove": "Remove",
+    "warning": "Warning",
+    "selectOption": "Please select an option",
+    "all": "All",
+    "popular": "Popular",
+    "trialStarting": "Starting trial...",
+    "updating": "Updating...",
+    "changes": "Changes",
+    "reminder": "Reminder",
+    "allRightsReserved": "All rights reserved."
   },
   "auth": {
     "login": "Login",
@@ -29,14 +41,55 @@
     "loginRequiredMessage": "You need to login to use this feature.",
     "logoutConfirm": "Are you sure you want to logout?",
     "welcomeTitle": "Welcome",
-    "welcomeSubtitle": "Discover the most beautiful tours of North Cyprus"
+    "welcomeSubtitle": "Discover the most beautiful tours of North Cyprus",
+    "nameRequired": "Full name is required",
+    "nameTooShort": "Full name must be at least 2 characters",
+    "namePlaceholder": "Enter your full name",
+    "loginErrorTitle": "Login Error",
+    "registerErrorTitle": "Registration Error",
+    "registerSuccess": "You have successfully registered! 🎉",
+    "passwordChangeSuccess": "Your password has been changed successfully.",
+    "changePassword": "Change Password",
+    "currentPasswordPlaceholder": "Enter your current password",
+    "newPasswordPlaceholder": "Enter your new password",
+    "confirmNewPasswordPlaceholder": "Confirm your new password",
+    "heroTitle": "Discover the\nbeauties of\nNorth Cyprus",
+    "heroSubtitle": "Unforgettable experiences await you",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithFacebook": "Continue with Facebook",
+    "continueWithApple": "Continue with Apple",
+    "loginSheetTitle": "Welcome",
+    "loginSheetSubtitle": "Sign in to your account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "registerSheetTitle": "Create Account",
+    "registerSheetSubtitle": "Start exploring North Cyprus",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordSubtitle": "Enter your email address and we'll send you a password reset link",
+    "sendResetLink": "Send Reset Link",
+    "emailSentTitle": "Email Sent!",
+    "emailSentMessage": "Password reset link has been sent to {{email}}.",
+    "backToLogin": "Back to login",
+    "emailRequired": "Email address is required",
+    "invalidEmailFormat": "Enter a valid email address",
+    "passwordRequired": "Password is required",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordNeedsUppercase": "Password must contain at least one uppercase letter",
+    "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
+    "passwordNeedsNumber": "Password must contain at least one number"
   },
   "home": {
     "location": "Location",
     "searchPlaceholder": "Search destination",
     "allCategories": "All",
     "perPerson": "per person",
-    "updating": "Updating..."
+    "updating": "Updating...",
+    "refreshing": "Refreshing...",
+    "locationLabel": "Location",
+    "defaultLocation": "Kyrenia, Northern Cyprus",
+    "fetchingLocation": "Fetching location...",
+    "seeAll": "See All"
   },
   "tours": {
     "title": "Tours",
@@ -54,14 +107,25 @@
     "relatedTours": "Related Tours"
   },
   "favorites": {
-    "title": "My Favorites",
+    "title": "Favorites",
     "empty": "No favorites yet",
     "emptySubtitle": "Add tours you like to favorites to easily find them later",
     "removeConfirm": "Are you sure you want to remove this tour from favorites?",
     "remove": "Remove",
     "addedToFavorites": "Added to favorites",
     "removedFromFavorites": "Removed from favorites",
-    "exploreTours": "Explore Tours"
+    "exploreTours": "Explore Tours",
+    "loginTitle": "Sign in",
+    "loginSubtitle": "Sign in to view your favorites",
+    "removeConfirmTitle": "Remove from Favorites",
+    "removeConfirmMessage": "Are you sure you want to remove this tour from favorites?",
+    "countLabel": "{{count}} tours"
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "favorites": "Favorites",
+    "profile": "Profile"
   },
   "profile": {
     "title": "Profile",
@@ -79,11 +143,29 @@
     "help": "Help",
     "contact": "Contact",
     "admin": "Administration",
+    "adminMenu": "Admin Menu",
     "tourManagement": "Tour Management",
-    "categoryManagement": "Category Management"
+    "categoryManagement": "Category Management",
+    "membershipBenefits": "Membership & Benefits",
+    "membershipBilling": "Membership & Billing",
+    "accountActions": "Account Actions",
+    "billing": "Billing & Invoicing",
+    "avatarTitle": "Profile Photo",
+    "avatarUpdateSuccess": "Your profile photo has been updated.",
+    "avatarDeleteSuccess": "Your profile photo has been deleted.",
+    "avatarDeleteConfirm": "Are you sure you want to delete your profile photo?",
+    "avatarUploadError": "An error occurred while uploading the photo.",
+    "avatarDeleteError": "An error occurred while deleting the photo.",
+    "cameraError": "Unable to capture photo.",
+    "chooseImageSource": "Select image source",
+    "deletePhoto": "Delete Photo",
+    "defaultUser": "User",
+    "memberSuffix": "Member",
+    "version": "Version"
   },
   "settings": {
     "title": "Settings",
+    "preferences": "Preferences",
     "notifications": "Notifications",
     "notificationsEnabled": "Notifications",
     "locationServices": "Location Services",
@@ -99,6 +181,7 @@
     "clearCacheConfirm": "All cache data will be deleted. Do you want to continue?",
     "cacheCleared": "Cache cleared",
     "downloadData": "Download My Data",
+    "account": "Account",
     "dangerZone": "Danger Zone",
     "deleteAccount": "Delete Account",
     "deleteAccountConfirm": "This action cannot be undone. Your account and all data will be permanently deleted.",
@@ -118,12 +201,123 @@
     "serverError": "Server error occurred",
     "unauthorized": "Your session has expired",
     "notFound": "Page not found",
-    "loadingFailed": "Failed to load data"
+    "loadingFailed": "Failed to load data",
+    "updateFailed": "Update failed.",
+    "unsupported": "This action is not supported.",
+    "userNotFound": "User information not found.",
+    "tourNotFound": "Tour ID not found.",
+    "tourLoadFailed": "Tour could not be loaded.",
+    "permissionRequired": "Permission required to continue."
   },
   "validation": {
     "required": "This field is required",
     "invalidEmail": "Enter a valid email address",
     "passwordTooShort": "Password must be at least 6 characters",
-    "passwordsDoNotMatch": "Passwords do not match"
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordNeedsUppercase": "Password must contain at least one uppercase letter",
+    "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
+    "passwordNeedsNumber": "Password must contain at least one number",
+    "allFieldsRequired": "Please fill in all fields",
+    "topicRequired": "Please select a topic",
+    "messageRequired": "Please enter your message",
+    "durationRequired": "Duration is required",
+    "tourTitleRequired": "Tour title is required",
+    "invalidPrice": "Enter a valid price",
+    "newPasswordTooShort": "New password must be at least 8 characters",
+    "newPasswordsDoNotMatch": "New passwords do not match"
+  },
+  "explore": {
+    "locationPermissionTitle": "Location Permission Required",
+    "locationPermissionSubtitle": "Tap to enable location and discover nearby places",
+    "locationPermissionAction": "Enable Location",
+    "locationToggleEnabled": "Location enabled",
+    "locationToggleDisabled": "Location disabled",
+    "addressFetching": "Fetching location...",
+    "nearbyTitleDefault": "Tours to Explore",
+    "seeAll": "See All"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "formValidation": "Title and message are required.",
+    "titlePlaceholder": "Notification title",
+    "messagePlaceholder": "Notification message",
+    "created": "Notification created",
+    "send": "Send Notification",
+    "sendSuccess": "Notification sent",
+    "sendError": "Notification failed to send"
+  },
+  "contact": {
+    "title": "Contact",
+    "messagePlaceholder": "Type your message...",
+    "phonePlaceholder": "Enter your phone number",
+    "messageSentTitle": "Message Sent",
+    "messageSentDescription": "Your message has been delivered. We will get back to you shortly.",
+    "supportEmail": "Email support",
+    "supportReminder": "Need help? Send us a message."
+  },
+  "faq": {
+    "addFavorite": "How can I add tours to my favorites?",
+    "deleteAccount": "How can I delete my account?",
+    "booking": "How can I book a tour?",
+    "notifications": "How do I manage app notifications?",
+    "paymentMethods": "What payment methods are available?",
+    "upgradeMembership": "How can I upgrade my membership?"
+  },
+  "membership": {
+    "basicPlan": "Basic Membership",
+    "basicDescription": "Start exploring Northern Cyprus with essential tour access. Perfect for small groups.",
+    "basicAccess": "Basic tour access",
+    "goldPlan": "Gold Membership",
+    "goldDescription": "Book tours instantly and enjoy special discounts and promotions.",
+    "businessPlan": "Business Membership",
+    "businessDescription": "Unlock every premium feature with business-grade benefits.",
+    "limitedFavorites": "Limited favorites (5 tours)",
+    "unlimitedFavorites": "Unlimited favorites",
+    "vipSupport": "VIP support line",
+    "vipEvents": "VIP event access",
+    "adFree": "Ad-free experience",
+    "prioritySupport": "Priority support",
+    "specialDiscounts": "Special discounts",
+    "upgrade": "Upgrade Membership",
+    "start": "Start Membership"
+  },
+  "features": {
+    "advancedSearchFilters": "Advanced search filters",
+    "premiumHighlight": "Enhance your tour experience with advanced features and priority support.",
+    "adFreeExperience": "Ad-free experience",
+    "prioritySupport": "Priority support",
+    "specialDiscounts": "Special discounts"
+  },
+  "permissions": {
+    "galleryRequired": "Gallery access permission is required.",
+    "cameraError": "Unable to capture photo.",
+    "required": "Permission required"
+  },
+  "forms": {
+    "locationPlaceholder": "Location (e.g., Kyrenia, TRNC)",
+    "tourTitle": "Tour title",
+    "tourDescription": "Tour description",
+    "highlightsHint": "Separate with commas (e.g., Guided tour, Lunch)"
+  },
+  "admin": {
+    "menuTitle": "Admin Menu",
+    "editTour": "Edit Tour",
+    "categoryEdit": "Edit Category",
+    "categoryName": "Category name",
+    "categoryNameRequired": "Category name is required.",
+    "tourIdMissing": "Tour ID not found"
+  },
+  "support": {
+    "feedback": "Feedback & Suggestions",
+    "partnership": "Partnership",
+    "reminder": "Need assistance? Our team is ready to help."
+  },
+  "legal": {
+    "dataSecurity": "Data Security",
+    "dataUsage": "Data Usage",
+    "dataSharing": "Data Sharing",
+    "disputeResolution": "Dispute Resolution",
+    "rights": "Your Rights",
+    "serviceDescription": "Service Description"
   }
 }

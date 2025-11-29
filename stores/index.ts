@@ -38,5 +38,15 @@ export {
   selectIsTourDetailVisible,
   selectSelectedTour,
   selectIsGlobalLoading,
+  selectUnreadNotificationCount,
   selectToast,
 } from './uiStore';
+
+// Theme store
+export {
+  useThemeStore,
+  selectThemeMode,
+  selectColorScheme,
+  selectIsDarkMode,
+} from './themeStore';
+export type { ThemeMode } from './themeStore';

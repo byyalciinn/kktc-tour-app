@@ -8,15 +8,15 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
+import { useTranslation } from 'react-i18next';
 
 // Member class badge colors
 const memberClassColors: Record<string, string> = {
@@ -25,28 +25,28 @@ const memberClassColors: Record<string, string> = {
   'Business': '#3B82F6',
 };
 
-const personalDetailsItems = [
-  { label: 'Kişisel Bilgiler', icon: 'person-outline', route: '/profile/personal-info' },
-  { label: 'Kimlik Bilgileri', icon: 'card-outline', route: '' },
-  { label: 'Ödeme Yöntemleri', icon: 'wallet-outline', route: '' },
-  { label: 'Tur Tercihleri', icon: 'options-outline', route: '' },
-];
+const PERSONAL_DETAILS_KEYS = [
+  { key: 'personalInfo', icon: 'person-outline', route: '/profile/personal-info' },
+  { key: 'idInfo', icon: 'card-outline', route: '' },
+  { key: 'paymentMethods', icon: 'wallet-outline', route: '' },
+  { key: 'tourPreferences', icon: 'options-outline', route: '' },
+] as const;
 
-const supportItems = [
-  { label: 'Yardım', route: '/profile/help' },
-  { label: 'İletişim', route: '/profile/contact' },
-];
+const SUPPORT_KEYS = [
+  { key: 'help', route: '/profile/help' },
+  { key: 'contact', route: '/profile/contact' },
+] as const;
 
-const adminMenuItems = [
-  { label: 'Tur Yönetimi', icon: 'map-outline', route: '/admin' },
-  { label: 'Kategori Yönetimi', icon: 'grid-outline', route: '/admin/categories' },
-];
+const ADMIN_MENU_KEYS = [
+  { key: 'adminMenu', icon: 'settings-outline', route: '/admin/menu' },
+] as const;
 
 export default function ProfileScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   // Zustand store
   const { user, profile, signOut } = useAuthStore();
@@ -56,19 +56,37 @@ export default function ProfileScreen() {
 
   // Account info items (dynamic)
   const accountInfoItems = [
-    { label: 'Üye No', value: profile?.member_number || '-', route: '' },
-    { label: 'Üyelik Sınıfı', value: profile?.member_class || 'Normal', route: '' },
-    { label: 'Üyelik Kartı', value: '', hasArrow: true, route: '/profile/membership-card' },
+    { label: t('profile.memberNumber'), value: profile?.member_number || '-', route: '' },
+    { label: t('profile.memberClass'), value: profile?.member_class || 'Normal', route: '' },
+    { label: t('profile.memberCard'), value: '', hasArrow: true, route: '/profile/membership-card' },
   ];
+
+  // Translated menu items
+  const personalDetailsItems = PERSONAL_DETAILS_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    icon: item.icon,
+    route: item.route,
+  }));
+
+  const supportItems = SUPPORT_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    route: item.route,
+  }));
+
+  const adminMenuItems = ADMIN_MENU_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    icon: item.icon,
+    route: item.route,
+  }));
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Çıkış Yap',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -93,7 +111,7 @@ export default function ProfileScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Profil</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
           <TouchableOpacity 
             style={[
               styles.settingsButton,
@@ -113,17 +131,17 @@ export default function ProfileScreen() {
             <Image source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }} style={styles.avatar} />
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>
-            {profile?.full_name || user?.user_metadata?.full_name || 'Kullanıcı'}
+            {profile?.full_name || user?.user_metadata?.full_name || t('profile.defaultUser')}
           </Text>
           <Text style={[styles.memberType, { color: memberClassColor }]}>
-            {profile?.member_class || 'Normal'} Üye
+            {profile?.member_class || 'Normal'} {t('profile.memberSuffix')}
           </Text>
         </View>
 
         {/* Account Information Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            HESAP BİLGİLERİ
+            {t('profile.accountInfo').toUpperCase()}
           </Text>
           <View
             style={[
@@ -166,7 +184,7 @@ export default function ProfileScreen() {
         {/* Personal Details Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            KİŞİSEL DETAYLAR
+            {t('profile.personalDetails').toUpperCase()}
           </Text>
           <View
             style={[
@@ -200,7 +218,7 @@ export default function ProfileScreen() {
         {/* Support Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            DESTEK
+            {t('profile.support').toUpperCase()}
           </Text>
           <View
             style={[
@@ -234,7 +252,7 @@ export default function ProfileScreen() {
         {/* Admin Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            YÖNETİM
+            {t('profile.admin').toUpperCase()}
           </Text>
           <View
             style={[
@@ -282,12 +300,12 @@ export default function ProfileScreen() {
           onPress={handleLogout}
         >
           <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
+          <Text style={styles.logoutText}>{t('auth.logout')}</Text>
         </TouchableOpacity>
 
         {/* App Version */}
         <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-          Versiyon 1.0.0
+          {t('profile.version')} 1.0.0
         </Text>
       </ScrollView>
     </View>

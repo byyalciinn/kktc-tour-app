@@ -17,12 +17,15 @@ interface AuthState {
   profile: UserProfile | null;
   loading: boolean;
   initialized: boolean;
+  isNewUser: boolean; // Flag for onboarding redirect
 
   // Actions
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   setProfile: (profile: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
+  setIsNewUser: (isNewUser: boolean) => void;
+  clearNewUserFlag: () => void;
 
   // Async actions
   initialize: () => Promise<void>;
@@ -46,12 +49,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profile: null,
   loading: true,
   initialized: false,
+  isNewUser: false,
 
   // Setters
   setUser: (user) => set({ user }),
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
   setLoading: (loading) => set({ loading }),
+  setIsNewUser: (isNewUser) => set({ isNewUser }),
+  clearNewUserFlag: () => set({ isNewUser: false }),
 
   // Initialize auth state and listen for changes
   initialize: async () => {
@@ -139,6 +145,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Profile is automatically created by database trigger (handle_new_user)
     // No need to manually insert - this was causing "database error saving new user"
+    
+    // Set isNewUser flag for onboarding redirect
+    if (!error && data.user) {
+      set({ isNewUser: true });
+    }
 
     set({ loading: false });
     return { error };

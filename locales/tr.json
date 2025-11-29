@@ -13,7 +13,19 @@
     "done": "Tamam",
     "search": "Ara",
     "retry": "Tekrar Dene",
-    "close": "Kapat"
+    "close": "Kapat",
+    "send": "Gönder",
+    "sent": "Gönderildi",
+    "remove": "Kaldır",
+    "warning": "Uyarı",
+    "selectOption": "Bir seçenek belirleyin",
+    "all": "Tümü",
+    "popular": "Popüler",
+    "trialStarting": "Deneme süresi başlatılıyor...",
+    "updating": "Güncelleniyor...",
+    "changes": "Değişiklikler",
+    "reminder": "Hatırlatma",
+    "allRightsReserved": "Tüm hakları saklıdır."
   },
   "auth": {
     "login": "Giriş Yap",
@@ -29,14 +41,55 @@
     "loginRequiredMessage": "Bu özelliği kullanmak için giriş yapmalısınız.",
     "logoutConfirm": "Hesabınızdan çıkış yapmak istediğinize emin misiniz?",
     "welcomeTitle": "Hoş Geldiniz",
-    "welcomeSubtitle": "Kuzey Kıbrıs'ın en güzel turlarını keşfedin"
+    "welcomeSubtitle": "Kuzey Kıbrıs'ın en güzel turlarını keşfedin",
+    "nameRequired": "Ad Soyad gerekli",
+    "nameTooShort": "Ad Soyad en az 2 karakter olmalıdır",
+    "namePlaceholder": "Adınızı girin",
+    "loginErrorTitle": "Giriş Hatası",
+    "registerErrorTitle": "Kayıt Hatası",
+    "registerSuccess": "Başarıyla kayıt oldunuz! 🎉",
+    "passwordChangeSuccess": "Şifreniz başarıyla değiştirildi.",
+    "changePassword": "Şifreyi Değiştir",
+    "currentPasswordPlaceholder": "Mevcut şifrenizi girin",
+    "newPasswordPlaceholder": "Yeni şifrenizi girin",
+    "confirmNewPasswordPlaceholder": "Yeni şifrenizi tekrar girin",
+    "heroTitle": "KKTC'nin\ngüzelliklerini\nkeşfedin",
+    "heroSubtitle": "Unutulmaz deneyimler sizi bekliyor",
+    "or": "veya",
+    "continueWithGoogle": "Google ile devam et",
+    "continueWithFacebook": "Facebook ile devam et",
+    "continueWithApple": "Apple ile devam et",
+    "loginSheetTitle": "Hoş Geldiniz",
+    "loginSheetSubtitle": "Hesabınıza giriş yapın",
+    "noAccount": "Hesabınız yok mu?",
+    "hasAccount": "Zaten hesabınız var mı?",
+    "registerSheetTitle": "Hesap Oluştur",
+    "registerSheetSubtitle": "KKTC'yi keşfetmeye başlayın",
+    "forgotPasswordTitle": "Şifremi Unuttum",
+    "forgotPasswordSubtitle": "E-posta adresinizi girin, size şifre sıfırlama bağlantısı gönderelim",
+    "sendResetLink": "Şifre Sıfırlama Linki Gönder",
+    "emailSentTitle": "E-posta Gönderildi!",
+    "emailSentMessage": "Şifre sıfırlama bağlantısı {{email}} adresine gönderildi.",
+    "backToLogin": "Giriş sayfasına dön",
+    "emailRequired": "E-posta adresi gerekli",
+    "invalidEmailFormat": "Geçerli bir e-posta adresi girin",
+    "passwordRequired": "Şifre gerekli",
+    "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+    "passwordNeedsUppercase": "Şifre en az bir büyük harf içermelidir",
+    "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
+    "passwordNeedsNumber": "Şifre en az bir rakam içermelidir"
   },
   "home": {
     "location": "Konum",
     "searchPlaceholder": "Destinasyon ara",
     "allCategories": "Tümü",
     "perPerson": "kişi başı",
-    "updating": "Güncelleniyor..."
+    "updating": "Güncelleniyor...",
+    "refreshing": "Güncelleniyor...",
+    "locationLabel": "Konum",
+    "defaultLocation": "Kuzey Kıbrıs, KKTC",
+    "fetchingLocation": "Konum alınıyor...",
+    "seeAll": "Tümünü Gör"
   },
   "tours": {
     "title": "Turlar",
@@ -61,7 +114,18 @@
     "remove": "Kaldır",
     "addedToFavorites": "Favorilere eklendi",
     "removedFromFavorites": "Favorilerden kaldırıldı",
-    "exploreTours": "Turları Keşfet"
+    "exploreTours": "Turları Keşfet",
+    "loginTitle": "Giriş Yapın",
+    "loginSubtitle": "Favorilerinizi görmek için giriş yapın",
+    "removeConfirmTitle": "Favorilerden Kaldır",
+    "removeConfirmMessage": "Bu turu favorilerden kaldırmak istediğinize emin misiniz?",
+    "countLabel": "{{count}} tur"
+  },
+  "tabs": {
+    "home": "Ana Sayfa",
+    "explore": "Keşfet",
+    "favorites": "Favoriler",
+    "profile": "Profil"
   },
   "profile": {
     "title": "Profil",
@@ -79,11 +143,29 @@
     "help": "Yardım",
     "contact": "İletişim",
     "admin": "Yönetim",
+    "adminMenu": "Yönetim Menüsü",
     "tourManagement": "Tur Yönetimi",
-    "categoryManagement": "Kategori Yönetimi"
+    "categoryManagement": "Kategori Yönetimi",
+    "membershipBenefits": "Üyelik & Avantajlar",
+    "membershipBilling": "Üyelik & Ödeme",
+    "accountActions": "Hesap İşlemleri",
+    "billing": "Ödeme & Faturalama",
+    "avatarTitle": "Profil Fotoğrafı",
+    "avatarUpdateSuccess": "Profil fotoğrafınız güncellendi.",
+    "avatarDeleteSuccess": "Profil fotoğrafınız silindi.",
+    "avatarDeleteConfirm": "Profil fotoğrafınızı silmek istediğinizden emin misiniz?",
+    "avatarUploadError": "Fotoğraf yüklenirken bir hata oluştu.",
+    "avatarDeleteError": "Fotoğraf silinirken bir hata oluştu.",
+    "cameraError": "Fotoğraf çekilemedi",
+    "chooseImageSource": "Resim kaynağını seçin",
+    "deletePhoto": "Fotoğrafı Sil",
+    "defaultUser": "Kullanıcı",
+    "memberSuffix": "Üye",
+    "version": "Versiyon"
   },
   "settings": {
     "title": "Ayarlar",
+    "preferences": "Tercihler",
     "notifications": "Bildirimler",
     "notificationsEnabled": "Bildirimler",
     "locationServices": "Konum Servisleri",
@@ -99,6 +181,7 @@
     "clearCacheConfirm": "Tüm önbellek verileri silinecek. Devam etmek istiyor musunuz?",
     "cacheCleared": "Önbellek temizlendi",
     "downloadData": "Verilerimi İndir",
+    "account": "Hesap",
     "dangerZone": "Tehlikeli Bölge",
     "deleteAccount": "Hesabı Sil",
     "deleteAccountConfirm": "Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz kalıcı olarak silinecek.",
@@ -118,12 +201,123 @@
     "serverError": "Sunucu hatası oluştu",
     "unauthorized": "Oturum süreniz doldu",
     "notFound": "Sayfa bulunamadı",
-    "loadingFailed": "Veriler yüklenirken bir hata oluştu"
+    "loadingFailed": "Veriler yüklenirken bir hata oluştu",
+    "updateFailed": "Güncelleme hatası",
+    "unsupported": "Bu işlem desteklenmiyor.",
+    "userNotFound": "Kullanıcı bilgisi bulunamadı",
+    "tourNotFound": "Tur ID bulunamadı",
+    "tourLoadFailed": "Tur yüklenemedi",
+    "permissionRequired": "Devam etmek için izin gerekli"
   },
   "validation": {
     "required": "Bu alan zorunludur",
     "invalidEmail": "Geçerli bir e-posta adresi girin",
     "passwordTooShort": "Şifre en az 6 karakter olmalıdır",
-    "passwordsDoNotMatch": "Şifreler eşleşmiyor"
+    "passwordsDoNotMatch": "Şifreler eşleşmiyor",
+    "passwordNeedsUppercase": "Şifre en az bir büyük harf içermelidir",
+    "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
+    "passwordNeedsNumber": "Şifre en az bir rakam içermelidir",
+    "allFieldsRequired": "Lütfen tüm alanları doldurun",
+    "topicRequired": "Lütfen bir konu seçin",
+    "messageRequired": "Lütfen mesajınızı yazın",
+    "durationRequired": "Süre gerekli",
+    "tourTitleRequired": "Tur başlığı gerekli",
+    "invalidPrice": "Geçerli bir fiyat girin",
+    "newPasswordTooShort": "Yeni şifre en az 8 karakter olmalıdır",
+    "newPasswordsDoNotMatch": "Yeni şifreler eşleşmiyor"
+  },
+  "explore": {
+    "locationPermissionTitle": "Konum İzni Gerekli",
+    "locationPermissionSubtitle": "Yakınınızdaki yerleri görmek için dokunun",
+    "locationPermissionAction": "Konumu Aç",
+    "locationToggleEnabled": "Konum açık",
+    "locationToggleDisabled": "Konum kapalı",
+    "addressFetching": "Konum alınıyor...",
+    "nearbyTitleDefault": "Keşfedilecek Turlar",
+    "seeAll": "Tümünü Gör"
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "formValidation": "Başlık ve mesaj gerekli",
+    "titlePlaceholder": "Bildirim başlığı",
+    "messagePlaceholder": "Bildirim mesajı",
+    "created": "Bildirim oluşturuldu",
+    "send": "Bildirimi Gönder",
+    "sendSuccess": "Bildirim gönderildi",
+    "sendError": "Bildirim gönderilemedi"
+  },
+  "contact": {
+    "title": "İletişim",
+    "messagePlaceholder": "Mesajınızı buraya yazın...",
+    "phonePlaceholder": "Telefon numaranızı girin",
+    "messageSentTitle": "Mesaj Gönderildi",
+    "messageSentDescription": "Mesajınız başarıyla iletildi. En kısa sürede size dönüş yapacağız.",
+    "supportEmail": "E-posta desteği",
+    "supportReminder": "Yardım mı lazım? Bize mesaj gönderin."
+  },
+  "faq": {
+    "addFavorite": "Favorilerime nasıl tur ekleyebilirim?",
+    "deleteAccount": "Hesabımı nasıl silebilirim?",
+    "booking": "Nasıl tur rezervasyonu yapabilirim?",
+    "notifications": "Uygulama bildirimleri nasıl yönetilir?",
+    "paymentMethods": "Ödeme yöntemleri nelerdir?",
+    "upgradeMembership": "Üyelik seviyemi nasıl yükseltebilirim?"
+  },
+  "membership": {
+    "basicPlan": "Temel Üyelik",
+    "basicDescription": "Temel tur erişimi ile KKTC'yi keşfetmeye başlayın. Küçük gruplar için ideal.",
+    "basicAccess": "Temel tur erişimi",
+    "goldPlan": "Gold Üyelik",
+    "goldDescription": "Turlarınızı anında rezerve edin ve özel indirimlerden yararlanın.",
+    "businessPlan": "Business Üyelik",
+    "businessDescription": "Tüm premium özellikler ve işletme avantajları ile maksimum fayda sağlayın.",
+    "limitedFavorites": "Sınırlı favoriler (5 tur)",
+    "unlimitedFavorites": "Sınırsız favoriler",
+    "vipSupport": "VIP destek hattı",
+    "vipEvents": "VIP etkinlik erişimi",
+    "adFree": "Reklamsız deneyim",
+    "prioritySupport": "Öncelikli destek",
+    "specialDiscounts": "Özel indirimler",
+    "upgrade": "Üyeliği Yükselt",
+    "start": "Üyeliğini Başlat"
+  },
+  "features": {
+    "advancedSearchFilters": "Gelişmiş arama filtreleri",
+    "premiumHighlight": "Gelişmiş özellikler ve öncelikli destek ile tur deneyiminizi üst seviyeye taşıyın.",
+    "adFreeExperience": "Reklamsız deneyim",
+    "prioritySupport": "Öncelikli destek",
+    "specialDiscounts": "Özel indirimler"
+  },
+  "permissions": {
+    "galleryRequired": "Galeri erişimi için izin vermeniz gerekiyor.",
+    "cameraError": "Fotoğraf çekilirken bir hata oluştu",
+    "required": "İzin Gerekli"
+  },
+  "forms": {
+    "locationPlaceholder": "Konum (örn: Girne, KKTC)",
+    "tourTitle": "Tur başlığı",
+    "tourDescription": "Tur açıklaması",
+    "highlightsHint": "Virgülle ayırın (örn: Rehberli tur, Öğle yemeği)"
+  },
+  "admin": {
+    "menuTitle": "Yönetim Menüsü",
+    "editTour": "Tur Düzenle",
+    "categoryEdit": "Kategori Düzenle",
+    "categoryName": "Kategori adı",
+    "categoryNameRequired": "Kategori adı gerekli",
+    "tourIdMissing": "Tur ID bulunamadı"
+  },
+  "support": {
+    "feedback": "Şikayet & Öneri",
+    "partnership": "İş Birliği",
+    "reminder": "Yardıma mı ihtiyacın var? Ekibimiz yardımcı olmaya hazır."
+  },
+  "legal": {
+    "dataSecurity": "Veri Güvenliği",
+    "dataUsage": "Veri Kullanımı",
+    "dataSharing": "Veri Paylaşımı",
+    "disputeResolution": "Uyuşmazlık Çözümü",
+    "rights": "Haklarınız",
+    "serviceDescription": "Hizmet Tanımı"
   }
 }

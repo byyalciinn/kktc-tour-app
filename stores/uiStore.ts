@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { Tour } from '@/types';
 
+// Store timeout ID for cleanup
+let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
 interface UIState {
   // Modal states
   isSearchVisible: boolean;
@@ -10,6 +13,9 @@ interface UIState {
 
   // Selected items
   selectedTour: Tour | null;
+
+  // Notification count
+  unreadNotificationCount: number;
 
   // Global UI states
   isGlobalLoading: boolean;
@@ -33,6 +39,10 @@ interface UIState {
   // Actions - Selected items
   setSelectedTour: (tour: Tour | null) => void;
 
+  // Actions - Notification count
+  setUnreadNotificationCount: (count: number) => void;
+  incrementUnreadNotificationCount: () => void;
+
   // Actions - Global UI
   setGlobalLoading: (loading: boolean) => void;
   showToast: (message: string, type: 'success' | 'error' | 'info') => void;
@@ -49,6 +59,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   isTourDetailVisible: false,
   isNotificationSheetVisible: false,
   selectedTour: null,
+  unreadNotificationCount: 0,
   isGlobalLoading: false,
   toastMessage: null,
   toastType: null,
@@ -80,23 +91,43 @@ export const useUIStore = create<UIState>((set, get) => ({
   // Selected tour
   setSelectedTour: (tour) => set({ selectedTour: tour }),
 
+  // Notification count
+  setUnreadNotificationCount: (count) => set({ unreadNotificationCount: count }),
+  incrementUnreadNotificationCount: () => set((state) => ({ 
+    unreadNotificationCount: state.unreadNotificationCount + 1 
+  })),
+
   // Global loading
   setGlobalLoading: (loading) => set({ isGlobalLoading: loading }),
 
   // Toast notifications
   showToast: (message, type) => {
+    // Clear any existing timeout to prevent memory leaks
+    if (toastTimeoutId) {
+      clearTimeout(toastTimeoutId);
+      toastTimeoutId = null;
+    }
+    
     set({ toastMessage: message, toastType: type });
     
     // Auto-hide based on type (errors stay longer)
     const duration = type === 'error' ? 5000 : 3000;
-    setTimeout(() => {
+    toastTimeoutId = setTimeout(() => {
       // Only hide if the message is still the same
       if (get().toastMessage === message) {
         set({ toastMessage: null, toastType: null });
       }
+      toastTimeoutId = null;
     }, duration);
   },
-  hideToast: () => set({ toastMessage: null, toastType: null }),
+  hideToast: () => {
+    // Clear timeout when manually hiding
+    if (toastTimeoutId) {
+      clearTimeout(toastTimeoutId);
+      toastTimeoutId = null;
+    }
+    set({ toastMessage: null, toastType: null });
+  },
 
   // Reset all modals (useful for navigation)
   resetModals: () => set({
@@ -113,6 +144,7 @@ export const selectIsProfileSheetVisible = (state: UIState) => state.isProfileSh
 export const selectIsTourDetailVisible = (state: UIState) => state.isTourDetailVisible;
 export const selectSelectedTour = (state: UIState) => state.selectedTour;
 export const selectIsGlobalLoading = (state: UIState) => state.isGlobalLoading;
+export const selectUnreadNotificationCount = (state: UIState) => state.unreadNotificationCount;
 export const selectToast = (state: UIState) => ({
   message: state.toastMessage,
   type: state.toastType,
