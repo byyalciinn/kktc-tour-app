@@ -21,6 +21,7 @@ import { useAuthStore } from '@/stores';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
+const CARD_SPACING = 20;
 
 // Membership levels
 const membershipLevels = ['Normal', 'Gold', 'Business'] as const;
@@ -130,7 +131,7 @@ export default function MembershipCardScreen() {
       [
         { text: 'İptal', style: 'cancel' },
         {
-          text: '7 Gün Ücretsiz Dene',
+          text: 'Üyeliğini Başlat',
           onPress: () => {
             Alert.alert('Başarılı', 'Deneme süresi başlatılıyor...');
           },
@@ -145,9 +146,9 @@ export default function MembershipCardScreen() {
       <View style={styles.dotsContainer}>
         {membershipLevels.map((_, index) => {
           const inputRange = [
-            (index - 1) * CARD_WIDTH,
-            index * CARD_WIDTH,
-            (index + 1) * CARD_WIDTH,
+            (index - 1) * (CARD_WIDTH + CARD_SPACING),
+            index * (CARD_WIDTH + CARD_SPACING),
+            (index + 1) * (CARD_WIDTH + CARD_SPACING),
           ];
 
           const dotWidth = scrollX.interpolate({
@@ -354,53 +355,48 @@ export default function MembershipCardScreen() {
               </View>
             ))}
           </View>
+
+          {/* CTA Button - Inside Card */}
+          {!isActive && config.price && (
+            <TouchableOpacity
+              style={[
+                styles.ctaButton,
+                {
+                  backgroundColor: cardIsDark ? '#F59E0B' : '#1F2937',
+                },
+              ]}
+              activeOpacity={0.9}
+              onPress={() => handlePurchase(level)}
+            >
+              <Text style={[styles.ctaButtonText, { color: '#fff' }]}>
+                Üyeliğini Başlat
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {isActive && level !== 'Normal' && (
+            <TouchableOpacity
+              style={[
+                styles.ctaButton,
+                {
+                  backgroundColor: 'transparent',
+                  borderWidth: 1,
+                  borderColor: cardIsDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
+                },
+              ]}
+              activeOpacity={0.9}
+            >
+              <Text
+                style={[
+                  styles.ctaButtonText,
+                  { color: cardIsDark ? 'rgba(255,255,255,0.7)' : colors.textSecondary },
+                ]}
+              >
+                İptal Et
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-
-        {/* CTA Button */}
-        {!isActive && config.price && (
-          <TouchableOpacity
-            style={[
-              styles.ctaButton,
-              {
-                backgroundColor: isDark ? '#fff' : '#1F2937',
-              },
-            ]}
-            activeOpacity={0.9}
-            onPress={() => handlePurchase(level)}
-          >
-            <Text
-              style={[
-                styles.ctaButtonText,
-                { color: isDark ? '#1F2937' : '#fff' },
-              ]}
-            >
-              7 Gün Ücretsiz Dene
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {isActive && level !== 'Normal' && (
-          <TouchableOpacity
-            style={[
-              styles.ctaButton,
-              {
-                backgroundColor: 'transparent',
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
-              },
-            ]}
-            activeOpacity={0.9}
-          >
-            <Text
-              style={[
-                styles.ctaButtonText,
-                { color: colors.textSecondary },
-              ]}
-            >
-              İptal Et
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -492,14 +488,14 @@ export default function MembershipCardScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.cardsContainer}
-        snapToInterval={CARD_WIDTH}
+        snapToInterval={CARD_WIDTH + CARD_SPACING}
         decelerationRate="fast"
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
-        contentOffset={{ x: currentIndex * CARD_WIDTH, y: 0 }}
+        contentOffset={{ x: currentIndex * (CARD_WIDTH + CARD_SPACING), y: 0 }}
       >
         {membershipLevels.map((level, index) => renderPlanCard(level, index))}
       </Animated.ScrollView>
@@ -573,7 +569,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cardWrapper: {
-    paddingRight: 0,
+    width: CARD_WIDTH,
+    marginRight: CARD_SPACING,
   },
   planCard: {
     borderRadius: 24,

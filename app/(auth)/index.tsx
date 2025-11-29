@@ -15,15 +15,88 @@ import {
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/stores';
 import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
+
+// =============================================
+// VALIDATION UTILITIES
+// =============================================
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+interface ValidationResult {
+  isValid: boolean;
+  message: string;
+}
+
+/**
+ * Validates email format
+ */
+const validateEmail = (email: string): ValidationResult => {
+  if (!email.trim()) {
+    return { isValid: false, message: 'E-posta adresi gerekli' };
+  }
+  if (!EMAIL_REGEX.test(email.trim())) {
+    return { isValid: false, message: 'Geçerli bir e-posta adresi girin' };
+  }
+  return { isValid: true, message: '' };
+};
+
+/**
+ * Validates password strength
+ * - Minimum 8 characters
+ * - At least one uppercase letter
+ * - At least one lowercase letter
+ * - At least one number
+ */
+const validatePassword = (password: string): ValidationResult => {
+  if (!password) {
+    return { isValid: false, message: 'Şifre gerekli' };
+  }
+  if (password.length < 8) {
+    return { isValid: false, message: 'Şifre en az 8 karakter olmalıdır' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { isValid: false, message: 'Şifre en az bir büyük harf içermelidir' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { isValid: false, message: 'Şifre en az bir küçük harf içermelidir' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { isValid: false, message: 'Şifre en az bir rakam içermelidir' };
+  }
+  return { isValid: true, message: '' };
+};
+
+/**
+ * Validates full name
+ */
+const validateName = (name: string): ValidationResult => {
+  if (!name.trim()) {
+    return { isValid: false, message: 'Ad Soyad gerekli' };
+  }
+  if (name.trim().length < 2) {
+    return { isValid: false, message: 'Ad Soyad en az 2 karakter olmalıdır' };
+  }
+  return { isValid: true, message: '' };
+};
 const IMAGE_MARGIN = 16;
 const IMAGE_BORDER_RADIUS = 32;
+
+// Slider images for hero section
+const SLIDER_IMAGES = [
+  'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&h=1200&fit=crop',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=1200&fit=crop',
+  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=1200&fit=crop',
+];
 
 // Custom Bottom Sheet Component with spring animation
 interface BottomSheetProps {
@@ -172,6 +245,9 @@ export default function WelcomeScreen() {
   const [loginVisible, setLoginVisible] = useState(false);
   const [registerVisible, setRegisterVisible] = useState(false);
   const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const sliderRef = useRef<ScrollView>(null);
+  const autoSlideTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Login states
   const [loginEmail, setLoginEmail] = useState('');
@@ -193,13 +269,57 @@ export default function WelcomeScreen() {
   
   const { signIn, signUp, resetPassword } = useAuthStore();
 
+  // Auto-slide effect
+  useEffect(() => {
+    autoSlideTimer.current = setInterval(() => {
+      setCurrentSlide((prev) => {
+        const next = (prev + 1) % SLIDER_IMAGES.length;
+        sliderRef.current?.scrollTo({ x: next * (width - IMAGE_MARGIN * 2), animated: true });
+        return next;
+      });
+    }, 4000);
+
+    return () => {
+      if (autoSlideTimer.current) {
+        clearInterval(autoSlideTimer.current);
+      }
+    };
+  }, []);
+
+  const handleSliderScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / (width - IMAGE_MARGIN * 2));
+    if (slideIndex !== currentSlide) {
+      setCurrentSlide(slideIndex);
+      // Reset auto-slide timer on manual scroll
+      if (autoSlideTimer.current) {
+        clearInterval(autoSlideTimer.current);
+        autoSlideTimer.current = setInterval(() => {
+          setCurrentSlide((prev) => {
+            const next = (prev + 1) % SLIDER_IMAGES.length;
+            sliderRef.current?.scrollTo({ x: next * (width - IMAGE_MARGIN * 2), animated: true });
+            return next;
+          });
+        }, 4000);
+      }
+    }
+  };
+
   const handleLogin = async () => {
-    if (!loginEmail || !loginPassword) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+    // Validate email
+    const emailValidation = validateEmail(loginEmail);
+    if (!emailValidation.isValid) {
+      Alert.alert('Hata', emailValidation.message);
       return;
     }
+
+    // Basic password check for login (not full strength check)
+    if (!loginPassword) {
+      Alert.alert('Hata', 'Şifre gerekli');
+      return;
+    }
+
     setLoginLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = await signIn(loginEmail.trim(), loginPassword);
     setLoginLoading(false);
     if (error) {
       Alert.alert('Giriş Hatası', error.message);
@@ -210,16 +330,29 @@ export default function WelcomeScreen() {
   };
 
   const handleRegister = async () => {
-    if (!registerName || !registerEmail || !registerPassword) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
+    // Validate name
+    const nameValidation = validateName(registerName);
+    if (!nameValidation.isValid) {
+      Alert.alert('Hata', nameValidation.message);
       return;
     }
-    if (registerPassword.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır');
+
+    // Validate email
+    const emailValidation = validateEmail(registerEmail);
+    if (!emailValidation.isValid) {
+      Alert.alert('Hata', emailValidation.message);
       return;
     }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(registerPassword);
+    if (!passwordValidation.isValid) {
+      Alert.alert('Hata', passwordValidation.message);
+      return;
+    }
+
     setRegisterLoading(true);
-    const { error } = await signUp(registerEmail, registerPassword, registerName);
+    const { error } = await signUp(registerEmail.trim(), registerPassword, registerName.trim());
     setRegisterLoading(false);
     if (error) {
       Alert.alert('Kayıt Hatası', error.message);
@@ -250,12 +383,15 @@ export default function WelcomeScreen() {
   };
 
   const handleForgotPassword = async () => {
-    if (!forgotEmail) {
-      Alert.alert('Hata', 'Lütfen e-posta adresinizi girin');
+    // Validate email
+    const emailValidation = validateEmail(forgotEmail);
+    if (!emailValidation.isValid) {
+      Alert.alert('Hata', emailValidation.message);
       return;
     }
+
     setForgotLoading(true);
-    const { error } = await resetPassword(forgotEmail);
+    const { error } = await resetPassword(forgotEmail.trim());
     setForgotLoading(false);
     if (error) {
       Alert.alert('Hata', error.message);
@@ -275,28 +411,56 @@ export default function WelcomeScreen() {
       {/* Background */}
       <View style={styles.background} />
       
-      {/* Rounded Image Container */}
+      {/* Rounded Image Container with Slider */}
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800&h=1200&fit=crop' }}
-          style={styles.backgroundImage}
-          resizeMode="cover"
-        />
+        <ScrollView
+          ref={sliderRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleSliderScroll}
+          scrollEventThrottle={16}
+          style={styles.slider}
+        >
+          {SLIDER_IMAGES.map((uri, index) => (
+            <View key={index} style={styles.slideContainer}>
+              <Image
+                source={{ uri }}
+                style={styles.backgroundImage}
+                resizeMode="cover"
+              />
+            </View>
+          ))}
+        </ScrollView>
         
         {/* Gradient Overlay */}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.7)']}
           style={styles.gradientOverlay}
+          pointerEvents="none"
         />
         
         {/* Hero Text */}
-        <View style={styles.heroSection}>
+        <View style={styles.heroSection} pointerEvents="none">
           <Text style={styles.heroTitle}>
             KKTC'nin{'\n'}güzelliklerini{'\n'}keşfedin
           </Text>
           <Text style={styles.heroSubtitle}>
             Unutulmaz deneyimler sizi bekliyor
           </Text>
+          
+          {/* Slider Dots */}
+          <View style={styles.dotsContainer}>
+            {SLIDER_IMAGES.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  currentSlide === index && styles.dotActive,
+                ]}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
@@ -326,27 +490,41 @@ export default function WelcomeScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* Social Login Buttons */}
-        <TouchableOpacity style={styles.socialButton}>
-          <View style={styles.googleIconContainer}>
-            <Text style={styles.googleG}>G</Text>
-          </View>
-          <Text style={styles.socialButtonText}>Google ile devam et</Text>
-        </TouchableOpacity>
+        {/* Social Login Buttons - Liquid Glass Design */}
+        <View style={styles.socialButtonsContainer}>
+          <TouchableOpacity style={styles.socialButtonGlass}>
+            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
+              <View style={styles.socialButtonInner}>
+                <View style={styles.googleIconContainer}>
+                  <Text style={styles.googleG}>G</Text>
+                </View>
+                <Text style={styles.socialButtonTextGlass}>Google ile devam et</Text>
+              </View>
+            </BlurView>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.socialButton}>
-          <View style={styles.socialIconContainer}>
-            <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-          </View>
-          <Text style={styles.socialButtonText}>Facebook ile devam et</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.socialButtonGlass}>
+            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
+              <View style={styles.socialButtonInner}>
+                <View style={styles.socialIconContainer}>
+                  <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+                </View>
+                <Text style={styles.socialButtonTextGlass}>Facebook ile devam et</Text>
+              </View>
+            </BlurView>
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.socialButton}>
-          <View style={styles.socialIconContainer}>
-            <Ionicons name="logo-apple" size={20} color="#000" />
-          </View>
-          <Text style={styles.socialButtonText}>Apple ile devam et</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.socialButtonGlass}>
+            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
+              <View style={styles.socialButtonInner}>
+                <View style={styles.socialIconContainer}>
+                  <Ionicons name="logo-apple" size={20} color="#000" />
+                </View>
+                <Text style={styles.socialButtonTextGlass}>Apple ile devam et</Text>
+              </View>
+            </BlurView>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Login Bottom Sheet */}
@@ -582,9 +760,32 @@ const styles = StyleSheet.create({
     borderRadius: IMAGE_BORDER_RADIUS,
     overflow: 'hidden',
   },
+  slider: {
+    flex: 1,
+  },
+  slideContainer: {
+    width: width - IMAGE_MARGIN * 2,
+    height: '100%',
+  },
   backgroundImage: {
     width: '100%',
     height: '100%',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  dotActive: {
+    backgroundColor: '#fff',
+    width: 24,
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -610,7 +811,8 @@ const styles = StyleSheet.create({
   bottomSection: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
   },
   authButtonsRow: {
     flexDirection: 'row',
@@ -619,7 +821,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#F03A52',
     borderRadius: 28,
     height: 54,
     justifyContent: 'center',
@@ -648,7 +850,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 12,
   },
   dividerLine: {
     flex: 1,
@@ -659,6 +861,35 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     color: '#999',
     fontSize: 14,
+  },
+  socialButtonsContainer: {
+    marginBottom: Platform.OS === 'ios' ? 8 : 4,
+  },
+  socialButtonGlass: {
+    borderRadius: 28,
+    height: 50,
+    marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  blurContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  socialButtonInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  socialButtonTextGlass: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    marginRight: 28,
   },
   socialButton: {
     flexDirection: 'row',
@@ -750,7 +981,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sheetButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#F03A52',
     borderRadius: 28,
     height: 54,
     justifyContent: 'center',
@@ -772,7 +1003,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sheetFooterLink: {
-    color: '#000',
+    color: '#F03A52',
     fontSize: 14,
     fontWeight: '600',
   },

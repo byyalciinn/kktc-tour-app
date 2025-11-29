@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Image,
   Platform,
@@ -14,89 +14,186 @@ import {
   useColorScheme,
   Alert,
   ActivityIndicator,
+  ActionSheetIOS,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore } from '@/stores';
+import { getAvatarUrl } from '@/lib/avatarService';
 
 export default function PersonalInfoScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  
+  // Auth store
   const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
+  const uploadUserAvatar = useAuthStore((state) => state.uploadUserAvatar);
+  const deleteUserAvatar = useAuthStore((state) => state.deleteUserAvatar);
+  const updateProfile = useAuthStore((state) => state.updateProfile);
 
   // Form state
-  const [avatar, setAvatar] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop');
-  const [fullName, setFullName] = useState(user?.user_metadata?.full_name || 'Ayşe Yılmaz');
-  const [email, setEmail] = useState(user?.email || '');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Pick image from gallery
-  const handlePickImage = async () => {
+  // Initialize form with profile data
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setPhone(profile.phone || '');
+      setBirthDate(profile.birth_date || '');
+      setAddress(profile.address || '');
+    }
+    if (user) {
+      setEmail(user.email || '');
+    }
+  }, [profile, user]);
+
+  // Upload image to Supabase
+  const handleUploadImage = async (imageUri: string) => {
+    setIsUploading(true);
+    const { success, error } = await uploadUserAvatar(imageUri);
+    setIsUploading(false);
+    
+    if (success) {
+      // Avatar will be updated via profile state
+      Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
+    } else {
+      Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+    }
+  };
+
+  // Pick image from gallery with optimization
+  const pickFromGallery = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('İzin Gerekli', 'Galeri erişimi için izin vermeniz gerekiyor.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6, // Reduced quality for smaller file size
+        allowsMultipleSelection: false,
+        exif: false, // Don't include EXIF data
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.uri) {
+        Alert.alert('Hata', 'Görsel seçilemedi');
+        return;
+      }
+
+      await handleUploadImage(asset.uri);
+    } catch (error) {
+      console.error('Pick from gallery error:', error);
+      Alert.alert('Hata', 'Görsel seçilirken bir hata oluştu');
+    }
+  };
+
+  // Take photo with camera with optimization
+  const takePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('İzin Gerekli', 'Kamera erişimi için izin vermeniz gerekiyor.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6, // Reduced quality for smaller file size
+        exif: false, // Don't include EXIF data
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.uri) {
+        Alert.alert('Hata', 'Fotoğraf çekilemedi');
+        return;
+      }
+
+      await handleUploadImage(asset.uri);
+    } catch (error) {
+      console.error('Take photo error:', error);
+      Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu');
+    }
+  };
+
+  // Delete avatar
+  const handleDeleteAvatar = async () => {
     Alert.alert(
-      'Profil Fotoğrafı',
-      'Fotoğraf kaynağını seçin',
+      'Fotoğrafı Sil',
+      'Profil fotoğrafınızı silmek istediğinizden emin misiniz?',
       [
         { text: 'İptal', style: 'cancel' },
         {
-          text: 'Galeri',
+          text: 'Sil',
+          style: 'destructive',
           onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('İzin Gerekli', 'Galeri erişimi için izin vermeniz gerekiyor.');
-              return;
-            }
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets[0]) {
-              setIsUploading(true);
-              // Simulate upload delay
-              setTimeout(() => {
-                setAvatar(result.assets[0].uri);
-                setIsUploading(false);
-              }, 1000);
-            }
-          },
-        },
-        {
-          text: 'Kamera',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('İzin Gerekli', 'Kamera erişimi için izin vermeniz gerekiyor.');
-              return;
-            }
-
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.8,
-            });
-
-            if (!result.canceled && result.assets[0]) {
-              setIsUploading(true);
-              setTimeout(() => {
-                setAvatar(result.assets[0].uri);
-                setIsUploading(false);
-              }, 1000);
+            setIsUploading(true);
+            const { success, error } = await deleteUserAvatar();
+            setIsUploading(false);
+            
+            if (success) {
+              Alert.alert('Başarılı', 'Profil fotoğrafınız silindi.');
+            } else {
+              Alert.alert('Hata', error?.message || 'Fotoğraf silinirken bir hata oluştu.');
             }
           },
         },
       ]
     );
+  };
+
+  // Show image picker options
+  const handlePickImage = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['İptal', 'Galeri', 'Kamera', 'Fotoğrafı Sil'],
+          destructiveButtonIndex: 3,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) pickFromGallery();
+          else if (buttonIndex === 2) takePhoto();
+          else if (buttonIndex === 3) handleDeleteAvatar();
+        }
+      );
+    } else {
+      Alert.alert(
+        'Profil Fotoğrafı',
+        'Bir seçenek belirleyin',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Galeri', onPress: pickFromGallery },
+          { text: 'Kamera', onPress: takePhoto },
+          { text: 'Fotoğrafı Sil', style: 'destructive', onPress: handleDeleteAvatar },
+        ]
+      );
+    }
   };
 
   // Save changes
@@ -108,13 +205,22 @@ export default function PersonalInfoScreen() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    const { success, error } = await updateProfile({
+      full_name: fullName.trim(),
+      phone: phone.trim() || null,
+      birth_date: birthDate.trim() || null,
+      address: address.trim() || null,
+    });
+    
+    setIsLoading(false);
+    
+    if (success) {
       Alert.alert('Başarılı', 'Bilgileriniz güncellendi.', [
         { text: 'Tamam', onPress: () => router.back() }
       ]);
-    }, 1500);
+    } else {
+      Alert.alert('Hata', error?.message || 'Bilgiler güncellenirken bir hata oluştu.');
+    }
   };
 
   return (
@@ -133,11 +239,17 @@ export default function PersonalInfoScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
       >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Profile Photo Section */}
         <View
           style={[
@@ -159,7 +271,10 @@ export default function PersonalInfoScreen() {
                   <ActivityIndicator size="large" color={colors.primary} />
                 </View>
               ) : (
-                <Image source={{ uri: avatar }} style={styles.avatar} />
+                <Image 
+                  source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }} 
+                  style={styles.avatar} 
+                />
               )}
               <View style={[styles.editBadge, { backgroundColor: colors.primary }]}>
                 <Ionicons name="camera" size={14} color="#fff" />
@@ -194,6 +309,11 @@ export default function PersonalInfoScreen() {
                 onChangeText={setFullName}
                 placeholder="Adınızı girin"
                 placeholderTextColor={colors.textSecondary}
+                autoCapitalize="words"
+                autoCorrect={false}
+                returnKeyType="next"
+                textContentType="name"
+                editable={true}
               />
             </View>
 
@@ -201,13 +321,15 @@ export default function PersonalInfoScreen() {
             <View style={[styles.inputRow, styles.inputRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>E-posta</Text>
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: colors.text, opacity: 0.6 }]}
                 value={email}
-                onChangeText={setEmail}
                 placeholder="E-posta adresinizi girin"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                editable={false}
               />
             </View>
 
@@ -221,6 +343,9 @@ export default function PersonalInfoScreen() {
                 placeholder="Telefon numaranızı girin"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                returnKeyType="next"
+                editable={true}
               />
             </View>
 
@@ -233,6 +358,9 @@ export default function PersonalInfoScreen() {
                 onChangeText={setBirthDate}
                 placeholder="GG/AA/YYYY"
                 placeholderTextColor={colors.textSecondary}
+                keyboardType="numbers-and-punctuation"
+                returnKeyType="next"
+                editable={true}
               />
             </View>
 
@@ -240,12 +368,17 @@ export default function PersonalInfoScreen() {
             <View style={styles.inputRow}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Adres</Text>
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, styles.multilineInput, { color: colors.text }]}
                 value={address}
                 onChangeText={setAddress}
                 placeholder="Adresinizi girin"
                 placeholderTextColor={colors.textSecondary}
                 multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                textContentType="fullStreetAddress"
+                returnKeyType="done"
+                editable={true}
               />
             </View>
           </View>
@@ -264,7 +397,8 @@ export default function PersonalInfoScreen() {
             <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -381,6 +515,11 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '400',
     padding: 0,
+    minHeight: 24,
+  },
+  multilineInput: {
+    minHeight: 60,
+    paddingTop: 4,
   },
   saveButton: {
     paddingVertical: 16,

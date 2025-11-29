@@ -16,9 +16,7 @@ import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore } from '@/stores';
-
-// Default avatar
-const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop';
+import { getAvatarUrl } from '@/lib/avatarService';
 
 // Member class badge colors
 const memberClassColors: Record<string, string> = {
@@ -112,8 +110,7 @@ export default function ProfileScreen() {
         {/* Profile Avatar Section - No Background */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: profile?.avatar_url || DEFAULT_AVATAR }} style={styles.avatar} />
-            <View style={[styles.badgeIndicator, { backgroundColor: memberClassColor }]} />
+            <Image source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }} style={styles.avatar} />
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>
             {profile?.full_name || user?.user_metadata?.full_name || 'Kullanıcı'}

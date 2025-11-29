@@ -94,14 +94,22 @@ export default function EditTourScreen() {
         {
           text: 'Galeri',
           onPress: async () => {
-            const uri = await pickImage();
+            const { uri, error } = await pickImage();
+            if (error) {
+              Alert.alert('Hata', error);
+              return;
+            }
             if (uri) setImageUri(uri);
           },
         },
         {
           text: 'Kamera',
           onPress: async () => {
-            const uri = await takePhoto();
+            const { uri, error } = await takePhoto();
+            if (error) {
+              Alert.alert('Hata', error);
+              return;
+            }
             if (uri) setImageUri(uri);
           },
         },

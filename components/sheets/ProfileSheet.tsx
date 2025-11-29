@@ -17,6 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
+import { useAuthStore } from '@/stores';
+import { getAvatarUrl } from '@/lib/avatarService';
 
 const { height } = Dimensions.get('window');
 
@@ -24,23 +26,6 @@ interface ProfileSheetProps {
   visible: boolean;
   onClose: () => void;
 }
-
-// Mock user data
-const userData = {
-  name: 'Ayşe Yılmaz',
-  memberType: 'Gold Üye',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop',
-  memberNumber: '477 833 9222 922',
-  points: '14.934',
-  memberClass: 'Gold',
-};
-
-const accountInfoItems = [
-  { label: 'Üye No', value: userData.memberNumber },
-  { label: 'Toplanan Puan', value: userData.points },
-  { label: 'Üyelik Sınıfı', value: userData.memberClass },
-  { label: 'Üyelik Kartı', value: '', hasArrow: true },
-];
 
 const personalDetailsItems = [
   { label: 'Kişisel Bilgiler', icon: 'person-outline' },
@@ -54,6 +39,17 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+
+  // Auth store
+  const { profile, user } = useAuthStore();
+
+  // Dynamic account info based on profile
+  const accountInfoItems = [
+    { label: 'Üye No', value: profile?.member_number || '-' },
+    { label: 'Toplanan Puan', value: '0' },
+    { label: 'Üyelik Sınıfı', value: profile?.member_class || 'Standart' },
+    { label: 'Üyelik Kartı', value: '', hasArrow: true },
+  ];
 
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -168,11 +164,19 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
             {/* Profile Avatar Section */}
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
-                <Image source={{ uri: userData.avatar }} style={styles.avatar} />
+                <Image 
+                  source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }} 
+                  style={styles.avatar} 
+                />
                 <View style={[styles.badgeIndicator, { backgroundColor: '#FFD700' }]} />
               </View>
-              <Text style={[styles.userName, { color: colors.text }]}>{userData.name}</Text>
-              <Text style={[styles.memberType, { color: '#FFB800' }]}>{userData.memberType}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>
+                {profile?.full_name || 'Kullanıcı'}
+              </Text>
+              <Text style={[styles.memberType, { color: '#FFB800' }]}>
+                {profile?.member_class === 'gold' ? 'Gold Üye' : 
+                 profile?.member_class === 'silver' ? 'Silver Üye' : 'Standart Üye'}
+              </Text>
             </View>
 
             {/* Account Information Section */}

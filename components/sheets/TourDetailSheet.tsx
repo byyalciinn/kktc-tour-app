@@ -53,11 +53,27 @@ export default function TourDetailSheet({
   const imageScale = useRef(new Animated.Value(1)).current;
   const [isFavorited, setIsFavorited] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  const [currentTour, setCurrentTour] = useState<Tour | null>(null);
+
+  // Update current tour when tour prop changes
+  useEffect(() => {
+    if (tour) {
+      setCurrentTour(tour);
+    }
+  }, [tour]);
 
   // Related tours (same category, excluding current)
-  const relatedTours = tour
-    ? tours.filter((t) => t.category === tour.category && t.id !== tour.id).slice(0, 4)
+  const relatedTours = currentTour
+    ? tours.filter((t) => t.category === currentTour.category && t.id !== currentTour.id).slice(0, 4)
     : [];
+
+  // Handle related tour press
+  const handleRelatedTourPress = (relatedTour: Tour) => {
+    setCurrentTour(relatedTour);
+    // Check if new tour is favorited
+    const favorited = checkIsFavorited(relatedTour.id);
+    setIsFavorited(favorited);
+  };
 
   // Check if tour is favorited when modal opens
   useEffect(() => {
@@ -91,10 +107,10 @@ export default function TourDetailSheet({
       Alert.alert('Giriş Gerekli', 'Favorilere eklemek için giriş yapmalısınız.');
       return;
     }
-    if (!tour) return;
+    if (!currentTour) return;
 
     setIsTogglingFavorite(true);
-    const { isFavorited: newState, error } = await toggleFavorite(user.id, tour);
+    const { isFavorited: newState, error } = await toggleFavorite(user.id, currentTour);
     setIsTogglingFavorite(false);
 
     if (error) {
@@ -106,10 +122,10 @@ export default function TourDetailSheet({
 
   // Handle directions
   const handleGetDirections = () => {
-    if (!tour) return;
+    if (!currentTour) return;
     
     // Open Google Maps with location search
-    const query = encodeURIComponent(tour.location);
+    const query = encodeURIComponent(currentTour.location);
     const url = Platform.select({
       ios: `maps://maps.apple.com/?q=${query}`,
       android: `geo:0,0?q=${query}`,
@@ -167,7 +183,7 @@ export default function TourDetailSheet({
     })
   ).current;
 
-  if (!tour) return null;
+  if (!currentTour) return null;
 
   return (
     <Modal
@@ -204,7 +220,7 @@ export default function TourDetailSheet({
         {/* Hero Image */}
         <View style={styles.imageContainer}>
           <Animated.Image
-            source={{ uri: tour.image }}
+            source={{ uri: currentTour.image }}
             style={[
               styles.heroImage,
               { transform: [{ scale: imageScale }] },
@@ -265,25 +281,25 @@ export default function TourDetailSheet({
             <View style={styles.headerRow}>
               <View style={styles.titleSection}>
                 <Text style={[styles.title, { color: colors.text }]}>
-                  {tour.title}
+                  {currentTour.title}
                 </Text>
                 <Text style={[styles.location, { color: colors.textSecondary }]}>
-                  {tour.location}
+                  {currentTour.location}
                 </Text>
               </View>
               <View style={styles.ratingSection}>
                 <Text style={[styles.ratingScore, { color: colors.text }]}>
-                  {tour.rating}/5
+                  {currentTour.rating}/5
                 </Text>
                 <Text style={[styles.reviewCount, { color: colors.textSecondary }]}>
-                  {tour.reviewCount} reviews
+                  {currentTour.reviewCount} değerlendirme
                 </Text>
               </View>
             </View>
 
             {/* Highlights - Inline chips */}
             <View style={styles.highlightsContainer}>
-              {tour.highlights.map((highlight, index) => (
+              {currentTour.highlights.map((highlight, index) => (
                 <View
                   key={index}
                   style={[
@@ -308,11 +324,11 @@ export default function TourDetailSheet({
             {/* Description */}
             <View style={styles.descriptionSection}>
               <Text style={[styles.description, { color: colors.text }]}>
-                {tour.description}
+                {currentTour.description}
               </Text>
               <TouchableOpacity style={styles.readMoreButton}>
                 <Text style={[styles.readMoreText, { color: colors.text }]}>
-                  Read more
+                  Devamını oku
                 </Text>
                 <View style={[styles.readMoreLine, { backgroundColor: colors.text }]} />
               </TouchableOpacity>
@@ -322,7 +338,7 @@ export default function TourDetailSheet({
             {relatedTours.length > 0 && (
               <View style={styles.upcomingSection}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Upcoming tours
+                  Benzer Turlar
                 </Text>
                 <ScrollView
                   horizontal
@@ -334,6 +350,7 @@ export default function TourDetailSheet({
                       key={relatedTour.id} 
                       style={styles.upcomingCard}
                       activeOpacity={0.9}
+                      onPress={() => handleRelatedTourPress(relatedTour)}
                     >
                       <Image
                         source={{ uri: relatedTour.image }}
@@ -342,7 +359,10 @@ export default function TourDetailSheet({
                       {/* Gradient Overlay */}
                       <View style={styles.upcomingGradient} />
                       {/* Arrow Button */}
-                      <TouchableOpacity style={styles.upcomingArrow}>
+                      <TouchableOpacity 
+                        style={styles.upcomingArrow}
+                        onPress={() => handleRelatedTourPress(relatedTour)}
+                      >
                         <Ionicons name="arrow-forward" size={16} color="#000" />
                       </TouchableOpacity>
                       {/* Content on Image */}
@@ -357,12 +377,6 @@ export default function TourDetailSheet({
                           <Text style={styles.upcomingLocation}>
                             {relatedTour.location.split(',')[0]}
                           </Text>
-                          <View style={styles.upcomingRating}>
-                            <Ionicons name="star" size={12} color="#FFD700" />
-                            <Text style={styles.upcomingRatingText}>
-                              {relatedTour.rating}
-                            </Text>
-                          </View>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -387,10 +401,7 @@ export default function TourDetailSheet({
           >
             <View style={styles.priceContainer}>
               <Text style={[styles.ctaPrice, { color: colors.text }]}>
-                {tour.currency}{tour.price}
-              </Text>
-              <Text style={[styles.ctaPriceLabel, { color: colors.textSecondary }]}>
-                / kişi başı
+                {currentTour.currency}{currentTour.price}
               </Text>
             </View>
             <TouchableOpacity

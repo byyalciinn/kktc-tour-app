@@ -19,6 +19,8 @@ export interface Tour {
   image: string;
   highlights: string[];
   category: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface TourInput {
@@ -31,6 +33,8 @@ export interface TourInput {
   category: string;
   highlights: string[];
   image?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface TourData extends TourInput {
@@ -39,6 +43,8 @@ export interface TourData extends TourInput {
   review_count: number;
   created_at: string;
   updated_at: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Helper to convert TourData (from Supabase) to Tour (for UI)
@@ -55,6 +61,8 @@ export const tourDataToTour = (data: TourData): Tour => ({
   image: data.image || '',
   highlights: data.highlights || [],
   category: data.category,
+  latitude: data.latitude,
+  longitude: data.longitude,
 });
 
 // =============================================
@@ -89,9 +97,13 @@ export interface UserProfile {
   full_name: string | null;
   avatar_url: string | null;
   phone: string | null;
+  birth_date: string | null;
+  address: string | null;
   member_number: string | null;
   member_class: string;
+  role: 'user' | 'admin';
   created_at: string;
+  updated_at?: string;
 }
 
 // =============================================

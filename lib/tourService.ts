@@ -6,6 +6,26 @@ import { decode } from 'base64-arraybuffer';
 const BUCKET_NAME = 'image-bucket';
 const IMAGE_WIDTH = 800;
 const IMAGE_HEIGHT = 600;
+const MAX_FILE_SIZE_MB = 10; // Maximum file size in MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+/**
+ * Validates image file before upload
+ */
+interface ImageValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+const validateImageFile = (fileSize?: number, mimeType?: string): ImageValidationResult => {
+  if (fileSize && fileSize > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    return { isValid: false, error: `Dosya boyutu ${MAX_FILE_SIZE_MB}MB'dan küçük olmalıdır` };
+  }
+  if (mimeType && !ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return { isValid: false, error: 'Sadece JPEG, PNG, WebP ve GIF formatları desteklenir' };
+  }
+  return { isValid: true };
+};
 
 const slugify = (text: string) =>
   text
@@ -43,60 +63,93 @@ export interface TourData extends TourInput {
   updated_at: string;
 }
 
-// Pick image from gallery
-export const pickImage = async (): Promise<string | null> => {
-  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  
-  if (!permissionResult.granted) {
-    alert('Galeri erişim izni gerekli!');
-    return null;
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [4, 3],
-    quality: 1,
-  });
-
-  if (!result.canceled && result.assets[0]) {
-    return result.assets[0].uri;
-  }
-  
-  return null;
-};
-
-// Take photo with camera
-export const takePhoto = async (): Promise<string | null> => {
-  const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-  
-  if (!permissionResult.granted) {
-    alert('Kamera erişim izni gerekli!');
-    return null;
-  }
-
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [4, 3],
-    quality: 1,
-  });
-
-  if (!result.canceled && result.assets[0]) {
-    return result.assets[0].uri;
-  }
-  
-  return null;
-};
-
-// Optimize and resize image
-export const optimizeImage = async (uri: string): Promise<{ uri: string; base64: string } | null> => {
+// Pick image from gallery with validation
+export const pickImage = async (): Promise<{ uri: string | null; error?: string }> => {
   try {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (!permissionResult.granted) {
+      return { uri: null, error: 'Galeri erişim izni gerekli!' };
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+      return { uri: null };
+    }
+
+    const asset = result.assets[0];
+    
+    // Validate file size and type
+    const validation = validateImageFile(asset.fileSize, asset.mimeType);
+    if (!validation.isValid) {
+      return { uri: null, error: validation.error };
+    }
+
+    return { uri: asset.uri };
+  } catch (error) {
+    console.error('Pick image error:', error);
+    return { uri: null, error: 'Görsel seçilirken bir hata oluştu' };
+  }
+};
+
+// Take photo with camera with validation
+export const takePhoto = async (): Promise<{ uri: string | null; error?: string }> => {
+  try {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (!permissionResult.granted) {
+      return { uri: null, error: 'Kamera erişim izni gerekli!' };
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (result.canceled || !result.assets || result.assets.length === 0) {
+      return { uri: null };
+    }
+
+    const asset = result.assets[0];
+    
+    // Validate file size and type
+    const validation = validateImageFile(asset.fileSize, asset.mimeType);
+    if (!validation.isValid) {
+      return { uri: null, error: validation.error };
+    }
+
+    return { uri: asset.uri };
+  } catch (error) {
+    console.error('Take photo error:', error);
+    return { uri: null, error: 'Fotoğraf çekilirken bir hata oluştu' };
+  }
+};
+
+// Optimize and resize image - preserves aspect ratio
+export const optimizeImage = async (
+  uri: string, 
+  options?: { maxWidth?: number; maxHeight?: number; quality?: number }
+): Promise<{ uri: string; base64: string } | null> => {
+  try {
+    const maxWidth = options?.maxWidth || IMAGE_WIDTH;
+    const maxHeight = options?.maxHeight || IMAGE_HEIGHT;
+    const quality = options?.quality || 0.7;
+
+    // Resize by width only to preserve aspect ratio
+    // This prevents distortion and unnecessary cropping
     const manipulatedImage = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: IMAGE_WIDTH, height: IMAGE_HEIGHT } }],
+      [{ resize: { width: maxWidth } }],
       {
-        compress: 0.7, // 70% quality for optimization
+        compress: quality,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       }

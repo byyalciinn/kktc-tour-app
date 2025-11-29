@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import {
@@ -20,7 +21,6 @@ import { useAuthStore } from '@/stores';
 import { useToast } from '@/components/ui';
 
 interface SettingItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
   hasArrow?: boolean;
@@ -29,10 +29,10 @@ interface SettingItemProps {
   onSwitchChange?: (value: boolean) => void;
   onPress?: () => void;
   danger?: boolean;
+  isLast?: boolean;
 }
 
 function SettingItem({
-  icon,
   label,
   value,
   hasArrow = true,
@@ -41,6 +41,7 @@ function SettingItem({
   onSwitchChange,
   onPress,
   danger = false,
+  isLast = false,
 }: SettingItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -50,42 +51,22 @@ function SettingItem({
     <TouchableOpacity
       style={[
         styles.settingItem,
-        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+        !isLast && { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', borderBottomWidth: 0.5 },
       ]}
-      activeOpacity={hasSwitch ? 1 : 0.7}
+      activeOpacity={hasSwitch ? 1 : 0.6}
       onPress={onPress}
       disabled={hasSwitch}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <View style={styles.settingLeft}>
-        <View
-          style={[
-            styles.settingIconContainer,
-            {
-              backgroundColor: danger
-                ? 'rgba(239, 68, 68, 0.1)'
-                : isDark
-                ? 'rgba(255,255,255,0.1)'
-                : 'rgba(0,0,0,0.05)',
-            },
-          ]}
-        >
-          <Ionicons
-            name={icon}
-            size={20}
-            color={danger ? '#EF4444' : colors.primary}
-          />
-        </View>
-        <Text
-          style={[
-            styles.settingLabel,
-            { color: danger ? '#EF4444' : colors.text },
-          ]}
-        >
-          {label}
-        </Text>
-      </View>
+      <Text
+        style={[
+          styles.settingLabel,
+          { color: danger ? '#EF4444' : colors.text },
+        ]}
+      >
+        {label}
+      </Text>
       <View style={styles.settingRight}>
         {value && (
           <Text style={[styles.settingValue, { color: colors.textSecondary }]}>
@@ -96,12 +77,13 @@ function SettingItem({
           <Switch
             value={switchValue}
             onValueChange={onSwitchChange}
-            trackColor={{ false: '#767577', true: colors.primary }}
+            trackColor={{ false: isDark ? '#39393D' : '#E5E5EA', true: colors.primary }}
             thumbColor="#FFFFFF"
+            ios_backgroundColor={isDark ? '#39393D' : '#E5E5EA'}
           />
         )}
         {hasArrow && !hasSwitch && (
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={18} color={isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'} />
         )}
       </View>
     </TouchableOpacity>
@@ -208,19 +190,20 @@ export default function SettingsScreen() {
         {/* Notifications Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            BİLDİRİMLER
+            Tercihler
           </Text>
-          <View
+          <BlurView
+            intensity={isDark ? 40 : 80}
+            tint={isDark ? 'dark' : 'light'}
             style={[
               styles.sectionCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
               },
             ]}
           >
             <SettingItem
-              icon="notifications-outline"
               label="Bildirimler"
               hasSwitch
               switchValue={notificationsEnabled}
@@ -228,32 +211,13 @@ export default function SettingsScreen() {
               hasArrow={false}
             />
             <SettingItem
-              icon="location-outline"
               label="Konum Servisleri"
               hasSwitch
               switchValue={locationEnabled}
               onSwitchChange={setLocationEnabled}
               hasArrow={false}
             />
-          </View>
-        </View>
-
-        {/* Appearance Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            GÖRÜNÜM
-          </Text>
-          <View
-            style={[
-              styles.sectionCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-              },
-            ]}
-          >
             <SettingItem
-              icon="moon-outline"
               label="Karanlık Mod"
               hasSwitch
               switchValue={darkModeEnabled}
@@ -261,100 +225,104 @@ export default function SettingsScreen() {
               hasArrow={false}
             />
             <SettingItem
-              icon="language-outline"
               label="Dil"
               value="Türkçe"
               onPress={() => toast.info('Dil ayarları yakında eklenecek')}
+              isLast
             />
-          </View>
+          </BlurView>
         </View>
 
         {/* Privacy Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            GİZLİLİK VE GÜVENLİK
+            Gizlilik ve Güvenlik
           </Text>
-          <View
+          <BlurView
+            intensity={isDark ? 40 : 80}
+            tint={isDark ? 'dark' : 'light'}
             style={[
               styles.sectionCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
               },
             ]}
           >
             <SettingItem
-              icon="lock-closed-outline"
               label="Şifre Değiştir"
-              onPress={() => toast.info('Şifre değiştirme yakında eklenecek')}
+              onPress={() => router.push('/profile/change-password')}
             />
             <SettingItem
-              icon="shield-checkmark-outline"
               label="Gizlilik Politikası"
-              onPress={() => toast.info('Gizlilik politikası yakında eklenecek')}
+              onPress={() => router.push('/profile/privacy-policy')}
             />
             <SettingItem
-              icon="document-text-outline"
               label="Kullanım Koşulları"
-              onPress={() => toast.info('Kullanım koşulları yakında eklenecek')}
+              onPress={() => router.push('/profile/terms-of-use')}
+              isLast
             />
-          </View>
+          </BlurView>
         </View>
 
         {/* Data Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            VERİ YÖNETİMİ
+            Veri Yönetimi
           </Text>
-          <View
+          <BlurView
+            intensity={isDark ? 40 : 80}
+            tint={isDark ? 'dark' : 'light'}
             style={[
               styles.sectionCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
               },
             ]}
           >
             <SettingItem
-              icon="trash-outline"
               label="Önbelleği Temizle"
               onPress={handleClearCache}
             />
             <SettingItem
-              icon="download-outline"
               label="Verilerimi İndir"
               onPress={() => toast.info('Veri indirme yakında eklenecek')}
+              isLast
             />
-          </View>
+          </BlurView>
         </View>
 
-        {/* Danger Zone */}
+        {/* Account Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>
-            TEHLİKELİ BÖLGE
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+            Hesap
           </Text>
-          <View
+          <BlurView
+            intensity={isDark ? 40 : 80}
+            tint={isDark ? 'dark' : 'light'}
             style={[
               styles.sectionCard,
               {
-                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.05)',
-                borderColor: 'rgba(239, 68, 68, 0.2)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
               },
             ]}
           >
             <SettingItem
-              icon="log-out-outline"
               label="Çıkış Yap"
               onPress={handleLogout}
               danger
+              hasArrow={false}
             />
             <SettingItem
-              icon="person-remove-outline"
               label="Hesabı Sil"
               onPress={handleDeleteAccount}
               danger
+              hasArrow={false}
+              isLast
             />
-          </View>
+          </BlurView>
         </View>
 
         {/* App Info */}
@@ -408,14 +376,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '400',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
     marginBottom: 8,
-    marginLeft: 4,
+    marginLeft: 18,
   },
   sectionCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -423,35 +392,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  settingIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 18,
   },
   settingLabel: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '400',
+    letterSpacing: -0.4,
   },
   settingRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   settingValue: {
-    fontSize: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    letterSpacing: -0.4,
   },
   appInfo: {
     alignItems: 'center',

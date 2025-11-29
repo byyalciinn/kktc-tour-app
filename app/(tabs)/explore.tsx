@@ -22,7 +22,9 @@ import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
-import { getCategories, Category } from '@/lib/tourService';
+import { useTourStore, useUIStore, selectTours, selectCategories } from '@/stores';
+import { Tour, Category } from '@/types';
+import { TourDetailSheet } from '@/components/sheets';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,58 +33,12 @@ const SHEET_MIN_HEIGHT = 320;
 const SHEET_MAX_HEIGHT = height * 0.85;
 const SHEET_MID_HEIGHT = height * 0.5;
 
-// Default place categories (fallback)
-const defaultPlaceCategories = [
-  { id: 'all', name: 'Tümü', icon: 'apps-outline', sort_order: 0 },
-  { id: 'coffee', name: 'Kafe', icon: 'cafe', sort_order: 1 },
-  { id: 'restaurant', name: 'Restoran', icon: 'restaurant-outline', sort_order: 2 },
-  { id: 'hotel', name: 'Otel', icon: 'bed-outline', sort_order: 3 },
-  { id: 'transit', name: 'Ulaşım', icon: 'bus-outline', sort_order: 4 },
-  { id: 'museum', name: 'Müze', icon: 'business-outline', sort_order: 5 },
-];
-
-// Sample nearby places (KKTC locations)
-const nearbyPlaces = [
-  {
-    id: '1',
-    name: 'The Soulist Coffee',
-    category: 'coffee',
-    distance: '1.2 km',
-    image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop',
-    coordinate: { latitude: 35.3387, longitude: 33.3183 },
-  },
-  {
-    id: '2',
-    name: 'Girne Liman Cafe',
-    category: 'coffee',
-    distance: '0.8 km',
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&h=300&fit=crop',
-    coordinate: { latitude: 35.3420, longitude: 33.3220 },
-  },
-  {
-    id: '3',
-    name: 'Bellapais Garden Restaurant',
-    category: 'restaurant',
-    distance: '2.5 km',
-    image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-    coordinate: { latitude: 35.3050, longitude: 33.3550 },
-  },
-  {
-    id: '4',
-    name: 'Girne Kalesi Müzesi',
-    category: 'museum',
-    distance: '0.5 km',
-    image: 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=400&h=300&fit=crop',
-    coordinate: { latitude: 35.3410, longitude: 33.3190 },
-  },
-];
-
 // Default region (Girne, KKTC)
 const DEFAULT_REGION = {
   latitude: 35.3387,
   longitude: 33.3183,
-  latitudeDelta: 0.02,
-  longitudeDelta: 0.02,
+  latitudeDelta: 0.08,
+  longitudeDelta: 0.08,
 };
 
 export default function ExploreScreen() {
@@ -92,12 +48,25 @@ export default function ExploreScreen() {
   const isDark = colorScheme === 'dark';
   const mapRef = useRef<MapView>(null);
 
+  // Zustand stores with optimized selectors
+  const tours = useTourStore(selectTours);
+  const categories = useTourStore(selectCategories);
+  const fetchTours = useTourStore((state) => state.fetchTours);
+  const fetchCategories = useTourStore((state) => state.fetchCategories);
+  
+  const selectedTour = useUIStore((state) => state.selectedTour);
+  const isTourDetailVisible = useUIStore((state) => state.isTourDetailVisible);
+  const openTourDetail = useUIStore((state) => state.openTourDetail);
+  const closeTourDetail = useUIStore((state) => state.closeTourDetail);
+
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [address, setAddress] = useState<string>('Konum alınıyor...');
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [region, setRegion] = useState(DEFAULT_REGION);
-  const [placeCategories, setPlaceCategories] = useState<Category[]>(defaultPlaceCategories as Category[]);
+  const [isLocationEnabled, setIsLocationEnabled] = useState(true);
+  const [selectedMapTour, setSelectedMapTour] = useState<Tour | null>(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
   // Bottom sheet animation
   const sheetHeight = useRef(new Animated.Value(SHEET_MIN_HEIGHT)).current;
@@ -152,77 +121,82 @@ export default function ExploreScreen() {
     })
   ).current;
 
-  // Filter places by category
-  const filteredPlaces = activeCategory === 'all' 
-    ? nearbyPlaces 
-    : nearbyPlaces.filter((place) => place.category === activeCategory);
+  // Filter tours by category - only show tours with coordinates
+  const filteredTours = tours.filter((tour) => {
+    const hasCoordinates = tour.latitude && tour.longitude;
+    if (!hasCoordinates) return false;
+    if (activeCategory === 'all') return true;
+    return tour.category === activeCategory;
+  });
 
-  // Load categories from Supabase
+  // All categories with "Tümü" option - filter out any existing 'all' category to avoid duplicates
+  const allCategories: Category[] = [
+    { id: 'all', name: 'Tümü', icon: 'apps-outline', sort_order: 0 },
+    ...categories.filter((c: Category) => c.id !== 'all'),
+  ];
+
+  // Load data on mount
   useEffect(() => {
-    const loadCategories = async () => {
-      const { data } = await getCategories();
-      if (data && data.length > 0) {
-        setPlaceCategories(data);
-      }
-    };
-    loadCategories();
+    fetchCategories();
+    fetchTours();
   }, []);
 
   // Request location permission and get current location
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
-          Alert.alert(
-            'Konum İzni Gerekli',
-            'Yakınındaki yerleri görebilmek için konum izni vermeniz gerekmektedir.',
-            [{ text: 'Tamam' }]
-          );
-          setAddress('Girne, Kuzey Kıbrıs');
-          setLoading(false);
-          return;
-        }
-
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        
-        setLocation(currentLocation);
-        
-        // Update region to user's location
-        const newRegion = {
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        };
-        setRegion(newRegion);
-
-        // Get address from coordinates
-        const [addressResult] = await Location.reverseGeocodeAsync({
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        });
-
-        if (addressResult) {
-          const formattedAddress = [
-            addressResult.street,
-            addressResult.district,
-            addressResult.city,
-          ]
-            .filter(Boolean)
-            .join(', ');
-          setAddress(formattedAddress || 'Girne, Kuzey Kıbrıs');
-        }
-      } catch (error) {
-        console.log('Location error:', error);
+  const requestLocationPermission = async () => {
+    try {
+      setLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        setLocationPermissionDenied(true);
         setAddress('Girne, Kuzey Kıbrıs');
-      } finally {
         setLoading(false);
+        return;
       }
-    })();
+
+      setLocationPermissionDenied(false);
+      
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      
+      setLocation(currentLocation);
+      
+      // Update region to user's location
+      const newRegion = {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      };
+      setRegion(newRegion);
+
+      // Get address from coordinates
+      const [addressResult] = await Location.reverseGeocodeAsync({
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      });
+
+      if (addressResult) {
+        const formattedAddress = [
+          addressResult.street,
+          addressResult.district,
+          addressResult.city,
+        ]
+          .filter(Boolean)
+          .join(', ');
+        setAddress(formattedAddress || 'Girne, Kuzey Kıbrıs');
+      }
+    } catch (error) {
+      console.log('Location error:', error);
+      setAddress('Girne, Kuzey Kıbrıs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    requestLocationPermission();
   }, []);
 
   const handleBackPress = () => {
@@ -241,9 +215,28 @@ export default function ExploreScreen() {
   };
 
   const getCategoryTitle = () => {
-    if (activeCategory === 'all') return 'Yakındaki Yerler';
-    const category = placeCategories.find((c) => c.id === activeCategory);
-    return category ? `Yakındaki ${category.name}ler` : 'Yakındaki Yerler';
+    if (activeCategory === 'all') return 'Keşfedilecek Turlar';
+    const category = categories.find((c: Category) => c.id === activeCategory);
+    return category ? `${category.name} Turları` : 'Keşfedilecek Turlar';
+  };
+
+  // Handle tour marker press
+  const handleTourPress = (tour: Tour) => {
+    setSelectedMapTour(tour);
+    openTourDetail(tour);
+  };
+
+  // Toggle location tracking
+  const toggleLocationTracking = () => {
+    if (!location && !isLocationEnabled) {
+      Alert.alert(
+        'Konum İzni',
+        'Konumunuzu görmek için konum izni vermeniz gerekmektedir.',
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+    setIsLocationEnabled(!isLocationEnabled);
   };
 
   return (
@@ -257,51 +250,90 @@ export default function ExploreScreen() {
           style={styles.map}
           provider={PROVIDER_DEFAULT}
           initialRegion={region}
-          showsUserLocation
+          showsUserLocation={isLocationEnabled}
           showsMyLocationButton={false}
           showsCompass={false}
         >
-          {/* Place Markers */}
-          {filteredPlaces.map((place) => (
+          {/* Tour Markers */}
+          {filteredTours.map((tour) => (
             <Marker
-              key={place.id}
-              coordinate={place.coordinate}
-              title={place.name}
+              key={tour.id}
+              coordinate={{
+                latitude: tour.latitude!,
+                longitude: tour.longitude!,
+              }}
+              onPress={() => handleTourPress(tour)}
             >
               <View style={styles.markerContainer}>
                 <View style={[styles.marker, { backgroundColor: colors.primary }]}>
                   <Ionicons
                     name={
-                      placeCategories.find((c) => c.id === place.category)
+                      categories.find((c: Category) => c.id === tour.category)
                         ?.icon as any || 'location'
                     }
                     size={16}
                     color="#FFF"
                   />
                 </View>
-                <View style={styles.markerArrow} />
+                <View style={[styles.markerArrow, { borderTopColor: colors.primary }]} />
               </View>
             </Marker>
           ))}
         </MapView>
 
-        {/* Back Button */}
-        <TouchableOpacity
-          style={[styles.backButton, { top: insets.top + 10 }]}
-          onPress={handleBackPress}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="chevron-back" size={24} color="#000" />
-        </TouchableOpacity>
+        {/* Liquid Glass Location Toggle Button */}
+        <View style={[styles.locationToggleContainer, { top: insets.top + 10 }]}>
+          {Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint={isDark ? 'dark' : 'light'}
+              style={styles.liquidGlassBlur}
+            />
+          ) : (
+            <View 
+              style={[
+                styles.liquidGlassBlur, 
+                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
+              ]} 
+            />
+          )}
+          <TouchableOpacity
+            style={styles.locationToggleButton}
+            onPress={toggleLocationTracking}
+            activeOpacity={0.8}
+          >
+            <Ionicons 
+              name={isLocationEnabled ? "location" : "location-outline"} 
+              size={22} 
+              color={isLocationEnabled ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* My Location Button */}
-        <TouchableOpacity
-          style={[styles.myLocationButton, { bottom: 20 }]}
-          onPress={handleMyLocation}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="navigate" size={22} color="#666" />
-        </TouchableOpacity>
+        <View style={[styles.myLocationContainer, { bottom: SHEET_MIN_HEIGHT + 20 }]}>
+          {Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint={isDark ? 'dark' : 'light'}
+              style={styles.liquidGlassBlur}
+            />
+          ) : (
+            <View 
+              style={[
+                styles.liquidGlassBlur, 
+                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
+              ]} 
+            />
+          )}
+          <TouchableOpacity
+            style={styles.myLocationButton}
+            onPress={handleMyLocation}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="navigate" size={22} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Bottom Sheet */}
@@ -350,6 +382,34 @@ export default function ExploreScreen() {
           bounces={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         >
+          {/* Location Permission Banner */}
+          {locationPermissionDenied && (
+            <TouchableOpacity
+              style={[
+                styles.permissionBanner,
+                {
+                  backgroundColor: isDark ? 'rgba(240,58,82,0.15)' : 'rgba(240,58,82,0.1)',
+                  borderColor: isDark ? 'rgba(240,58,82,0.3)' : 'rgba(240,58,82,0.2)',
+                },
+              ]}
+              onPress={requestLocationPermission}
+              activeOpacity={0.8}
+            >
+              <View style={styles.permissionBannerContent}>
+                <Ionicons name="location-outline" size={20} color={colors.primary} />
+                <View style={styles.permissionBannerText}>
+                  <Text style={[styles.permissionTitle, { color: colors.text }]}>
+                    Konum İzni Gerekli
+                  </Text>
+                  <Text style={[styles.permissionSubtitle, { color: colors.textSecondary }]}>
+                    Yakınındaki yerleri görmek için dokunun
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="refresh-outline" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
           {/* Search Bar */}
           <View
             style={[
@@ -375,7 +435,7 @@ export default function ExploreScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesContainer}
           >
-            {placeCategories.map((category) => {
+            {allCategories.map((category: Category) => {
               const isActive = activeCategory === category.id;
               return (
                 <TouchableOpacity
@@ -387,12 +447,12 @@ export default function ExploreScreen() {
                         ? colors.primary
                         : isDark
                         ? 'rgba(255,255,255,0.08)'
-                        : '#FFFFFF',
+                        : 'rgba(255,255,255,0.7)',
                       borderColor: isActive
                         ? colors.primary
                         : isDark
                         ? 'rgba(255,255,255,0.15)'
-                        : 'rgba(0,0,0,0.1)',
+                        : 'rgba(0,0,0,0.08)',
                     },
                   ]}
                   onPress={() => setActiveCategory(category.id)}
@@ -429,54 +489,76 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Places - Vertical List when expanded */}
+            {/* Tours - Vertical List */}
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
               </View>
-            ) : filteredPlaces.length > 0 ? (
-              filteredPlaces.map((place) => (
+            ) : filteredTours.length > 0 ? (
+              filteredTours.map((tour: Tour) => (
                 <TouchableOpacity
-                  key={place.id}
+                  key={tour.id}
                   style={[
-                    styles.placeCard,
+                    styles.tourCard,
                     {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
                       borderColor: isDark
                         ? 'rgba(255,255,255,0.1)'
                         : 'rgba(0,0,0,0.06)',
                     },
                   ]}
                   activeOpacity={0.9}
+                  onPress={() => handleTourPress(tour)}
                 >
-                  <Image source={{ uri: place.image }} style={styles.placeImage} />
-                  <View style={styles.placeContent}>
+                  <Image source={{ uri: tour.image }} style={styles.tourImage} />
+                  <View style={styles.tourContent}>
                     <Text
-                      style={[styles.placeName, { color: colors.text }]}
+                      style={[styles.tourName, { color: colors.text }]}
                       numberOfLines={1}
                     >
-                      {place.name}
+                      {tour.title}
                     </Text>
-                    <View style={styles.placeInfo}>
+                    <View style={styles.tourInfo}>
                       <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.distanceText, { color: colors.textSecondary }]}>
-                        {place.distance}
+                      <Text style={[styles.tourLocation, { color: colors.textSecondary }]}>
+                        {tour.location}
                       </Text>
                     </View>
+                    <View style={styles.tourPriceRow}>
+                      <Text style={[styles.tourPrice, { color: colors.primary }]}>
+                        {tour.currency}{tour.price}
+                      </Text>
+                      <View style={styles.tourRating}>
+                        <Ionicons name="star" size={12} color="#FFD700" />
+                        <Text style={[styles.tourRatingText, { color: colors.text }]}>
+                          {tour.rating}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={[styles.placeArrow, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                  <View style={[styles.tourArrow, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
                     <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
                   </View>
                 </TouchableOpacity>
               ))
             ) : (
-              <Text style={[styles.noPlacesText, { color: colors.textSecondary }]}>
-                Bu kategoride yakınında yer bulunamadı
-              </Text>
+              <View style={styles.emptyState}>
+                <Ionicons name="map-outline" size={48} color={colors.textSecondary} />
+                <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                  Bu kategoride tur bulunamadı
+                </Text>
+              </View>
             )}
           </View>
         </ScrollView>
       </Animated.View>
+
+      {/* Tour Detail Sheet */}
+      <TourDetailSheet
+        tour={selectedTour}
+        visible={isTourDetailVisible}
+        onClose={closeTourDetail}
+      />
     </View>
   );
 }
@@ -491,76 +573,96 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  myLocationButton: {
+  // Liquid Glass Location Toggle Button
+  locationToggleContainer: {
     position: 'absolute',
     right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  liquidGlassBlur: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+  },
+  locationToggleButton: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
+  // Liquid Glass My Location Button
+  myLocationContainer: {
+    position: 'absolute',
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  myLocationButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Marker styles
   markerContainer: {
     alignItems: 'center',
   },
   marker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
   },
   markerArrow: {
     width: 0,
     height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#FFFFFF',
-    marginTop: -2,
+    marginTop: -3,
   },
+  // Bottom Sheet - Liquid Glass Style
   bottomSheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: 'rgba(255,255,255,0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 20,
   },
   handleContainer: {
     alignItems: 'center',
@@ -632,39 +734,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeCard: {
+  // Tour Card - Liquid Glass Style
+  tourCard: {
     flexDirection: 'row',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: 12,
+    alignItems: 'center',
   },
-  placeImage: {
+  tourImage: {
     width: 90,
     height: 90,
+    borderRadius: 16,
+    margin: 8,
   },
-  placeContent: {
+  tourContent: {
     flex: 1,
-    padding: 12,
-    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingRight: 8,
     gap: 4,
   },
-  placeName: {
+  tourName: {
     fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    marginBottom: 4,
   },
-  placeInfo: {
+  tourInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  distanceText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  tourLocation: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
-  placeArrow: {
+  tourPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  tourPrice: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+  },
+  tourRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tourRatingText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+  },
+  tourArrow: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -672,10 +798,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  noPlacesText: {
+  // Permission Banner
+  permissionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  permissionBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  permissionBannerText: {
+    flex: 1,
+  },
+  permissionTitle: {
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  permissionSubtitle: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    marginTop: 2,
+  },
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     textAlign: 'center',
-    paddingVertical: 20,
   },
 });

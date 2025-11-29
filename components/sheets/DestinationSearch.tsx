@@ -443,18 +443,18 @@ export default function DestinationSearch({
                   <View style={styles.emptyState}>
                     <View style={[
                       styles.emptyIconContainer,
-                      { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }
+                      { backgroundColor: 'rgba(240, 58, 82, 0.1)' }
                     ]}>
                       <Ionicons 
                         name="search-outline" 
                         size={40} 
-                        color={colors.textSecondary} 
+                        color={colors.primary} 
                       />
                     </View>
                     <Text style={[styles.emptyTitle, { color: colors.text }]}>
                       Tur veya destinasyon arayın
                     </Text>
-                    <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                    <Text style={[styles.emptySubtitle, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' }]}>
                       Aramalarınız burada görünecek
                     </Text>
                   </View>

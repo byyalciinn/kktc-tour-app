@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
   Platform,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +23,7 @@ import { HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/compo
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
 import { useTourStore, useUIStore, useAuthStore } from '@/stores';
+import { getAvatarUrl } from '@/lib/avatarService';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +32,8 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const spinAnim = useRef(new Animated.Value(0)).current;
+  const pullAnim = useRef(new Animated.Value(0)).current;
+  const [pullDistance, setPullDistance] = useState(0);
 
   // Zustand stores
   const { 
@@ -59,7 +63,7 @@ export default function HomeScreen() {
     closeNotificationSheet,
   } = useUIStore();
 
-  const { profile } = useAuthStore();
+  const { profile, user } = useAuthStore();
 
   // Spin animation for refresh icon
   useEffect(() => {
@@ -117,12 +121,176 @@ export default function HomeScreen() {
   // Tours are already filtered by store based on selected category
   const filteredTours = tours;
 
+  // Render tour card item for FlatList
+  const renderTourCard = useCallback(({ item: tour }: { item: Tour }) => (
+    <TouchableOpacity
+      style={styles.tripCard}
+      activeOpacity={0.95}
+      onPress={() => handleTourPress(tour)}
+    >
+      <Image
+        source={{ uri: tour.image }}
+        style={styles.tripCardImage}
+      />
+      {/* Overlay gradient */}
+      <View style={styles.tripCardGradient} />
+      
+      {/* Duration Tag */}
+      <View style={styles.tripDurationTag}>
+        <Text style={styles.tripDurationText}>{tour.duration}</Text>
+      </View>
+      
+      {/* Arrow Button */}
+      <TouchableOpacity style={styles.tripArrowButton}>
+        <Ionicons name="arrow-forward" size={20} color={colors.text} />
+      </TouchableOpacity>
+      
+      {/* Bottom Content */}
+      <View style={styles.tripCardContent}>
+        <View style={styles.tripCardLeft}>
+          <Text style={styles.tripCardTitle}>{tour.title}</Text>
+          <Text style={styles.tripCardSubtitle}>
+            {tour.location} • {getCategoryName(tour.category)}
+          </Text>
+        </View>
+        <View style={styles.tripCardRight}>
+          <Text style={styles.tripCardPrice}>
+            {tour.currency}{tour.price}
+          </Text>
+          <Text style={styles.tripCardPriceLabel}>kişi başı</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  ), [colors.text, getCategoryName, handleTourPress]);
+
+  // Header component for FlatList
+  const ListHeader = useCallback(() => (
+    <View style={styles.heroSection}>
+      {/* Custom Refresh Indicator - Above Location */}
+      {isRefreshing && (
+        <View style={styles.refreshContainer}>
+          <Animated.View style={[styles.refreshIconWrapper, { transform: [{ rotate: spin }] }]}>
+            <Ionicons name="refresh" size={20} color={colors.primary} />
+          </Animated.View>
+          <Text style={[styles.refreshText, { color: colors.textSecondary }]}>Güncelleniyor...</Text>
+        </View>
+      )}
+
+      {/* Header Row: Avatar - Location - Notification */}
+      <View style={styles.header}>
+        {/* Profile Avatar */}
+        <TouchableOpacity 
+          style={styles.avatarContainer}
+          onPress={openProfileSheet}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={{ uri: getAvatarUrl(profile?.avatar_url, user?.id) }}
+            style={styles.avatar}
+          />
+        </TouchableOpacity>
+        
+        {/* Location Center */}
+        <View style={styles.locationCenter}>
+          <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>Konum</Text>
+          <TouchableOpacity style={styles.locationRow}>
+            <Ionicons name="location" size={16} color={colors.primary} />
+            <Text style={[styles.locationText, { color: colors.text }]}>Kuzey Kıbrıs, KKTC</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Notification Button */}
+        <TouchableOpacity 
+          style={[styles.notificationButton, { backgroundColor: colors.card }]}
+          onPress={openNotificationSheet}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="notifications-outline" size={24} color={colors.text} />
+          {/* Notification badge */}
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>2</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchWrapper}>
+        <TouchableOpacity 
+          style={[styles.searchBar, { backgroundColor: colors.card }]}
+          onPress={openSearch}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="search-outline" size={22} color={colors.textSecondary} />
+          <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Destinasyon ara</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Category Icons Row */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryIconsContainer}
+      >
+        {categories.map((category, index) => {
+          const isActive = activeCategoryIndex === index;
+          return (
+            <TouchableOpacity
+              key={category.id}
+              style={styles.categoryIconItem}
+              activeOpacity={0.7}
+              onPress={() => handleCategoryPress(category.id)}
+            >
+              <View style={[
+                styles.categoryIconCircle,
+                {
+                  backgroundColor: isActive ? colors.primary : colors.card,
+                  borderColor: isActive ? colors.primary : colors.border,
+                }
+              ]}>
+                <Ionicons 
+                  name={category.icon as any} 
+                  size={24} 
+                  color={isActive ? '#fff' : colors.text} 
+                />
+              </View>
+              <Text style={[
+                styles.categoryIconLabel,
+                { 
+                  color: isActive ? colors.primary : colors.text,
+                  fontWeight: isActive ? '600' : '400',
+                }
+              ]}>
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Show skeleton or empty state before tour list */}
+      {isLoading && tours.length === 0 && (
+        <View style={styles.tripCardsContainer}>
+          <TourCardSkeleton />
+          <TourCardSkeleton />
+        </View>
+      )}
+      {!isLoading && filteredTours.length === 0 && <NoToursEmptyState />}
+    </View>
+  ), [isRefreshing, spin, colors, profile, user, openProfileSheet, openNotificationSheet, openSearch, categories, activeCategoryIndex, handleCategoryPress, isLoading, tours.length, filteredTours.length]);
+
+  // Key extractor for FlatList
+  const keyExtractor = useCallback((item: Tour) => item.id, []);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-      <ScrollView
-        style={styles.scrollView}
+      <FlatList
+        data={filteredTours}
+        renderItem={renderTourCard}
+        keyExtractor={keyExtractor}
+        ListHeaderComponent={ListHeader}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
@@ -138,169 +306,18 @@ export default function HomeScreen() {
             style={{ backgroundColor: 'transparent' }}
           />
         }
-      >
-        {/* Custom Refresh Indicator */}
-        {isRefreshing && (
-          <View style={styles.refreshContainer}>
-            <Animated.View style={[styles.refreshIconWrapper, { transform: [{ rotate: spin }] }]}>
-              <Ionicons name="refresh" size={24} color={colors.primary} />
-            </Animated.View>
-            <Text style={[styles.refreshText, { color: colors.textSecondary }]}>Güncelleniyor...</Text>
-          </View>
-        )}
-
-        {/* Hero Section - New Design */}
-        <View style={styles.heroSection}>
-          {/* Header Row: Avatar - Location - Notification */}
-          <View style={styles.header}>
-            {/* Profile Avatar */}
-            <TouchableOpacity 
-              style={styles.avatarContainer}
-              onPress={openProfileSheet}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: profile?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' }}
-                style={styles.avatar}
-              />
-            </TouchableOpacity>
-            
-            {/* Location Center */}
-            <View style={styles.locationCenter}>
-              <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>Konum</Text>
-              <TouchableOpacity style={styles.locationRow}>
-                <Ionicons name="location" size={16} color={colors.primary} />
-                <Text style={[styles.locationText, { color: colors.text }]}>Kuzey Kıbrıs, KKTC</Text>
-                <Ionicons name="chevron-down" size={16} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            {/* Notification Button */}
-            <TouchableOpacity 
-              style={[styles.notificationButton, { backgroundColor: colors.card }]}
-              onPress={openNotificationSheet}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="notifications-outline" size={24} color={colors.text} />
-              {/* Notification badge */}
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>2</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchWrapper}>
-            <TouchableOpacity 
-              style={[styles.searchBar, { backgroundColor: colors.card }]}
-              onPress={openSearch}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="search-outline" size={22} color={colors.textSecondary} />
-              <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>Destinasyon ara</Text>
-              <View style={styles.searchFilterButton}>
-                <Ionicons name="options-outline" size={20} color={colors.text} />
-              </View>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Category Icons Row */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryIconsContainer}
-          >
-            {categories.map((category, index) => {
-              const isActive = activeCategoryIndex === index;
-              return (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryIconItem}
-                  activeOpacity={0.7}
-                  onPress={() => handleCategoryPress(category.id)}
-                >
-                  <View style={[
-                    styles.categoryIconCircle,
-                    {
-                      backgroundColor: isActive ? colors.primary : colors.card,
-                      borderColor: isActive ? colors.primary : colors.border,
-                    }
-                  ]}>
-                    <Ionicons 
-                      name={category.icon as any} 
-                      size={24} 
-                      color={isActive ? '#fff' : colors.text} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.categoryIconLabel,
-                    { 
-                      color: isActive ? colors.primary : colors.text,
-                      fontWeight: isActive ? '600' : '400',
-                    }
-                  ]}>
-                    {category.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* Trip Cards */}
-        <View style={styles.tripCardsContainer}>
-          {isLoading && tours.length === 0 ? (
-            /* Show skeleton when initially loading */
-            <>
-              <TourCardSkeleton />
-              <TourCardSkeleton />
-            </>
-          ) : filteredTours.length === 0 ? (
-            <NoToursEmptyState />
-          ) : null}
-          {filteredTours.map((tour) => (
-            <TouchableOpacity
-              key={tour.id}
-              style={styles.tripCard}
-              activeOpacity={0.95}
-              onPress={() => handleTourPress(tour)}
-            >
-              <Image
-                source={{ uri: tour.image }}
-                style={styles.tripCardImage}
-              />
-              {/* Overlay gradient */}
-              <View style={styles.tripCardGradient} />
-              
-              {/* Duration Tag */}
-              <View style={styles.tripDurationTag}>
-                <Text style={styles.tripDurationText}>{tour.duration}</Text>
-              </View>
-              
-              {/* Arrow Button */}
-              <TouchableOpacity style={styles.tripArrowButton}>
-                <Ionicons name="arrow-forward" size={20} color={colors.text} />
-              </TouchableOpacity>
-              
-              {/* Bottom Content */}
-              <View style={styles.tripCardContent}>
-                <View style={styles.tripCardLeft}>
-                  <Text style={styles.tripCardTitle}>{tour.title}</Text>
-                  <Text style={styles.tripCardSubtitle}>
-                    {tour.location} • {getCategoryName(tour.category)}
-                  </Text>
-                </View>
-                <View style={styles.tripCardRight}>
-                  <Text style={styles.tripCardPrice}>
-                    {tour.currency}{tour.price}
-                  </Text>
-                  <Text style={styles.tripCardPriceLabel}>kişi başı</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        initialNumToRender={3}
+        getItemLayout={(_, index) => ({
+          length: 300, // tripCard height (280) + gap (20)
+          offset: 300 * index,
+          index,
+        })}
+        ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
+      />
 
       {/* Tour Detail Sheet */}
       <TourDetailSheet
@@ -349,24 +366,25 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
   },
-  // Custom Refresh Indicator
+  // Custom Refresh Indicator - Positioned above location
   refreshContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    gap: 8,
   },
   refreshIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(240, 58, 82, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   refreshText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
   },
@@ -450,12 +468,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '400',
-  },
-  searchFilterButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   // Category Icons
   categoryIconsContainer: {
