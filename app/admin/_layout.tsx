@@ -79,6 +79,10 @@ export default function AdminLayout() {
         name="categories" 
         options={{ title: 'Kategori Yönetimi' }}
       />
+      <Stack.Screen 
+        name="moderation" 
+        options={{ title: 'İçerik Moderasyonu' }}
+      />
     </Stack>
   );
 }

@@ -15,6 +15,7 @@
     "retry": "Retry",
     "close": "Close",
     "send": "Send",
+    "sending": "Sending...",
     "sent": "Sent",
     "remove": "Remove",
     "warning": "Warning",
@@ -124,6 +125,7 @@
   "tabs": {
     "home": "Home",
     "explore": "Explore",
+    "community": "Community",
     "favorites": "Favorites",
     "profile": "Profile"
   },
@@ -361,5 +363,79 @@
     "disputeResolution": "Dispute Resolution",
     "rights": "Your Rights",
     "serviceDescription": "Service Description"
+  },
+  "community": {
+    "title": "Community",
+    "subtitle": "Share your experiences, discover more",
+    "createPost": "Create Post",
+    "createFirst": "Create First Post",
+    "postType": "Post Type",
+    "titleOptional": "Title (Optional)",
+    "titlePlaceholder": "Add a title to your post",
+    "captionOptional": "Caption (Optional)",
+    "captionPlaceholder": "Write something about your photo...",
+    "content": "Content",
+    "reviewPlaceholder": "Share your experience...",
+    "suggestionPlaceholder": "Write your suggestion...",
+    "photos": "Photos",
+    "addPhoto": "Add",
+    "locationOptional": "Location (Optional)",
+    "locationPlaceholder": "Add location",
+    "moderationNotice": "Your post will be reviewed by our team before publishing. This usually takes a few hours.",
+    "imageUploadError": "An error occurred while uploading the photo",
+    "postCreated": {
+      "title": "Post Submitted!",
+      "message": "Your post has been submitted for review. It will appear in the community once approved."
+    },
+    "validation": {
+      "photoRequired": "Please add at least one photo",
+      "contentRequired": "Please write some content"
+    },
+    "types": {
+      "photo": "Photo",
+      "review": "Review",
+      "suggestion": "Suggestion"
+    },
+    "filters": {
+      "all": "All",
+      "photos": "Photos",
+      "reviews": "Reviews",
+      "suggestions": "Suggestions"
+    },
+    "empty": {
+      "title": "No Posts Yet",
+      "subtitle": "There are no posts in the community yet. Be the first to share!"
+    },
+    "time": {
+      "now": "Just now",
+      "minutes": "{{count}}m ago",
+      "hours": "{{count}}h ago",
+      "days": "{{count}}d ago"
+    },
+    "anonymous": "Anonymous User",
+    "relatedTour": "Related Tour",
+    "likes": "likes",
+    "comments": "comments",
+    "noComments": "No comments yet. Be the first to comment!",
+    "addComment": "Write a comment...",
+    "deleteComment": "Delete Comment",
+    "deleteCommentConfirm": "Are you sure you want to delete this comment?",
+    "pending": "Under Review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "moderation": {
+      "title": "Content Moderation",
+      "pending": "Pending Content",
+      "approve": "Approve",
+      "reject": "Reject",
+      "rejectReason": "Rejection Reason",
+      "rejectReasonPlaceholder": "Enter the reason for rejection...",
+      "approved": "Content approved",
+      "rejected": "Content rejected",
+      "noPending": "No pending content",
+      "allClear": "All content has been reviewed, no pending items.",
+      "approveConfirm": "Are you sure you want to approve \"{{title}}\"?",
+      "rejectReasonRequired": "Please enter a rejection reason"
+    }
   }
 }

@@ -45,6 +45,19 @@ export default function TabLayout() {
         })}
       </NativeTabs.Trigger>
 
+      {/* Community Tab */}
+      <NativeTabs.Trigger name="community">
+        <Label>{t('tabs.community')}</Label>
+        {Platform.select({
+          ios: <Icon sf={{ default: 'person.3', selected: 'person.3.fill' }} />,
+          default: (
+            <Icon
+              src={<VectorIcon family={MaterialIcons} name="groups" />}
+            />
+          ),
+        })}
+      </NativeTabs.Trigger>
+
       {/* Favorites Tab */}
       <NativeTabs.Trigger name="favorites">
         <Label>{t('tabs.favorites')}</Label>

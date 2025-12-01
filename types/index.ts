@@ -245,3 +245,200 @@ export const routeDataToRoute = (data: ThematicRouteData): ThematicRoute => ({
   createdAt: data.created_at,
   updatedAt: data.updated_at,
 });
+
+// =============================================
+// COMMUNITY TYPES
+// =============================================
+
+/**
+ * Community post types
+ */
+export type CommunityPostType = 'photo' | 'review' | 'suggestion';
+
+/**
+ * Moderation status for community posts
+ */
+export type ModerationStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Community post - user generated content
+ */
+export interface CommunityPost {
+  id: string;
+  userId: string;
+  tourId?: string;
+  type: CommunityPostType;
+  title?: string;
+  content?: string;
+  images: string[];
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  status: ModerationStatus;
+  rejectionReason?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  likesCount: number;
+  commentsCount: number;
+  createdAt: string;
+  updatedAt: string;
+  // Joined data
+  user?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+  tour?: {
+    id: string;
+    title: string;
+    image: string;
+  };
+  isLiked?: boolean;
+}
+
+/**
+ * Supabase row type for community_posts table
+ */
+export interface CommunityPostData {
+  id: string;
+  user_id: string;
+  tour_id: string | null;
+  type: CommunityPostType;
+  title: string | null;
+  content: string | null;
+  images: string[];
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  status: ModerationStatus;
+  rejection_reason: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  profiles?: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+  tours?: {
+    id: string;
+    title: string;
+    image: string | null;
+  };
+}
+
+/**
+ * Helper to convert CommunityPostData to CommunityPost
+ */
+export const postDataToPost = (data: CommunityPostData, isLiked?: boolean): CommunityPost => ({
+  id: data.id,
+  userId: data.user_id,
+  tourId: data.tour_id || undefined,
+  type: data.type,
+  title: data.title || undefined,
+  content: data.content || undefined,
+  images: data.images || [],
+  location: data.location || undefined,
+  latitude: data.latitude || undefined,
+  longitude: data.longitude || undefined,
+  status: data.status,
+  rejectionReason: data.rejection_reason || undefined,
+  reviewedAt: data.reviewed_at || undefined,
+  reviewedBy: data.reviewed_by || undefined,
+  likesCount: data.likes_count || 0,
+  commentsCount: data.comments_count || 0,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  user: data.profiles ? {
+    id: data.profiles.id,
+    fullName: data.profiles.full_name || 'Kullanıcı',
+    avatarUrl: data.profiles.avatar_url || undefined,
+  } : undefined,
+  tour: data.tours ? {
+    id: data.tours.id,
+    title: data.tours.title,
+    image: data.tours.image || '',
+  } : undefined,
+  isLiked,
+});
+
+/**
+ * Community comment
+ */
+export interface CommunityComment {
+  id: string;
+  postId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+}
+
+/**
+ * Supabase row type for community_comments table
+ */
+export interface CommunityCommentData {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+/**
+ * Helper to convert CommunityCommentData to CommunityComment
+ */
+export const commentDataToComment = (data: CommunityCommentData): CommunityComment => ({
+  id: data.id,
+  postId: data.post_id,
+  userId: data.user_id,
+  content: data.content,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  user: data.profiles ? {
+    id: data.profiles.id,
+    fullName: data.profiles.full_name || 'Kullanıcı',
+    avatarUrl: data.profiles.avatar_url || undefined,
+  } : undefined,
+});
+
+/**
+ * Input type for creating a community post
+ */
+export interface CreatePostInput {
+  type: CommunityPostType;
+  title?: string;
+  content?: string;
+  images?: string[];
+  tourId?: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+/**
+ * Moderation action log
+ */
+export interface ModerationLog {
+  id: string;
+  postId: string;
+  adminId: string;
+  action: 'approved' | 'rejected' | 'deleted';
+  reason?: string;
+  createdAt: string;
+}

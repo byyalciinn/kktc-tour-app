@@ -63,3 +63,16 @@ export {
   selectSearchResults as selectRouteSearchResults,
   selectIsSearching as selectIsSearchingRoutes,
 } from './routeStore';
+
+// Community store
+export {
+  useCommunityStore,
+  selectPosts,
+  selectUserPosts,
+  selectPendingPosts,
+  selectSelectedPost,
+  selectComments,
+  selectIsLoading as selectCommunityLoading,
+  selectIsSubmitting as selectCommunitySubmitting,
+  selectError as selectCommunityError,
+} from './communityStore';

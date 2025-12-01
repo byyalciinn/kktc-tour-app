@@ -15,6 +15,7 @@
     "retry": "Tekrar Dene",
     "close": "Kapat",
     "send": "Gönder",
+    "sending": "Gönderiliyor...",
     "sent": "Gönderildi",
     "remove": "Kaldır",
     "warning": "Uyarı",
@@ -124,6 +125,7 @@
   "tabs": {
     "home": "Ana Sayfa",
     "explore": "Keşfet",
+    "community": "Topluluk",
     "favorites": "Favoriler",
     "profile": "Profil"
   },
@@ -361,5 +363,79 @@
     "disputeResolution": "Uyuşmazlık Çözümü",
     "rights": "Haklarınız",
     "serviceDescription": "Hizmet Tanımı"
+  },
+  "community": {
+    "title": "Topluluk",
+    "subtitle": "Deneyimlerinizi paylaşın, keşfedin",
+    "createPost": "Paylaşım Oluştur",
+    "createFirst": "İlk Paylaşımı Yap",
+    "postType": "Paylaşım Türü",
+    "titleOptional": "Başlık (İsteğe Bağlı)",
+    "titlePlaceholder": "Paylaşımınıza bir başlık ekleyin",
+    "captionOptional": "Açıklama (İsteğe Bağlı)",
+    "captionPlaceholder": "Fotoğrafınız hakkında bir şeyler yazın...",
+    "content": "İçerik",
+    "reviewPlaceholder": "Deneyiminizi paylaşın...",
+    "suggestionPlaceholder": "Önerinizi yazın...",
+    "photos": "Fotoğraflar",
+    "addPhoto": "Ekle",
+    "locationOptional": "Konum (İsteğe Bağlı)",
+    "locationPlaceholder": "Konum ekleyin",
+    "moderationNotice": "Paylaşımınız yayınlanmadan önce ekibimiz tarafından incelenecektir. Bu işlem genellikle birkaç saat sürer.",
+    "imageUploadError": "Fotoğraf yüklenirken bir hata oluştu",
+    "postCreated": {
+      "title": "Paylaşım Gönderildi!",
+      "message": "Paylaşımınız inceleme için gönderildi. Onaylandığında toplulukta görünecektir."
+    },
+    "validation": {
+      "photoRequired": "Lütfen en az bir fotoğraf ekleyin",
+      "contentRequired": "Lütfen içerik yazın"
+    },
+    "types": {
+      "photo": "Fotoğraf",
+      "review": "Değerlendirme",
+      "suggestion": "Öneri"
+    },
+    "filters": {
+      "all": "Tümü",
+      "photos": "Fotoğraflar",
+      "reviews": "Değerlendirmeler",
+      "suggestions": "Öneriler"
+    },
+    "empty": {
+      "title": "Henüz Paylaşım Yok",
+      "subtitle": "Toplulukta henüz paylaşım bulunmuyor. İlk paylaşımı yapan siz olun!"
+    },
+    "time": {
+      "now": "Şimdi",
+      "minutes": "{{count}} dk önce",
+      "hours": "{{count}} saat önce",
+      "days": "{{count}} gün önce"
+    },
+    "anonymous": "Anonim Kullanıcı",
+    "relatedTour": "İlgili Tur",
+    "likes": "beğeni",
+    "comments": "Yorum",
+    "noComments": "Henüz yorum yok. İlk yorumu siz yapın!",
+    "addComment": "Yorum yazın...",
+    "deleteComment": "Yorumu Sil",
+    "deleteCommentConfirm": "Bu yorumu silmek istediğinize emin misiniz?",
+    "pending": "İnceleniyor",
+    "approved": "Onaylandı",
+    "rejected": "Reddedildi",
+    "moderation": {
+      "title": "İçerik Moderasyonu",
+      "pending": "Bekleyen İçerikler",
+      "approve": "Onayla",
+      "reject": "Reddet",
+      "rejectReason": "Red Nedeni",
+      "rejectReasonPlaceholder": "Kullanıcıya gösterilecek red nedenini yazın...",
+      "approved": "İçerik onaylandı",
+      "rejected": "İçerik reddedildi",
+      "noPending": "Bekleyen içerik yok",
+      "allClear": "Tüm içerikler incelendi, bekleyen içerik bulunmuyor.",
+      "approveConfirm": "\"{{title}}\" içeriğini onaylamak istediğinize emin misiniz?",
+      "rejectReasonRequired": "Lütfen bir red nedeni girin"
+    }
   }
 }
