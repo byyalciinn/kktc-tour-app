@@ -4,3 +4,4 @@
 
 export { TourCard, CompactTourCard } from './TourCard';
 export { FavoriteCard } from './FavoriteCard';
+export { RouteCard } from './RouteCard';

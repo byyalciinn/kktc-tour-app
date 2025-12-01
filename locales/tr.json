@@ -234,7 +234,49 @@
     "locationToggleDisabled": "Konum kapalı",
     "addressFetching": "Konum alınıyor...",
     "nearbyTitleDefault": "Keşfedilecek Turlar",
-    "seeAll": "Tümünü Gör"
+    "seeAll": "Tümünü Gör",
+    "suggestedRoutes": "Önerilen Rotalar",
+    "allRoutes": "Tüm Rotalar",
+    "routeDetail": "Rota Detayı",
+    "dayProgram": "Günlük Program",
+    "day": "Gün",
+    "stops": "Durak",
+    "durationLabel": "Süre",
+    "difficultyLabel": "Zorluk",
+    "bestSeason": "En İyi Dönem",
+    "region": "Bölge",
+    "viewOnMap": "Haritada Gör",
+    "moreInfo": "Daha Fazla Bilgi",
+    "noRoutes": "Henüz önerilen rota yok",
+    "noRoutesSubtitle": "Yakında yeni rotalar eklenecek",
+    "themes": {
+      "history": "Tarihi",
+      "food": "Yeme-İçme",
+      "nature": "Doğa",
+      "beach": "Plaj",
+      "culture": "Kültür",
+      "adventure": "Macera"
+    },
+    "difficulties": {
+      "easy": "Kolay",
+      "moderate": "Orta",
+      "challenging": "Zorlu"
+    },
+    "timeOfDay": {
+      "morning": "Sabah",
+      "noon": "Öğle",
+      "afternoon": "Öğleden Sonra",
+      "evening": "Akşam"
+    },
+    "stopTypes": {
+      "tour": "Tur",
+      "poi": "İlgi Noktası",
+      "restaurant": "Restoran",
+      "cafe": "Kafe",
+      "activity": "Aktivite",
+      "viewpoint": "Manzara Noktası",
+      "beach": "Plaj"
+    }
   },
   "notifications": {
     "title": "Bildirimler",

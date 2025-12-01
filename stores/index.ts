@@ -50,3 +50,16 @@ export {
   selectIsDarkMode,
 } from './themeStore';
 export type { ThemeMode } from './themeStore';
+
+// Route store
+export {
+  useRouteStore,
+  selectRoutes,
+  selectHighlightedRoutes,
+  selectSelectedRoute,
+  selectIsLoading as selectRoutesLoading,
+  selectIsLoadingHighlighted,
+  selectError as selectRoutesError,
+  selectSearchResults as selectRouteSearchResults,
+  selectIsSearching as selectIsSearchingRoutes,
+} from './routeStore';

@@ -22,9 +22,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useTourStore, useUIStore, useThemeStore, selectTours, selectCategories } from '@/stores';
-import { Tour, Category } from '@/types';
-import { TourDetailSheet } from '@/components/sheets';
+import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, selectCategories, selectHighlightedRoutes } from '@/stores';
+import { Tour, Category, ThematicRoute } from '@/types';
+import { TourDetailSheet, RouteDetailSheet } from '@/components/sheets';
+import { RouteCard } from '@/components/cards';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,6 +60,15 @@ export default function ExploreScreen() {
   const isTourDetailVisible = useUIStore((state) => state.isTourDetailVisible);
   const openTourDetail = useUIStore((state) => state.openTourDetail);
   const closeTourDetail = useUIStore((state) => state.closeTourDetail);
+
+  // Route store for thematic routes
+  const highlightedRoutes = useRouteStore(selectHighlightedRoutes);
+  const fetchHighlightedRoutes = useRouteStore((state) => state.fetchHighlightedRoutes);
+  const isLoadingRoutes = useRouteStore((state) => state.isLoadingHighlighted);
+
+  // Route detail sheet state
+  const [selectedRoute, setSelectedRoute] = useState<ThematicRoute | null>(null);
+  const [isRouteDetailVisible, setIsRouteDetailVisible] = useState(false);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [address, setAddress] = useState<string>(t('explore.addressFetching'));
@@ -140,7 +150,8 @@ export default function ExploreScreen() {
   useEffect(() => {
     fetchCategories();
     fetchTours();
-  }, [fetchCategories, fetchTours]);
+    fetchHighlightedRoutes();
+  }, [fetchCategories, fetchTours, fetchHighlightedRoutes]);
 
   // Request location permission and get current location
   const requestLocationPermission = async () => {
@@ -227,6 +238,18 @@ export default function ExploreScreen() {
   const handleTourPress = (tour: Tour) => {
     setSelectedMapTour(tour);
     openTourDetail(tour);
+  };
+
+  // Handle route card press
+  const handleRoutePress = (route: ThematicRoute) => {
+    setSelectedRoute(route);
+    setIsRouteDetailVisible(true);
+  };
+
+  // Close route detail sheet
+  const closeRouteDetail = () => {
+    setIsRouteDetailVisible(false);
+    setSelectedRoute(null);
   };
 
   // Toggle location tracking
@@ -432,6 +455,36 @@ export default function ExploreScreen() {
             </Text>
           </View>
 
+          {/* Suggested Routes Section */}
+          {highlightedRoutes.length > 0 && (
+            <View style={styles.routesSection}>
+              <View style={styles.routesHeader}>
+                <Text style={[styles.routesTitle, { color: colors.text }]}>
+                  {t('explore.suggestedRoutes')}
+                </Text>
+                <TouchableOpacity>
+                  <Text style={[styles.seeAllText, { color: colors.primary }]}>
+                    {t('explore.seeAll')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.routesScrollContent}
+              >
+                {highlightedRoutes.map((route: ThematicRoute) => (
+                  <RouteCard
+                    key={route.id}
+                    route={route}
+                    onPress={handleRoutePress}
+                    variant="compact"
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Categories */}
           <ScrollView
             horizontal
@@ -561,6 +614,13 @@ export default function ExploreScreen() {
         tour={selectedTour}
         visible={isTourDetailVisible}
         onClose={closeTourDetail}
+      />
+
+      {/* Route Detail Sheet */}
+      <RouteDetailSheet
+        route={selectedRoute}
+        visible={isRouteDetailVisible}
+        onClose={closeRouteDetail}
       />
     </View>
   );
@@ -842,5 +902,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     textAlign: 'center',
+  },
+  // Suggested Routes Section
+  routesSection: {
+    marginBottom: 16,
+  },
+  routesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  routesTitle: {
+    fontSize: 18,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+  },
+  routesScrollContent: {
+    gap: 12,
+    paddingRight: 20,
   },
 });

@@ -234,7 +234,49 @@
     "locationToggleDisabled": "Location disabled",
     "addressFetching": "Fetching location...",
     "nearbyTitleDefault": "Tours to Explore",
-    "seeAll": "See All"
+    "seeAll": "See All",
+    "suggestedRoutes": "Suggested Routes",
+    "allRoutes": "All Routes",
+    "routeDetail": "Route Detail",
+    "dayProgram": "Daily Program",
+    "day": "Day",
+    "stops": "Stop",
+    "durationLabel": "Duration",
+    "difficultyLabel": "Difficulty",
+    "bestSeason": "Best Season",
+    "region": "Region",
+    "viewOnMap": "View on Map",
+    "moreInfo": "More Info",
+    "noRoutes": "No suggested routes yet",
+    "noRoutesSubtitle": "New routes coming soon",
+    "themes": {
+      "history": "Historical",
+      "food": "Food & Drink",
+      "nature": "Nature",
+      "beach": "Beach",
+      "culture": "Culture",
+      "adventure": "Adventure"
+    },
+    "difficulties": {
+      "easy": "Easy",
+      "moderate": "Moderate",
+      "challenging": "Challenging"
+    },
+    "timeOfDay": {
+      "morning": "Morning",
+      "noon": "Noon",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "stopTypes": {
+      "tour": "Tour",
+      "poi": "Point of Interest",
+      "restaurant": "Restaurant",
+      "cafe": "Cafe",
+      "activity": "Activity",
+      "viewpoint": "Viewpoint",
+      "beach": "Beach"
+    }
   },
   "notifications": {
     "title": "Notifications",
