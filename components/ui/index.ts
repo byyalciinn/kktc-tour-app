@@ -25,3 +25,10 @@ export {
 export { ErrorBoundary } from './ErrorBoundary';
 
 export { LoadingScreen } from './LoadingScreen';
+
+export {
+  default as CachedImage,
+  CachedAvatar,
+  CachedTourImage,
+  CachedThumbnail,
+} from './CachedImage';

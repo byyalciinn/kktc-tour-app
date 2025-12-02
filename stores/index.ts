@@ -76,3 +76,6 @@ export {
   selectIsSubmitting as selectCommunitySubmitting,
   selectError as selectCommunityError,
 } from './communityStore';
+
+// Onboarding store
+export { useOnboardingStore } from './onboardingStore';

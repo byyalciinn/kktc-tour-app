@@ -42,8 +42,9 @@ import {
 } from '@/lib/notificationService';
 import { CommunityPost } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
+import { UsersTab, PostsTab, RoutesTab } from '@/components/admin';
 
-type TabType = 'tours' | 'categories' | 'notifications' | 'moderation';
+type TabType = 'tours' | 'categories' | 'notifications' | 'routes' | 'posts' | 'users';
 
 const AVAILABLE_ICONS = [
   'apps-outline',
@@ -433,7 +434,7 @@ export default function AdminMenuScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Yönetim Menüsü</Text>
-        {activeTab !== 'moderation' ? (
+        {(activeTab === 'tours' || activeTab === 'categories' || activeTab === 'notifications') ? (
           <TouchableOpacity 
             style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={handleAddButton}
@@ -524,24 +525,70 @@ export default function AdminMenuScreen() {
         <TouchableOpacity
           style={[
             styles.tab,
-            activeTab === 'moderation' && [styles.activeTab, { backgroundColor: colors.card }],
+            activeTab === 'routes' && [styles.activeTab, { backgroundColor: colors.card }],
           ]}
-          onPress={() => setActiveTab('moderation')}
+          onPress={() => setActiveTab('routes')}
           activeOpacity={0.7}
         >
           <Ionicons 
-            name="shield-checkmark-outline" 
+            name="navigate-outline" 
             size={18} 
-            color={activeTab === 'moderation' ? colors.primary : colors.textSecondary} 
+            color={activeTab === 'routes' ? colors.primary : colors.textSecondary} 
           />
           <Text
             style={[
               styles.tabText,
-              { color: activeTab === 'moderation' ? colors.primary : colors.textSecondary },
-              activeTab === 'moderation' && styles.activeTabText,
+              { color: activeTab === 'routes' ? colors.primary : colors.textSecondary },
+              activeTab === 'routes' && styles.activeTabText,
             ]}
           >
-            Moderasyon
+            Rotalar
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'posts' && [styles.activeTab, { backgroundColor: colors.card }],
+          ]}
+          onPress={() => setActiveTab('posts')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="chatbubbles-outline" 
+            size={18} 
+            color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'posts' ? colors.primary : colors.textSecondary },
+              activeTab === 'posts' && styles.activeTabText,
+            ]}
+          >
+            Paylaşımlar
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'users' && [styles.activeTab, { backgroundColor: colors.card }],
+          ]}
+          onPress={() => setActiveTab('users')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="people-outline" 
+            size={18} 
+            color={activeTab === 'users' ? colors.primary : colors.textSecondary} 
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'users' ? colors.primary : colors.textSecondary },
+              activeTab === 'users' && styles.activeTabText,
+            ]}
+          >
+            Kullanıcılar
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -778,9 +825,19 @@ export default function AdminMenuScreen() {
         </ScrollView>
       )}
 
-      {/* Moderation Tab Content */}
-      {activeTab === 'moderation' && (
-        <ModerationTabContent colors={colors} isDark={isDark} insets={insets} />
+      {/* Routes Tab Content */}
+      {activeTab === 'routes' && (
+        <RoutesTab colors={colors} isDark={isDark} insets={insets} />
+      )}
+
+      {/* Posts Tab Content */}
+      {activeTab === 'posts' && (
+        <PostsTab colors={colors} isDark={isDark} insets={insets} />
+      )}
+
+      {/* Users Tab Content */}
+      {activeTab === 'users' && (
+        <UsersTab colors={colors} isDark={isDark} insets={insets} />
       )}
 
       {/* Category Add/Edit Modal */}
@@ -1305,350 +1362,4 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
   },
-  // Moderation styles
-  moderationCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  moderationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    gap: 12,
-  },
-  moderationAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  moderationUserInfo: {
-    flex: 1,
-  },
-  moderationUserName: {
-    fontSize: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-  },
-  moderationDate: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    marginTop: 2,
-  },
-  moderationTypeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    gap: 4,
-  },
-  moderationTypeBadgeText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-  },
-  moderationContent: {
-    paddingHorizontal: 14,
-    paddingBottom: 12,
-  },
-  moderationTitle: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  moderationText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    lineHeight: 20,
-  },
-  moderationImages: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-  },
-  moderationImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-  },
-  moderationActions: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 10,
-    borderTopWidth: 1,
-  },
-  moderationActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
-  },
-  moderationActionText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-  },
-});
-
-// Moderation Tab Content Component
-function ModerationTabContent({ 
-  colors, 
-  isDark, 
-  insets 
-}: { 
-  colors: any; 
-  isDark: boolean; 
-  insets: any;
-}) {
-  const { user } = useAuthStore();
-  const { 
-    pendingPosts, 
-    isLoading, 
-    fetchPendingPosts, 
-    approvePost, 
-    rejectPost 
-  } = useCommunityStore();
-  
-  const [refreshing, setRefreshing] = useState(false);
-  const [rejectModalVisible, setRejectModalVisible] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [processing, setProcessing] = useState(false);
-
-  useEffect(() => {
-    fetchPendingPosts();
-  }, []);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchPendingPosts();
-    setRefreshing(false);
-  }, [fetchPendingPosts]);
-
-  const handleApprove = async (post: CommunityPost) => {
-    if (!user) return;
-    
-    Alert.alert(
-      'İçeriği Onayla',
-      'Bu içeriği onaylamak istediğinize emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Onayla',
-          onPress: async () => {
-            setProcessing(true);
-            const { success, error } = await approvePost(post.id, user.id);
-            setProcessing(false);
-            if (success) {
-              Alert.alert('Başarılı', 'İçerik onaylandı');
-            } else {
-              Alert.alert('Hata', error || 'İşlem başarısız');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleReject = (post: CommunityPost) => {
-    setSelectedPost(post);
-    setRejectReason('');
-    setRejectModalVisible(true);
-  };
-
-  const submitReject = async () => {
-    if (!user || !selectedPost || !rejectReason.trim()) {
-      Alert.alert('Hata', 'Lütfen bir red nedeni girin');
-      return;
-    }
-
-    setProcessing(true);
-    const { success, error } = await rejectPost(selectedPost.id, user.id, rejectReason.trim());
-    setProcessing(false);
-
-    if (success) {
-      setRejectModalVisible(false);
-      setSelectedPost(null);
-      Alert.alert('Başarılı', 'İçerik reddedildi');
-    } else {
-      Alert.alert('Hata', error || 'İşlem başarısız');
-    }
-  };
-
-  const getTypeInfo = (type: string) => {
-    switch (type) {
-      case 'photo': return { icon: 'camera', label: 'Fotoğraf', color: '#4A90D9' };
-      case 'review': return { icon: 'chatbubble', label: 'Değerlendirme', color: '#50C878' };
-      case 'suggestion': return { icon: 'bulb', label: 'Öneri', color: '#FFB347' };
-      default: return { icon: 'document', label: '', color: colors.primary };
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  };
-
-  if (isLoading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  return (
-    <>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
-        {pendingPosts.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="checkmark-done-circle-outline" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Bekleyen içerik yok</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              Tüm içerikler incelendi
-            </Text>
-          </View>
-        ) : (
-          pendingPosts.map((post) => {
-            const typeInfo = getTypeInfo(post.type);
-            return (
-              <View
-                key={post.id}
-                style={[
-                  styles.moderationCard,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-                  },
-                ]}
-              >
-                <View style={styles.moderationHeader}>
-                  <Image
-                    source={{ uri: getAvatarUrl(post.user?.avatarUrl, post.userId) }}
-                    style={styles.moderationAvatar}
-                  />
-                  <View style={styles.moderationUserInfo}>
-                    <Text style={[styles.moderationUserName, { color: colors.text }]}>
-                      {post.user?.fullName || 'Anonim'}
-                    </Text>
-                    <Text style={[styles.moderationDate, { color: colors.textSecondary }]}>
-                      {formatDate(post.createdAt)}
-                    </Text>
-                  </View>
-                  <View style={[styles.moderationTypeBadge, { backgroundColor: `${typeInfo.color}20` }]}>
-                    <Ionicons name={typeInfo.icon as any} size={12} color={typeInfo.color} />
-                    <Text style={[styles.moderationTypeBadgeText, { color: typeInfo.color }]}>
-                      {typeInfo.label}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.moderationContent}>
-                  {post.title && (
-                    <Text style={[styles.moderationTitle, { color: colors.text }]} numberOfLines={2}>
-                      {post.title}
-                    </Text>
-                  )}
-                  {post.content && (
-                    <Text style={[styles.moderationText, { color: colors.text }]} numberOfLines={3}>
-                      {post.content}
-                    </Text>
-                  )}
-                  {post.images && post.images.length > 0 && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.moderationImages}>
-                      {post.images.slice(0, 4).map((img, idx) => (
-                        <Image key={idx} source={{ uri: img }} style={styles.moderationImage} />
-                      ))}
-                    </ScrollView>
-                  )}
-                </View>
-
-                <View style={[styles.moderationActions, { borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                  <TouchableOpacity
-                    style={[styles.moderationActionBtn, { backgroundColor: 'rgba(255,59,48,0.1)' }]}
-                    onPress={() => handleReject(post)}
-                    disabled={processing}
-                  >
-                    <Ionicons name="close-circle" size={18} color="#FF3B30" />
-                    <Text style={[styles.moderationActionText, { color: '#FF3B30' }]}>Reddet</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.moderationActionBtn, { backgroundColor: colors.primary }]}
-                    onPress={() => handleApprove(post)}
-                    disabled={processing}
-                  >
-                    <Ionicons name="checkmark-circle" size={18} color="#FFF" />
-                    <Text style={[styles.moderationActionText, { color: '#FFF' }]}>Onayla</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
-        )}
-      </ScrollView>
-
-      {/* Reject Modal */}
-      <Modal
-        visible={rejectModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setRejectModalVisible(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
-          <View style={[styles.modalContainer, { backgroundColor: isDark ? '#2D2D2D' : '#FFF', borderRadius: 20, padding: 20 }]}>
-            <Text style={[styles.modalTitle, { color: colors.text, marginBottom: 16 }]}>Red Nedeni</Text>
-            <TextInput
-              style={[
-                styles.input,
-                styles.textArea,
-                {
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
-                  color: colors.text,
-                },
-              ]}
-              placeholder="Red nedenini yazın..."
-              placeholderTextColor={colors.textSecondary}
-              value={rejectReason}
-              onChangeText={setRejectReason}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity
-                style={[styles.moderationActionBtn, { backgroundColor: 'rgba(0,0,0,0.05)', flex: 1 }]}
-                onPress={() => setRejectModalVisible(false)}
-              >
-                <Text style={[styles.moderationActionText, { color: colors.text }]}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.moderationActionBtn, { backgroundColor: '#FF3B30', flex: 1 }]}
-                onPress={submitReject}
-                disabled={processing || !rejectReason.trim()}
-              >
-                {processing ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <Text style={[styles.moderationActionText, { color: '#FFF' }]}>Reddet</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </>
-  );
-}
+  });

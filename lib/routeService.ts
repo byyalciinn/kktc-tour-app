@@ -5,8 +5,13 @@
  */
 
 import { supabase } from './supabase';
-import { ThematicRoute, ThematicRouteData, routeDataToRoute } from '@/types';
+import { ThematicRoute, ThematicRouteData, routeDataToRoute, RouteDay, RouteStop } from '@/types';
 import { featuredRoutes } from '@/constants/ThematicRoutes';
+import { optimizeRouteCoverImage, optimizeRouteStopImage } from './imageOptimizer';
+import { decode } from 'base64-arraybuffer';
+
+// Bucket name for route images
+const ROUTE_BUCKET = 'routes';
 
 /**
  * Get all thematic routes
@@ -274,3 +279,329 @@ export const searchRoutes = async (query: string): Promise<{
     return { data: filtered, error: null };
   }
 };
+
+// ============================================
+// CRUD Operations for Admin Panel
+// ============================================
+
+/**
+ * Input type for creating/updating routes
+ */
+export interface RouteInput {
+  title: string;
+  subtitle?: string;
+  theme: string;
+  baseLocation: string;
+  region?: string;
+  durationDays: number;
+  durationLabel?: string;
+  coverImage: string;
+  tags: string[];
+  highlighted: boolean;
+  difficulty?: 'easy' | 'moderate' | 'challenging';
+  bestSeason?: string;
+  itinerary: RouteDay[];
+}
+
+/**
+ * Generate slug from title
+ */
+const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+};
+
+/**
+ * Create a new thematic route
+ */
+export const createRoute = async (
+  input: RouteInput
+): Promise<{ data: ThematicRoute | null; error: string | null }> => {
+  try {
+    const slug = generateSlug(input.title);
+    
+    const insertData = {
+      slug,
+      title: input.title,
+      subtitle: input.subtitle || null,
+      theme: input.theme,
+      base_location: input.baseLocation,
+      region: input.region || null,
+      duration_days: input.durationDays,
+      duration_label: input.durationLabel || null,
+      cover_image: input.coverImage,
+      tags: input.tags,
+      highlighted: input.highlighted,
+      difficulty: input.difficulty || null,
+      best_season: input.bestSeason || null,
+      itinerary: input.itinerary,
+    };
+
+    const { data, error } = await supabase
+      .from('thematic_routes')
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Create route error:', error);
+      return { data: null, error: error.message };
+    }
+
+    return { data: routeDataToRoute(data as ThematicRouteData), error: null };
+  } catch (err: any) {
+    console.error('Create route exception:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * Update an existing thematic route
+ */
+export const updateRoute = async (
+  id: string,
+  input: Partial<RouteInput>
+): Promise<{ data: ThematicRoute | null; error: string | null }> => {
+  try {
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (input.title !== undefined) {
+      updateData.title = input.title;
+      updateData.slug = generateSlug(input.title);
+    }
+    if (input.subtitle !== undefined) updateData.subtitle = input.subtitle || null;
+    if (input.theme !== undefined) updateData.theme = input.theme;
+    if (input.baseLocation !== undefined) updateData.base_location = input.baseLocation;
+    if (input.region !== undefined) updateData.region = input.region || null;
+    if (input.durationDays !== undefined) updateData.duration_days = input.durationDays;
+    if (input.durationLabel !== undefined) updateData.duration_label = input.durationLabel || null;
+    if (input.coverImage !== undefined) updateData.cover_image = input.coverImage;
+    if (input.tags !== undefined) updateData.tags = input.tags;
+    if (input.highlighted !== undefined) updateData.highlighted = input.highlighted;
+    if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
+    if (input.bestSeason !== undefined) updateData.best_season = input.bestSeason || null;
+    if (input.itinerary !== undefined) updateData.itinerary = input.itinerary;
+
+    const { data, error } = await supabase
+      .from('thematic_routes')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Update route error:', error);
+      return { data: null, error: error.message };
+    }
+
+    return { data: routeDataToRoute(data as ThematicRouteData), error: null };
+  } catch (err: any) {
+    console.error('Update route exception:', err);
+    return { data: null, error: err.message };
+  }
+};
+
+/**
+ * Delete a thematic route
+ */
+export const deleteRoute = async (
+  id: string
+): Promise<{ success: boolean; error: string | null }> => {
+  try {
+    const { error } = await supabase
+      .from('thematic_routes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete route error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Delete route exception:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Toggle route highlighted status
+ */
+export const toggleRouteHighlighted = async (
+  id: string,
+  highlighted: boolean
+): Promise<{ success: boolean; error: string | null }> => {
+  try {
+    const { error } = await supabase
+      .from('thematic_routes')
+      .update({ 
+        highlighted, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Toggle highlighted error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Toggle highlighted exception:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+// ============================================
+// Image Upload Functions
+// ============================================
+
+/**
+ * Upload route cover image to Supabase storage
+ */
+export const uploadRouteCoverImage = async (
+  imageUri: string,
+  routeSlug: string
+): Promise<{ url: string | null; error: string | null }> => {
+  try {
+    // Optimize image
+    const optimized = await optimizeRouteCoverImage(imageUri);
+    if (!optimized) {
+      return { url: null, error: 'Resim optimize edilemedi' };
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileName = `covers/${routeSlug}_${timestamp}.jpg`;
+
+    // Upload to Supabase
+    const { data, error } = await supabase.storage
+      .from(ROUTE_BUCKET)
+      .upload(fileName, decode(optimized.base64), {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Cover upload error:', error);
+      return { url: null, error: error.message };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(ROUTE_BUCKET)
+      .getPublicUrl(data.path);
+
+    console.log(`[RouteService] Cover uploaded: ${(optimized.optimizedSize || 0) / 1024}KB`);
+    
+    return { url: urlData.publicUrl, error: null };
+  } catch (err: any) {
+    console.error('Cover upload exception:', err);
+    return { url: null, error: err.message };
+  }
+};
+
+/**
+ * Upload route stop image to Supabase storage
+ */
+export const uploadRouteStopImage = async (
+  imageUri: string,
+  routeSlug: string,
+  dayIndex: number,
+  stopIndex: number
+): Promise<{ url: string | null; error: string | null }> => {
+  try {
+    // Optimize image
+    const optimized = await optimizeRouteStopImage(imageUri);
+    if (!optimized) {
+      return { url: null, error: 'Resim optimize edilemedi' };
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileName = `stops/${routeSlug}/day${dayIndex}_stop${stopIndex}_${timestamp}.jpg`;
+
+    // Upload to Supabase
+    const { data, error } = await supabase.storage
+      .from(ROUTE_BUCKET)
+      .upload(fileName, decode(optimized.base64), {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (error) {
+      console.error('Stop image upload error:', error);
+      return { url: null, error: error.message };
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(ROUTE_BUCKET)
+      .getPublicUrl(data.path);
+
+    console.log(`[RouteService] Stop image uploaded: ${(optimized.optimizedSize || 0) / 1024}KB`);
+    
+    return { url: urlData.publicUrl, error: null };
+  } catch (err: any) {
+    console.error('Stop image upload exception:', err);
+    return { url: null, error: err.message };
+  }
+};
+
+/**
+ * Delete route image from Supabase storage
+ */
+export const deleteRouteImage = async (imageUrl: string): Promise<boolean> => {
+  try {
+    if (!imageUrl || !imageUrl.includes(ROUTE_BUCKET)) {
+      return false;
+    }
+
+    // Extract path from URL
+    const urlParts = imageUrl.split(`${ROUTE_BUCKET}/`);
+    if (urlParts.length < 2) return false;
+
+    const filePath = urlParts[1];
+    
+    const { error } = await supabase.storage
+      .from(ROUTE_BUCKET)
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Delete image error:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Delete image exception:', err);
+    return false;
+  }
+};
+
+// ============================================
+// Season Options
+// ============================================
+
+export const SEASON_OPTIONS = [
+  { value: 'all-year', label: 'Tüm Yıl' },
+  { value: 'spring', label: 'İlkbahar' },
+  { value: 'summer', label: 'Yaz' },
+  { value: 'autumn', label: 'Sonbahar' },
+  { value: 'winter', label: 'Kış' },
+  { value: 'spring-summer', label: 'İlkbahar - Yaz' },
+  { value: 'spring-autumn', label: 'İlkbahar - Sonbahar' },
+  { value: 'summer-autumn', label: 'Yaz - Sonbahar' },
+  { value: 'autumn-winter', label: 'Sonbahar - Kış' },
+] as const;
+
+export type SeasonOption = typeof SEASON_OPTIONS[number]['value'];

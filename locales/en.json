@@ -235,6 +235,7 @@
     "locationToggleEnabled": "Location enabled",
     "locationToggleDisabled": "Location disabled",
     "addressFetching": "Fetching location...",
+    "searchPlaceholder": "Where would you like to explore?",
     "nearbyTitleDefault": "Tours to Explore",
     "seeAll": "See All",
     "suggestedRoutes": "Suggested Routes",

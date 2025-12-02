@@ -235,6 +235,7 @@
     "locationToggleEnabled": "Konum açık",
     "locationToggleDisabled": "Konum kapalı",
     "addressFetching": "Konum alınıyor...",
+    "searchPlaceholder": "Nereyi keşfetmek istersiniz?",
     "nearbyTitleDefault": "Keşfedilecek Turlar",
     "seeAll": "Tümünü Gör",
     "suggestedRoutes": "Önerilen Rotalar",

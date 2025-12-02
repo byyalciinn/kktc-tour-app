@@ -73,19 +73,6 @@ export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProp
           style={styles.compactGradient}
         />
 
-        {/* Theme badge - top left */}
-        <View style={styles.compactThemeBadge}>
-          {Platform.OS === 'ios' ? (
-            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)' }]} />
-          )}
-          <View style={styles.compactThemeBadgeContent}>
-            <Ionicons name={themeIcon as any} size={12} color="#FFF" />
-            <Text style={styles.compactThemeText}>{themeLabel}</Text>
-          </View>
-        </View>
-
         {/* Duration badge - top right */}
         <View style={styles.compactDurationBadge}>
           {Platform.OS === 'ios' ? (
@@ -468,7 +455,7 @@ const styles = StyleSheet.create({
   compactDurationBadge: {
     position: 'absolute',
     top: 12,
-    right: 12,
+    left: 12,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,

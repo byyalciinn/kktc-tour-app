@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { optimizeTourImage } from './imageOptimizer';
 
 const BUCKET_NAME = 'image-bucket';
 const IMAGE_WIDTH = 800;
@@ -133,18 +134,27 @@ export const takePhoto = async (): Promise<{ uri: string | null; error?: string 
   }
 };
 
-// Optimize and resize image - preserves aspect ratio
+// Optimize and resize image - uses advanced compression from imageOptimizer
 export const optimizeImage = async (
   uri: string, 
   options?: { maxWidth?: number; maxHeight?: number; quality?: number }
 ): Promise<{ uri: string; base64: string } | null> => {
   try {
+    // Use the advanced optimizer for tour images (target ~350KB)
+    const optimized = await optimizeTourImage(uri);
+    
+    if (optimized) {
+      console.log(`[Tour] Image optimized: ${optimized.compressionRatio}% reduction`);
+      return {
+        uri: optimized.uri,
+        base64: optimized.base64,
+      };
+    }
+    
+    // Fallback to basic optimization if advanced fails
     const maxWidth = options?.maxWidth || IMAGE_WIDTH;
-    const maxHeight = options?.maxHeight || IMAGE_HEIGHT;
-    const quality = options?.quality || 0.7;
+    const quality = options?.quality || 0.6;
 
-    // Resize by width only to preserve aspect ratio
-    // This prevents distortion and unnecessary cropping
     const manipulatedImage = await ImageManipulator.manipulateAsync(
       uri,
       [{ resize: { width: maxWidth } }],

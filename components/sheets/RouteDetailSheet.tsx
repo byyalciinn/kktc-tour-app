@@ -490,8 +490,8 @@ function StopCard({ stop, isLast, onPress, colors, isDark, t }: StopCardProps) {
         style={[
           styles.stopContent,
           {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+            backgroundColor: isDark ? 'rgba(40,40,40,0.98)' : 'rgba(255,255,255,0.98)',
+            borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
           },
         ]}
       >
@@ -503,8 +503,9 @@ function StopCard({ stop, isLast, onPress, colors, isDark, t }: StopCardProps) {
         <View style={styles.stopInfo}>
           {/* Time badge */}
           {timeLabel && (
-            <View style={[styles.timeBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-              <Text style={[styles.timeBadgeText, { color: colors.textSecondary }]}>
+            <View style={[styles.timeBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : colors.primary + '15' }]}>
+              <Ionicons name="time-outline" size={12} color={colors.primary} style={{ marginRight: 4 }} />
+              <Text style={[styles.timeBadgeText, { color: colors.primary }]}>
                 {timeLabel}
               </Text>
             </View>
@@ -743,8 +744,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   dayHeaderLeft: {
     flexDirection: 'row',
@@ -752,12 +758,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   dayBadgeText: {
     fontSize: 16,
@@ -769,14 +780,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-    marginBottom: 2,
+    fontWeight: '700',
+    marginBottom: 3,
   },
   daySubtitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    lineHeight: 18,
   },
   stopsContainer: {
     paddingTop: 12,
@@ -798,16 +810,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timelineDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   timelineLine: {
-    width: 2,
+    width: 3,
     flex: 1,
-    marginTop: 4,
+    marginTop: 6,
+    borderRadius: 1.5,
   },
   stopContent: {
     flex: 1,
@@ -815,6 +833,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginLeft: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   stopImage: {
     width: '100%',
@@ -825,27 +848,30 @@ const styles = StyleSheet.create({
   },
   timeBadge: {
     alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    marginBottom: 8,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginBottom: 10,
   },
   timeBadgeText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '500',
-  },
-  stopName: {
-    fontSize: 16,
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    marginBottom: 4,
+  },
+  stopName: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   stopDescription: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    lineHeight: 18,
-    marginBottom: 8,
+    lineHeight: 20,
+    marginBottom: 10,
   },
   stopMeta: {
     flexDirection: 'row',

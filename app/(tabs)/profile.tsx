@@ -27,9 +27,9 @@ const memberClassColors: Record<string, string> = {
 
 const PERSONAL_DETAILS_KEYS = [
   { key: 'personalInfo', icon: 'person-outline', route: '/profile/personal-info' },
-  { key: 'idInfo', icon: 'card-outline', route: '' },
-  { key: 'paymentMethods', icon: 'wallet-outline', route: '' },
-  { key: 'tourPreferences', icon: 'options-outline', route: '' },
+  { key: 'idInfo', icon: 'card-outline', route: '/profile/id-info' },
+  { key: 'paymentMethods', icon: 'wallet-outline', route: '/profile/payment-methods' },
+  { key: 'tourPreferences', icon: 'options-outline', route: '/profile/tour-preferences' },
 ] as const;
 
 const SUPPORT_KEYS = [
@@ -276,12 +276,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.7}
                 onPress={() => router.push(item.route as any)}
               >
-                <View style={styles.adminMenuItem}>
-                  <View style={[styles.adminMenuIcon, { backgroundColor: colors.primary + '15' }]}>
-                    <Ionicons name={item.icon as any} size={20} color={colors.primary} />
-                  </View>
-                  <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
-                </View>
+                <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             ))}
@@ -429,18 +424,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '400',
-  },
-  adminMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  adminMenuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',

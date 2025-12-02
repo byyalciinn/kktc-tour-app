@@ -1,3 +1,16 @@
+/**
+ * @deprecated This AuthContext is deprecated.
+ * Please use useAuthStore from '@/stores/authStore' instead.
+ * This file is kept for reference only and will be removed in a future version.
+ * 
+ * Migration guide:
+ * - Replace: import { useAuth } from '@/contexts/AuthContext'
+ * - With: import { useAuthStore } from '@/stores'
+ * 
+ * The useAuthStore hook provides the same functionality with better performance
+ * through Zustand's selective subscriptions.
+ */
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';

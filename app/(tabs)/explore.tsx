@@ -2,13 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
   Image,
+  Modal,
   PanResponder,
   Platform,
   ScrollView,
@@ -26,6 +27,9 @@ import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, se
 import { Tour, Category, ThematicRoute } from '@/types';
 import { TourDetailSheet, RouteDetailSheet } from '@/components/sheets';
 import { RouteCard } from '@/components/cards';
+
+// View All Modal Types
+type ViewAllType = 'routes' | 'tours' | null;
 
 const { width, height } = Dimensions.get('window');
 
@@ -69,6 +73,9 @@ export default function ExploreScreen() {
   // Route detail sheet state
   const [selectedRoute, setSelectedRoute] = useState<ThematicRoute | null>(null);
   const [isRouteDetailVisible, setIsRouteDetailVisible] = useState(false);
+
+  // View All modal state
+  const [viewAllType, setViewAllType] = useState<ViewAllType>(null);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [address, setAddress] = useState<string>(t('explore.addressFetching'));
@@ -132,19 +139,30 @@ export default function ExploreScreen() {
     })
   ).current;
 
-  // Filter tours by category - only show tours with coordinates
-  const filteredTours = tours.filter((tour) => {
-    const hasCoordinates = tour.latitude && tour.longitude;
-    if (!hasCoordinates) return false;
-    if (activeCategory === 'all') return true;
-    return tour.category === activeCategory;
-  });
+  // Filter tours by category - only show tours with coordinates (memoized)
+  const filteredTours = useMemo(() => {
+    return tours.filter((tour) => {
+      const hasCoordinates = tour.latitude && tour.longitude;
+      if (!hasCoordinates) return false;
+      if (activeCategory === 'all') return true;
+      return tour.category === activeCategory;
+    });
+  }, [tours, activeCategory]);
 
-  // All categories with "Tümü" option - filter out any existing 'all' category to avoid duplicates
-  const allCategories: Category[] = [
+  // All categories with "Tümü" option - filter out any existing 'all' category to avoid duplicates (memoized)
+  const allCategories = useMemo<Category[]>(() => [
     { id: 'all', name: t('home.allCategories'), icon: 'apps-outline', sort_order: 0 },
     ...categories.filter((c: Category) => c.id !== 'all'),
-  ];
+  ], [categories, t]);
+
+  // Category icon map for fast lookup (memoized)
+  const categoryIconMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    categories.forEach((c: Category) => {
+      map[c.id] = c.icon;
+    });
+    return map;
+  }, [categories]);
 
   // Load data on mount
   useEffect(() => {
@@ -215,7 +233,7 @@ export default function ExploreScreen() {
     // Navigate back or handle back action
   };
 
-  const handleMyLocation = () => {
+  const handleMyLocation = useCallback(() => {
     if (location) {
       mapRef.current?.animateToRegion({
         latitude: location.coords.latitude,
@@ -224,36 +242,36 @@ export default function ExploreScreen() {
         longitudeDelta: 0.01,
       });
     }
-  };
+  }, [location]);
 
-  const getCategoryTitle = () => {
+  const getCategoryTitle = useCallback(() => {
     if (activeCategory === 'all') return t('explore.nearbyTitleDefault');
     const category = categories.find((c: Category) => c.id === activeCategory);
     return category
       ? t('explore.categoryTitle', { category: category.name })
       : t('explore.nearbyTitleDefault');
-  };
+  }, [activeCategory, categories, t]);
 
-  // Handle tour marker press
-  const handleTourPress = (tour: Tour) => {
+  // Handle tour marker press (memoized to prevent re-renders)
+  const handleTourPress = useCallback((tour: Tour) => {
     setSelectedMapTour(tour);
     openTourDetail(tour);
-  };
+  }, [openTourDetail]);
 
-  // Handle route card press
-  const handleRoutePress = (route: ThematicRoute) => {
+  // Handle route card press (memoized)
+  const handleRoutePress = useCallback((route: ThematicRoute) => {
     setSelectedRoute(route);
     setIsRouteDetailVisible(true);
-  };
+  }, []);
 
-  // Close route detail sheet
-  const closeRouteDetail = () => {
+  // Close route detail sheet (memoized)
+  const closeRouteDetail = useCallback(() => {
     setIsRouteDetailVisible(false);
     setSelectedRoute(null);
-  };
+  }, []);
 
-  // Toggle location tracking
-  const toggleLocationTracking = () => {
+  // Toggle location tracking (memoized)
+  const toggleLocationTracking = useCallback(() => {
     if (!location && !isLocationEnabled) {
       Alert.alert(
         t('explore.locationPermissionTitle'),
@@ -262,8 +280,8 @@ export default function ExploreScreen() {
       );
       return;
     }
-    setIsLocationEnabled(!isLocationEnabled);
-  };
+    setIsLocationEnabled(prev => !prev);
+  }, [location, isLocationEnabled, t]);
 
   return (
     <View style={styles.container}>
@@ -280,7 +298,7 @@ export default function ExploreScreen() {
           showsMyLocationButton={false}
           showsCompass={false}
         >
-          {/* Tour Markers */}
+          {/* Tour Markers - optimized with tracksViewChanges=false and memoized icon lookup */}
           {filteredTours.map((tour) => (
             <Marker
               key={tour.id}
@@ -289,14 +307,12 @@ export default function ExploreScreen() {
                 longitude: tour.longitude!,
               }}
               onPress={() => handleTourPress(tour)}
+              tracksViewChanges={false}
             >
               <View style={styles.markerContainer}>
                 <View style={[styles.marker, { backgroundColor: colors.primary }]}>
                   <Ionicons
-                    name={
-                      categories.find((c: Category) => c.id === tour.category)
-                        ?.icon as any || 'location'
-                    }
+                    name={(categoryIconMap[tour.category] || 'location') as any}
                     size={16}
                     color="#FFF"
                   />
@@ -451,7 +467,7 @@ export default function ExploreScreen() {
               style={[styles.searchText, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {loading ? t('explore.addressFetching') : address}
+              {loading ? t('explore.addressFetching') : (address || t('explore.searchPlaceholder'))}
             </Text>
           </View>
 
@@ -462,7 +478,7 @@ export default function ExploreScreen() {
                 <Text style={[styles.routesTitle, { color: colors.text }]}>
                   {t('explore.suggestedRoutes')}
                 </Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => setViewAllType('routes')}>
                   <Text style={[styles.seeAllText, { color: colors.primary }]}>
                     {t('explore.seeAll')}
                   </Text>
@@ -538,7 +554,7 @@ export default function ExploreScreen() {
               <Text style={[styles.nearbyTitle, { color: colors.text }]}>
                 {getCategoryTitle()}
               </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => setViewAllType('tours')}>
                 <Text style={[styles.seeAllText, { color: colors.primary }]}>
                   {t('home.seeAll')}
                 </Text>
@@ -584,12 +600,6 @@ export default function ExploreScreen() {
                       <Text style={[styles.tourPrice, { color: colors.primary }]}>
                         {tour.currency}{tour.price}
                       </Text>
-                      <View style={styles.tourRating}>
-                        <Ionicons name="star" size={12} color="#FFD700" />
-                        <Text style={[styles.tourRatingText, { color: colors.text }]}>
-                          {tour.rating}
-                        </Text>
-                      </View>
                     </View>
                   </View>
                   <View style={[styles.tourArrow, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
@@ -622,6 +632,107 @@ export default function ExploreScreen() {
         visible={isRouteDetailVisible}
         onClose={closeRouteDetail}
       />
+
+      {/* View All Modal */}
+      <Modal
+        visible={viewAllType !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setViewAllType(null)}
+      >
+        <View style={[styles.viewAllModal, { backgroundColor: colors.background }]}>
+          {/* Modal Header */}
+          <View style={[styles.viewAllHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
+            <Text style={[styles.viewAllTitle, { color: colors.text }]}>
+              {viewAllType === 'routes' ? t('explore.allRoutes') : t('explore.nearbyTitleDefault')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.viewAllCloseButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              onPress={() => setViewAllType(null)}
+            >
+              <Ionicons name="close" size={22} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Modal Content */}
+          <ScrollView
+            style={styles.viewAllContent}
+            contentContainerStyle={[styles.viewAllScrollContent, { paddingBottom: insets.bottom + 20 }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {viewAllType === 'routes' ? (
+              // All Routes
+              highlightedRoutes.map((route: ThematicRoute) => (
+                <TouchableOpacity
+                  key={route.id}
+                  style={[styles.viewAllRouteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}
+                  onPress={() => {
+                    setViewAllType(null);
+                    setTimeout(() => handleRoutePress(route), 300);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Image source={{ uri: route.coverImage }} style={styles.viewAllRouteImage} />
+                  <View style={styles.viewAllRouteContent}>
+                    <Text style={[styles.viewAllRouteTitle, { color: colors.text }]} numberOfLines={2}>
+                      {route.title}
+                    </Text>
+                    <View style={styles.viewAllRouteMeta}>
+                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.viewAllRouteLocation, { color: colors.textSecondary }]}>
+                        {route.baseLocation}
+                      </Text>
+                    </View>
+                    <View style={styles.viewAllRouteBadges}>
+                      <View style={[styles.viewAllRouteBadge, { backgroundColor: colors.primary + '20' }]}>
+                        <Text style={[styles.viewAllRouteBadgeText, { color: colors.primary }]}>
+                          {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
+                        </Text>
+                      </View>
+                      <View style={[styles.viewAllRouteBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Text style={[styles.viewAllRouteBadgeText, { color: colors.textSecondary }]}>
+                          {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stops')}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              ))
+            ) : (
+              // All Tours
+              filteredTours.map((tour: Tour) => (
+                <TouchableOpacity
+                  key={tour.id}
+                  style={[styles.viewAllTourCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}
+                  onPress={() => {
+                    setViewAllType(null);
+                    setTimeout(() => handleTourPress(tour), 300);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Image source={{ uri: tour.image }} style={styles.viewAllTourImage} />
+                  <View style={styles.viewAllTourContent}>
+                    <Text style={[styles.viewAllTourTitle, { color: colors.text }]} numberOfLines={2}>
+                      {tour.title}
+                    </Text>
+                    <View style={styles.viewAllTourMeta}>
+                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.viewAllTourLocation, { color: colors.textSecondary }]}>
+                        {tour.location}
+                      </Text>
+                    </View>
+                    <Text style={[styles.viewAllTourPrice, { color: colors.primary }]}>
+                      {tour.currency}{tour.price}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -921,5 +1032,121 @@ const styles = StyleSheet.create({
   routesScrollContent: {
     gap: 12,
     paddingRight: 20,
+  },
+  // View All Modal Styles
+  viewAllModal: {
+    flex: 1,
+  },
+  viewAllHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  viewAllTitle: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+  },
+  viewAllCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewAllContent: {
+    flex: 1,
+  },
+  viewAllScrollContent: {
+    padding: 20,
+    gap: 12,
+  },
+  viewAllRouteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 12,
+    gap: 12,
+  },
+  viewAllRouteImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  viewAllRouteContent: {
+    flex: 1,
+    gap: 4,
+  },
+  viewAllRouteTitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  viewAllRouteMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllRouteLocation: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  viewAllRouteBadges: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  viewAllRouteBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  viewAllRouteBadgeText: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+  },
+  viewAllTourCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 12,
+    gap: 12,
+  },
+  viewAllTourImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  viewAllTourContent: {
+    flex: 1,
+    gap: 4,
+  },
+  viewAllTourTitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  viewAllTourMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllTourLocation: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  viewAllTourPrice: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    marginTop: 2,
   },
 });

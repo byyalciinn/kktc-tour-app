@@ -23,6 +23,7 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useAuthStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
+import { optimizeAvatar } from '@/lib/imageOptimizer';
 
 export default function PersonalInfoScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -59,21 +60,41 @@ export default function PersonalInfoScreen() {
     }
   }, [profile, user]);
 
-  // Upload image to Supabase
+  // Upload image to Supabase with optimization
   const handleUploadImage = async (imageUri: string) => {
     setIsUploading(true);
-    const { success, error } = await uploadUserAvatar(imageUri);
-    setIsUploading(false);
     
-    if (success) {
-      // Avatar will be updated via profile state
-      Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
-    } else {
-      Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+    try {
+      // Optimize avatar image (target ~100KB)
+      const optimized = await optimizeAvatar(imageUri);
+      
+      if (optimized) {
+        console.log(`[Avatar] Optimized: ${optimized.compressionRatio}% reduction`);
+        const { success, error } = await uploadUserAvatar(optimized.uri);
+        
+        if (success) {
+          Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
+        } else {
+          Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+        }
+      } else {
+        // Fallback to original if optimization fails
+        const { success, error } = await uploadUserAvatar(imageUri);
+        if (success) {
+          Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
+        } else {
+          Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+        }
+      }
+    } catch (err) {
+      console.error('[Avatar] Optimization error:', err);
+      Alert.alert('Hata', 'Fotoğraf işlenirken bir hata oluştu.');
     }
+    
+    setIsUploading(false);
   };
 
-  // Pick image from gallery with optimization
+  // Pick image from gallery - optimization handled in handleUploadImage
   const pickFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -86,7 +107,7 @@ export default function PersonalInfoScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.6, // Reduced quality for smaller file size
+        quality: 1, // Full quality - optimization handled separately
         allowsMultipleSelection: false,
         exif: false, // Don't include EXIF data
       });
@@ -108,7 +129,7 @@ export default function PersonalInfoScreen() {
     }
   };
 
-  // Take photo with camera with optimization
+  // Take photo with camera - optimization handled in handleUploadImage
   const takePhoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -120,7 +141,7 @@ export default function PersonalInfoScreen() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.6, // Reduced quality for smaller file size
+        quality: 1, // Full quality - optimization handled separately
         exif: false, // Don't include EXIF data
       });
 

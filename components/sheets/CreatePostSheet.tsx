@@ -27,6 +27,7 @@ import { CommunityPostType, CreatePostInput } from '@/types';
 import { useCommunityStore, useAuthStore, useThemeStore, useTourStore } from '@/stores';
 import { supabase } from '@/lib/supabase';
 import { decode } from 'base64-arraybuffer';
+import { optimizeCommunityImage } from '@/lib/imageOptimizer';
 
 const { width, height } = Dimensions.get('window');
 const SHEET_HEIGHT = height * 0.9;
@@ -142,15 +143,15 @@ export default function CreatePostSheet({
     })
   ).current;
 
-  // Pick images
+  // Pick images with optimization
   const handlePickImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
-        quality: 0.8,
-        base64: true,
+        quality: 1, // Get full quality, we'll optimize ourselves
         selectionLimit: 5 - images.length,
+        exif: false, // Don't include EXIF data to reduce size
       });
 
       if (!result.canceled && result.assets) {
@@ -158,22 +159,34 @@ export default function CreatePostSheet({
         const uploadedUrls: string[] = [];
 
         for (const asset of result.assets) {
-          if (asset.base64) {
-            const fileName = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+          try {
+            // Optimize image before upload (target ~250KB)
+            const optimized = await optimizeCommunityImage(asset.uri);
             
-            const { data, error } = await supabase.storage
-              .from('community')
-              .upload(fileName, decode(asset.base64), {
-                contentType: 'image/jpeg',
-              });
-
-            if (!error && data) {
-              const { data: urlData } = supabase.storage
-                .from('community')
-                .getPublicUrl(data.path);
+            if (optimized && optimized.base64) {
+              const fileName = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
               
-              uploadedUrls.push(urlData.publicUrl);
+              const { data, error } = await supabase.storage
+                .from('community')
+                .upload(fileName, decode(optimized.base64), {
+                  contentType: 'image/jpeg',
+                });
+
+              if (!error && data) {
+                const { data: urlData } = supabase.storage
+                  .from('community')
+                  .getPublicUrl(data.path);
+                
+                uploadedUrls.push(urlData.publicUrl);
+                
+                // Log compression stats
+                if (optimized.compressionRatio) {
+                  console.log(`[Community] Image optimized: ${optimized.compressionRatio}% reduction`);
+                }
+              }
             }
+          } catch (optimizeError) {
+            console.error('[Community] Image optimization failed:', optimizeError);
           }
         }
 
