@@ -13,9 +13,27 @@ import {
   TOURS_PAGE_SIZE,
 } from '@/lib/tourService';
 import { featuredTours } from '@/constants/Tours';
+import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Track the latest category fetch request to prevent race conditions
 let latestCategoryFetchId = 0;
+
+// Realtime subscription channel
+let toursChannel: RealtimeChannel | null = null;
+
+// SWR Configuration
+const SWR_CONFIG = {
+  // Data is considered fresh for 2 minutes
+  staleTime: 2 * 60 * 1000,
+  // Cache expires after 10 minutes
+  cacheTime: 10 * 60 * 1000,
+  // Revalidate in background when stale
+  revalidateOnMount: true,
+  // Revalidate when window regains focus
+  revalidateOnFocus: true,
+};
 
 interface TourState {
   // State
@@ -25,8 +43,10 @@ interface TourState {
   isLoading: boolean;
   isRefreshing: boolean;
   isLoadingMore: boolean;
+  isRevalidating: boolean;
   error: string | null;
   lastFetched: number | null;
+  isStale: boolean;
   
   // Pagination state
   currentPage: number;
@@ -47,6 +67,8 @@ interface TourState {
 
   // Async actions
   fetchTours: () => Promise<void>;
+  fetchToursWithSWR: () => Promise<void>;
+  revalidate: () => Promise<void>;
   fetchToursByCategory: (categoryId: string) => Promise<void>;
   fetchCategories: () => Promise<void>;
   refreshTours: () => Promise<void>;
@@ -56,13 +78,17 @@ interface TourState {
   createTour: (tour: TourInput, imageUri?: string) => Promise<{ success: boolean; error: string | null }>;
   updateTour: (id: string, tour: Partial<TourInput>, newImageUri?: string, oldImageUrl?: string) => Promise<{ success: boolean; error: string | null }>;
   deleteTour: (id: string, imageUrl?: string) => Promise<{ success: boolean; error: string | null }>;
+  
+  // Realtime subscription
+  subscribeToRealtime: () => void;
+  unsubscribeFromRealtime: () => void;
 
   // Computed / helpers
   getTourById: (id: string) => Tour | undefined;
   getToursBySelectedCategory: () => Tour[];
 }
 
-// Cache duration: 5 minutes
+// Cache duration: 5 minutes (kept for backward compatibility)
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export const useTourStore = create<TourState>((set, get) => ({
@@ -73,8 +99,10 @@ export const useTourStore = create<TourState>((set, get) => ({
   isLoading: false,
   isRefreshing: false,
   isLoadingMore: false,
+  isRevalidating: false,
   error: null,
   lastFetched: null,
+  isStale: false,
   
   // Pagination state
   currentPage: 0,
@@ -97,7 +125,7 @@ export const useTourStore = create<TourState>((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
 
-  // Fetch all tours
+  // Fetch all tours (basic fetch)
   fetchTours: async () => {
     const { lastFetched, isLoading } = get();
     
@@ -115,12 +143,13 @@ export const useTourStore = create<TourState>((set, get) => ({
       const { data, error } = await getTours();
 
       if (error) {
-        console.log('Tour fetch error, using fallback:', error);
+        logger.warn('Tour fetch error, using fallback:', error);
         set({ 
           tours: featuredTours, 
           error: null, // Don't show error if we have fallback
           isLoading: false,
           lastFetched: Date.now(),
+          isStale: false,
         });
         return;
       }
@@ -130,15 +159,133 @@ export const useTourStore = create<TourState>((set, get) => ({
         tours: tours.length > 0 ? tours : featuredTours,
         isLoading: false,
         lastFetched: Date.now(),
+        isStale: false,
         error: null,
       });
     } catch (err: any) {
-      console.log('Tour fetch exception:', err);
+      logger.error('Tour fetch exception:', err);
       set({ 
         tours: featuredTours,
         isLoading: false,
         error: null,
       });
+    }
+  },
+
+  /**
+   * SWR-like fetch: Return stale data immediately, revalidate in background
+   */
+  fetchToursWithSWR: async () => {
+    const { lastFetched, isLoading, isRevalidating, tours } = get();
+    
+    // Skip if already loading or revalidating
+    if (isLoading || isRevalidating) return;
+
+    const now = Date.now();
+    const hasCache = tours.length > 0 && lastFetched;
+    const isFresh = hasCache && (now - lastFetched) < SWR_CONFIG.staleTime;
+    const isExpired = hasCache && (now - lastFetched) > SWR_CONFIG.cacheTime;
+
+    // If data is fresh, no need to fetch
+    if (isFresh) {
+      return;
+    }
+
+    // If we have stale cache, mark as stale and revalidate in background
+    if (hasCache && !isExpired) {
+      set({ isStale: true, isRevalidating: true });
+      
+      // Background revalidation
+      try {
+        const { data, error } = await getTours();
+        
+        if (!error && data.length > 0) {
+          const newTours = data.map(tourDataToTour);
+          set({ 
+            tours: newTours,
+            lastFetched: Date.now(),
+            isStale: false,
+            isRevalidating: false,
+          });
+          logger.info('[SWR] Tours revalidated in background');
+        } else {
+          set({ isRevalidating: false, isStale: false });
+        }
+      } catch (err) {
+        logger.warn('[SWR] Background revalidation failed:', err);
+        set({ isRevalidating: false, isStale: false });
+      }
+      return;
+    }
+
+    // No cache or expired - do a full fetch
+    await get().fetchTours();
+  },
+
+  /**
+   * Force revalidation (useful for pull-to-refresh)
+   */
+  revalidate: async () => {
+    set({ lastFetched: null, isStale: true });
+    await get().fetchTours();
+  },
+
+  /**
+   * Subscribe to realtime updates from Supabase
+   */
+  subscribeToRealtime: () => {
+    // Unsubscribe from existing channel if any
+    if (toursChannel) {
+      supabase.removeChannel(toursChannel);
+    }
+
+    toursChannel = supabase
+      .channel('tours-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tours',
+        },
+        (payload) => {
+          logger.info('[Realtime] Tours table changed:', payload.eventType);
+          
+          const { tours } = get();
+          
+          switch (payload.eventType) {
+            case 'INSERT':
+              const newTour = tourDataToTour(payload.new as TourData);
+              set({ tours: [newTour, ...tours] });
+              break;
+              
+            case 'UPDATE':
+              const updatedTour = tourDataToTour(payload.new as TourData);
+              set({ 
+                tours: tours.map(t => t.id === updatedTour.id ? updatedTour : t) 
+              });
+              break;
+              
+            case 'DELETE':
+              const deletedId = (payload.old as any).id;
+              set({ tours: tours.filter(t => t.id !== deletedId) });
+              break;
+          }
+        }
+      )
+      .subscribe((status) => {
+        logger.info('[Realtime] Tours subscription status:', status);
+      });
+  },
+
+  /**
+   * Unsubscribe from realtime updates
+   */
+  unsubscribeFromRealtime: () => {
+    if (toursChannel) {
+      supabase.removeChannel(toursChannel);
+      toursChannel = null;
+      logger.info('[Realtime] Unsubscribed from tours');
     }
   },
 

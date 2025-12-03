@@ -290,7 +290,7 @@ export default function DestinationSearch({
           <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
             {Platform.OS === 'ios' ? (
               <BlurView
-                intensity={isDark ? 40 : 60}
+                intensity={isDark ? 80 : 90}
                 tint={isDark ? 'dark' : 'light'}
                 style={StyleSheet.absoluteFill}
               />
@@ -298,7 +298,7 @@ export default function DestinationSearch({
               <View 
                 style={[
                   StyleSheet.absoluteFill, 
-                  { backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.92)' }
+                  { backgroundColor: isDark ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.97)' }
                 ]} 
               />
             )}
@@ -509,12 +509,6 @@ export default function DestinationSearch({
                             </Text>
                           </View>
                           <View style={styles.resultFooter}>
-                            <View style={styles.resultRating}>
-                              <Ionicons name="star" size={13} color="#FFD700" />
-                              <Text style={[styles.resultRatingText, { color: colors.text }]}>
-                                {tour.rating}
-                              </Text>
-                            </View>
                             <Text style={[styles.resultPrice, { color: colors.primary }]}>
                               {tour.currency}{tour.price}
                             </Text>
@@ -607,6 +601,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
     padding: 0,
   },
   clearButton: {
@@ -739,9 +734,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   resultTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   resultMeta: {
     flexDirection: 'row',
@@ -751,22 +746,12 @@ const styles = StyleSheet.create({
   resultLocation: {
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
   },
   resultFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  resultRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  resultRatingText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '500',
+    marginTop: 6,
   },
   resultPrice: {
     fontSize: 17,

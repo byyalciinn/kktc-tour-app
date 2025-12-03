@@ -12,7 +12,7 @@
  */
 
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system/next';
 
 // Optimization presets for different use cases
 export const ImagePresets = {
@@ -81,13 +81,13 @@ export interface OptimizationOptions {
 }
 
 /**
- * Get file size in bytes
+ * Get file size in bytes using new expo-file-system API
  */
 const getFileSize = async (uri: string): Promise<number> => {
   try {
-    const fileInfo = await FileSystem.getInfoAsync(uri);
-    if (fileInfo.exists && 'size' in fileInfo) {
-      return fileInfo.size;
+    const file = new File(uri);
+    if (file.exists) {
+      return file.size ?? 0;
     }
     return 0;
   } catch {

@@ -100,10 +100,12 @@ export interface UserProfile {
   birth_date: string | null;
   address: string | null;
   member_number: string | null;
-  member_class: string;
+  member_class: 'Normal' | 'Gold' | 'Business';
   role: 'user' | 'admin';
   created_at: string;
   updated_at?: string;
+  membership_expires_at?: string | null;
+  two_factor_enabled?: boolean;
 }
 
 // =============================================
@@ -235,7 +237,8 @@ export const routeDataToRoute = (data: ThematicRouteData): ThematicRoute => ({
   region: data.region || undefined,
   durationDays: data.duration_days,
   durationLabel: data.duration_label || undefined,
-  coverImage: data.cover_image,
+  // Ensure coverImage is never empty - use empty string to trigger fallback icon
+  coverImage: data.cover_image && data.cover_image.trim() ? data.cover_image : '',
   tags: data.tags || [],
   highlighted: data.highlighted,
   difficulty: data.difficulty || undefined,

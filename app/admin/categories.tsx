@@ -12,13 +12,13 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
-  useColorScheme,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 import { 
   getCategories, 
   createCategory, 
@@ -51,7 +51,7 @@ const AVAILABLE_ICONS = [
 ];
 
 export default function CategoriesScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';

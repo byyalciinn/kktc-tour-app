@@ -12,18 +12,18 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  useColorScheme,
   KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 import { getTourById, updateTour, pickImage, takePhoto, TourData, getCategories, Category } from '@/lib/tourService';
 
 export default function EditTourScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';

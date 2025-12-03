@@ -33,8 +33,10 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const spinAnim = useRef(new Animated.Value(0)).current;
-  const pullAnim = useRef(new Animated.Value(0)).current;
-  const [pullDistance, setPullDistance] = useState(0);
+  const contentOpacity = useRef(new Animated.Value(1)).current;
+  const refreshOpacity = useRef(new Animated.Value(0)).current;
+  const refreshScale = useRef(new Animated.Value(0.8)).current;
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { t } = useTranslation();
 
   // Zustand stores
@@ -73,15 +75,43 @@ export default function HomeScreen() {
   // Spin animation for refresh icon
   useEffect(() => {
     if (isRefreshing) {
-      Animated.loop(
-        Animated.timing(spinAnim, {
+      // Show refresh indicator with animation
+      Animated.parallel([
+        Animated.timing(refreshOpacity, {
           toValue: 1,
-          duration: 1000,
+          duration: 200,
           useNativeDriver: true,
-        })
-      ).start();
+        }),
+        Animated.spring(refreshScale, {
+          toValue: 1,
+          friction: 8,
+          tension: 100,
+          useNativeDriver: true,
+        }),
+        Animated.loop(
+          Animated.timing(spinAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          })
+        ),
+      ]).start();
     } else {
-      spinAnim.setValue(0);
+      // Hide refresh indicator with animation
+      Animated.parallel([
+        Animated.timing(refreshOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(refreshScale, {
+          toValue: 0.8,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        spinAnim.setValue(0);
+      });
     }
   }, [isRefreshing]);
 
@@ -141,10 +171,31 @@ export default function HomeScreen() {
     };
   }, [user?.id, setUnreadNotificationCount, incrementUnreadNotificationCount]);
 
-  // Handle category change
-  const handleCategoryPress = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-  };
+  // Handle category change with smooth animation - only affects tour cards
+  const handleCategoryPress = useCallback((categoryId: string) => {
+    if (categoryId === selectedCategoryId || isTransitioning) return;
+    
+    setIsTransitioning(true);
+    
+    // Fade out tour cards only
+    Animated.timing(contentOpacity, {
+      toValue: 0.3,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
+      // Change category (no LayoutAnimation - only tour cards fade)
+      setSelectedCategory(categoryId);
+      
+      // Fade in tour cards
+      Animated.timing(contentOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setIsTransitioning(false);
+      });
+    });
+  }, [selectedCategoryId, isTransitioning, contentOpacity, setSelectedCategory]);
 
   // Get active category index
   const activeCategoryIndex = categories.findIndex(c => c.id === selectedCategoryId);
@@ -173,11 +224,12 @@ export default function HomeScreen() {
 
   // Render tour card item for FlatList
   const renderTourCard = useCallback(({ item: tour }: { item: Tour }) => (
-    <TouchableOpacity
-      style={styles.tripCard}
-      activeOpacity={0.95}
-      onPress={() => handleTourPress(tour)}
-    >
+    <Animated.View style={{ opacity: contentOpacity }}>
+      <TouchableOpacity
+        style={styles.tripCard}
+        activeOpacity={0.95}
+        onPress={() => handleTourPress(tour)}
+      >
       <Image
         source={{ uri: tour.image }}
         style={styles.tripCardImage}
@@ -192,7 +244,7 @@ export default function HomeScreen() {
       
       {/* Arrow Button */}
       <TouchableOpacity style={styles.tripArrowButton}>
-        <Ionicons name="arrow-forward" size={20} color={colors.text} />
+        <Ionicons name="arrow-forward" size={20} color="#212529" />
       </TouchableOpacity>
       
       {/* Bottom Content */}
@@ -210,23 +262,31 @@ export default function HomeScreen() {
           <Text style={styles.tripCardPriceLabel}>{t('home.perPerson')}</Text>
         </View>
       </View>
-    </TouchableOpacity>
-  ), [colors.text, getCategoryName, handleTourPress, t]);
+      </TouchableOpacity>
+    </Animated.View>
+  ), [colors.text, getCategoryName, handleTourPress, t, contentOpacity]);
 
   // Header component for FlatList
   const ListHeader = useCallback(() => (
     <View style={styles.heroSection}>
-      {/* Custom Refresh Indicator - Above Location */}
-      {isRefreshing && (
-        <View style={styles.refreshContainer}>
-          <Animated.View style={[styles.refreshIconWrapper, { transform: [{ rotate: spin }] }]}>
-            <Ionicons name="refresh" size={20} color={colors.primary} />
-          </Animated.View>
-          <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
-            {t('home.refreshing')}
-          </Text>
-        </View>
-      )}
+      {/* Premium Refresh Indicator */}
+      <Animated.View 
+        style={[
+          styles.premiumRefreshContainer,
+          {
+            opacity: refreshOpacity,
+            transform: [{ scale: refreshScale }],
+          }
+        ]}
+        pointerEvents="none"
+      >
+        <Animated.View style={[styles.premiumRefreshIcon, { transform: [{ rotate: spin }] }]}>
+          <Ionicons name="sync" size={16} color={colors.primary} />
+        </Animated.View>
+        <Text style={[styles.premiumRefreshText, { color: colors.textSecondary }]}>
+          {t('home.refreshing')}
+        </Text>
+      </Animated.View>
 
       {/* Header Row: Avatar - Location - Notification */}
       <View style={styles.header}>
@@ -340,7 +400,8 @@ export default function HomeScreen() {
       {!isLoading && filteredTours.length === 0 && <NoToursEmptyState />}
     </View>
   ), [
-    isRefreshing,
+    refreshOpacity,
+    refreshScale,
     spin,
     colors,
     profile,
@@ -382,7 +443,8 @@ export default function HomeScreen() {
             tintColor="transparent"
             colors={['transparent']}
             progressBackgroundColor="transparent"
-            style={{ backgroundColor: 'transparent' }}
+            progressViewOffset={-1000}
+            style={{ opacity: 0, height: 0 }}
           />
         }
         // Performance optimizations
@@ -396,6 +458,7 @@ export default function HomeScreen() {
           index,
         })}
         ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
+        scrollIndicatorInsets={{ right: 1 }}
       />
 
       {/* Tour Detail Sheet */}
@@ -445,27 +508,28 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
   },
-  // Custom Refresh Indicator - Positioned above location
-  refreshContainer: {
+  // Premium Refresh Indicator
+  premiumRefreshContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    marginBottom: 8,
-    gap: 8,
+    paddingVertical: 12,
+    marginBottom: 4,
+    gap: 10,
   },
-  refreshIconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(240, 58, 82, 0.1)',
+  premiumRefreshIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(240, 58, 82, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  refreshText: {
+  premiumRefreshText: {
     fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   heroSection: {
     marginBottom: 24,

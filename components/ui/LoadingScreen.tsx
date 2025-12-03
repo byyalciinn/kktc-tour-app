@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 
 const { width } = Dimensions.get('window');
 
@@ -17,7 +18,11 @@ interface LoadingScreenProps {
 /**
  * Modern animated loading screen with pulsing dots
  */
-export function LoadingScreen({ backgroundColor = Colors.light.background }: LoadingScreenProps) {
+export function LoadingScreen({ backgroundColor }: LoadingScreenProps) {
+  const { colorScheme } = useThemeStore();
+  const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  const bgColor = backgroundColor || colors.background;
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
@@ -98,7 +103,7 @@ export function LoadingScreen({ backgroundColor = Colors.light.background }: Loa
   });
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
       <Animated.View
         style={[
           styles.content,
@@ -110,7 +115,7 @@ export function LoadingScreen({ backgroundColor = Colors.light.background }: Loa
       >
         {/* Logo or App Icon */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
+          <View style={[styles.logoCircle, { backgroundColor: colors.primary }]}>
             <View style={styles.logoInner}>
               <View style={styles.logoIcon} />
             </View>
@@ -119,9 +124,9 @@ export function LoadingScreen({ backgroundColor = Colors.light.background }: Loa
 
         {/* Animated Dots */}
         <View style={styles.dotsContainer}>
-          <Animated.View style={[styles.dot, getDotStyle(dot1)]} />
-          <Animated.View style={[styles.dot, getDotStyle(dot2)]} />
-          <Animated.View style={[styles.dot, getDotStyle(dot3)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.primary }, getDotStyle(dot1)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.primary }, getDotStyle(dot2)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.primary }, getDotStyle(dot3)]} />
         </View>
       </Animated.View>
     </View>

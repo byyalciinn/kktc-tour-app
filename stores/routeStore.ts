@@ -12,9 +12,23 @@ import {
   getRoutesByTheme,
   searchRoutes as searchRoutesService,
 } from '@/lib/routeService';
+import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Cache duration: 10 minutes (routes don't change often)
 const CACHE_DURATION = 10 * 60 * 1000;
+
+// Realtime subscription channel
+let routesChannel: RealtimeChannel | null = null;
+
+// SWR Configuration for routes
+const SWR_CONFIG = {
+  // Data is considered fresh for 5 minutes (routes change less often)
+  staleTime: 5 * 60 * 1000,
+  // Cache expires after 15 minutes
+  cacheTime: 15 * 60 * 1000,
+};
 
 interface RouteState {
   // State
@@ -23,9 +37,11 @@ interface RouteState {
   selectedRoute: ThematicRoute | null;
   isLoading: boolean;
   isLoadingHighlighted: boolean;
+  isRevalidating: boolean;
   error: string | null;
   lastFetched: number | null;
   lastHighlightedFetched: number | null;
+  isStale: boolean;
 
   // Search state
   searchResults: ThematicRoute[];
@@ -41,12 +57,19 @@ interface RouteState {
 
   // Async actions
   fetchRoutes: () => Promise<void>;
+  fetchRoutesWithSWR: () => Promise<void>;
   fetchHighlightedRoutes: () => Promise<void>;
+  fetchHighlightedRoutesWithSWR: () => Promise<void>;
+  revalidate: () => Promise<void>;
   fetchRouteById: (id: string) => Promise<ThematicRoute | null>;
   fetchRoutesByTheme: (theme: string) => Promise<void>;
   searchRoutes: (query: string) => Promise<void>;
   clearSearch: () => void;
   refreshRoutes: () => Promise<void>;
+  
+  // Realtime subscription
+  subscribeToRealtime: () => void;
+  unsubscribeFromRealtime: () => void;
 
   // Computed / helpers
   getRouteById: (id: string) => ThematicRoute | undefined;
@@ -60,9 +83,11 @@ export const useRouteStore = create<RouteState>((set, get) => ({
   selectedRoute: null,
   isLoading: false,
   isLoadingHighlighted: false,
+  isRevalidating: false,
   error: null,
   lastFetched: null,
   lastHighlightedFetched: null,
+  isStale: false,
 
   // Search state
   searchResults: [],
@@ -102,6 +127,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         routes: data,
         isLoading: false,
         lastFetched: Date.now(),
+        isStale: false,
         error: null,
       });
     } catch (err: any) {
@@ -110,6 +136,48 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         isLoading: false,
       });
     }
+  },
+
+  /**
+   * SWR-like fetch for routes: Return stale data immediately, revalidate in background
+   */
+  fetchRoutesWithSWR: async () => {
+    const { lastFetched, isLoading, isRevalidating, routes } = get();
+    
+    if (isLoading || isRevalidating) return;
+
+    const now = Date.now();
+    const hasCache = routes.length > 0 && lastFetched;
+    const isFresh = hasCache && (now - lastFetched) < SWR_CONFIG.staleTime;
+    const isExpired = hasCache && (now - lastFetched) > SWR_CONFIG.cacheTime;
+
+    if (isFresh) return;
+
+    if (hasCache && !isExpired) {
+      set({ isStale: true, isRevalidating: true });
+      
+      try {
+        const { data, error } = await getThematicRoutes();
+        
+        if (!error && data.length > 0) {
+          set({ 
+            routes: data,
+            lastFetched: Date.now(),
+            isStale: false,
+            isRevalidating: false,
+          });
+          logger.info('[SWR] Routes revalidated in background');
+        } else {
+          set({ isRevalidating: false, isStale: false });
+        }
+      } catch (err) {
+        logger.warn('[SWR] Routes background revalidation failed:', err);
+        set({ isRevalidating: false, isStale: false });
+      }
+      return;
+    }
+
+    await get().fetchRoutes();
   },
 
   // Fetch highlighted routes for Explore screen
@@ -138,6 +206,7 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         highlightedRoutes: data,
         isLoadingHighlighted: false,
         lastHighlightedFetched: Date.now(),
+        isStale: false,
         error: null,
       });
     } catch (err: any) {
@@ -145,6 +214,98 @@ export const useRouteStore = create<RouteState>((set, get) => ({
         error: err.message,
         isLoadingHighlighted: false,
       });
+    }
+  },
+
+  /**
+   * SWR-like fetch for highlighted routes
+   */
+  fetchHighlightedRoutesWithSWR: async () => {
+    const { lastHighlightedFetched, isLoadingHighlighted, isRevalidating, highlightedRoutes } = get();
+    
+    if (isLoadingHighlighted || isRevalidating) return;
+
+    const now = Date.now();
+    const hasCache = highlightedRoutes.length > 0 && lastHighlightedFetched;
+    const isFresh = hasCache && (now - lastHighlightedFetched) < SWR_CONFIG.staleTime;
+    const isExpired = hasCache && (now - lastHighlightedFetched) > SWR_CONFIG.cacheTime;
+
+    if (isFresh) return;
+
+    if (hasCache && !isExpired) {
+      set({ isStale: true, isRevalidating: true });
+      
+      try {
+        const { data, error } = await getHighlightedRoutes();
+        
+        if (!error && data.length > 0) {
+          set({ 
+            highlightedRoutes: data,
+            lastHighlightedFetched: Date.now(),
+            isStale: false,
+            isRevalidating: false,
+          });
+          logger.info('[SWR] Highlighted routes revalidated in background');
+        } else {
+          set({ isRevalidating: false, isStale: false });
+        }
+      } catch (err) {
+        logger.warn('[SWR] Highlighted routes background revalidation failed:', err);
+        set({ isRevalidating: false, isStale: false });
+      }
+      return;
+    }
+
+    await get().fetchHighlightedRoutes();
+  },
+
+  /**
+   * Force revalidation
+   */
+  revalidate: async () => {
+    set({ lastFetched: null, lastHighlightedFetched: null, isStale: true });
+    await Promise.all([
+      get().fetchRoutes(),
+      get().fetchHighlightedRoutes(),
+    ]);
+  },
+
+  /**
+   * Subscribe to realtime updates from Supabase
+   */
+  subscribeToRealtime: () => {
+    if (routesChannel) {
+      supabase.removeChannel(routesChannel);
+    }
+
+    routesChannel = supabase
+      .channel('routes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'thematic_routes',
+        },
+        (payload) => {
+          logger.info('[Realtime] Routes table changed:', payload.eventType);
+          // For routes, we do a full refresh since the data structure is complex
+          get().revalidate();
+        }
+      )
+      .subscribe((status) => {
+        logger.info('[Realtime] Routes subscription status:', status);
+      });
+  },
+
+  /**
+   * Unsubscribe from realtime updates
+   */
+  unsubscribeFromRealtime: () => {
+    if (routesChannel) {
+      supabase.removeChannel(routesChannel);
+      routesChannel = null;
+      logger.info('[Realtime] Unsubscribed from routes');
     }
   },
 
@@ -236,13 +397,9 @@ export const useRouteStore = create<RouteState>((set, get) => ({
     set({ searchResults: [], searchQuery: '', isSearching: false });
   },
 
-  // Force refresh routes (ignore cache)
+  // Force refresh routes (ignore cache) - kept for backward compatibility
   refreshRoutes: async () => {
-    set({ lastFetched: null, lastHighlightedFetched: null });
-    await Promise.all([
-      get().fetchRoutes(),
-      get().fetchHighlightedRoutes(),
-    ]);
+    await get().revalidate();
   },
 
   // Get single route by ID from local state

@@ -10,6 +10,17 @@ import {
   generateDefaultAvatarUrl 
 } from '@/lib/avatarService';
 
+interface DeleteAccountResult {
+  success: boolean;
+  error?: string;
+  deletedData?: {
+    posts: number;
+    favorites: number;
+    reports: number;
+    hidden_posts: number;
+  };
+}
+
 interface AuthState {
   // State
   user: User | null;
@@ -35,6 +46,7 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  deleteAccount: () => Promise<DeleteAccountResult>;
   
   // Avatar actions
   uploadUserAvatar: (imageUri: string) => Promise<{ success: boolean; error: Error | null }>;
@@ -157,7 +169,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // Sign in existing user
   signIn: async (email: string, password: string) => {
-    set({ loading: true });
+    // Clear isNewUser flag BEFORE auth call - prevents race condition with onAuthStateChange
+    set({ loading: true, isNewUser: false });
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -184,6 +197,49 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   resetPassword: async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     return { error };
+  },
+
+  // Delete user account and all related data
+  deleteAccount: async () => {
+    const { user } = get();
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    try {
+      set({ loading: true });
+
+      // Call the database function to delete all user data
+      const { data, error } = await supabase.rpc('delete_user_account', {
+        target_user_id: user.id,
+      });
+
+      if (error) {
+        console.error('[AuthStore] Delete account error:', error);
+        set({ loading: false });
+        return { success: false, error: error.message };
+      }
+
+      // Sign out the user after successful deletion
+      await supabase.auth.signOut();
+
+      // Clear local state
+      set({
+        user: null,
+        session: null,
+        profile: null,
+        loading: false,
+      });
+
+      return {
+        success: true,
+        deletedData: data?.deleted,
+      };
+    } catch (error: any) {
+      console.error('[AuthStore] Delete account error:', error);
+      set({ loading: false });
+      return { success: false, error: error.message };
+    }
   },
 
   // Upload user avatar

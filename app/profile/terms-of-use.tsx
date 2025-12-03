@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import {
@@ -9,11 +8,11 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 
 const termsSections = [
   {
@@ -27,56 +26,56 @@ Uygulamayı kullanmak için 18 yaşından büyük olmanız veya yasal vasinizin 
     content: `Tour App, Kuzey Kıbrıs Türk Cumhuriyeti'ndeki turistik turları keşfetmenizi, rezervasyon yapmanızı ve yönetmenizi sağlayan bir mobil uygulamadır.
 
 Sunduğumuz hizmetler:
-• Tur arama ve filtreleme
-• Online rezervasyon
-• Dijital bilet yönetimi
-• Tur rehberi iletişimi
-• Değerlendirme ve yorumlar`,
+Tur arama ve filtreleme
+Online rezervasyon
+Dijital bilet yönetimi
+Tur rehberi iletişimi
+Değerlendirme ve yorumlar`,
   },
   {
     title: 'Kullanıcı Yükümlülükleri',
     content: `Uygulamamızı kullanırken aşağıdaki kurallara uymanız gerekmektedir:
 
-• Doğru ve güncel bilgi sağlamak
-• Hesap güvenliğinizi korumak
-• Yasalara ve düzenlemelere uymak
-• Diğer kullanıcılara saygılı davranmak
-• Uygulamayı kötüye kullanmamak
-• Fikri mülkiyet haklarına saygı göstermek`,
+Doğru ve güncel bilgi sağlamak
+Hesap güvenliğinizi korumak
+Yasalara ve düzenlemelere uymak
+Diğer kullanıcılara saygılı davranmak
+Uygulamayı kötüye kullanmamak
+Fikri mülkiyet haklarına saygı göstermek`,
   },
   {
     title: 'Rezervasyon ve İptal',
     content: `Rezervasyon Koşulları:
-• Rezervasyonlar onay e-postası ile kesinleşir
-• Ödeme, rezervasyon sırasında veya tur öncesi alınır
-• Fiyatlar KDV dahil olarak gösterilir
+Rezervasyonlar onay e-postası ile kesinleşir
+Ödeme, rezervasyon sırasında veya tur öncesi alınır
+Fiyatlar KDV dahil olarak gösterilir
 
 İptal Politikası:
-• 48 saat öncesine kadar ücretsiz iptal
-• 24-48 saat arası %50 kesinti
-• 24 saatten az sürede iptal yapılamaz
-• Mücbir sebep halleri ayrıca değerlendirilir`,
+48 saat öncesine kadar ücretsiz iptal
+24-48 saat arası %50 kesinti
+24 saatten az sürede iptal yapılamaz
+Mücbir sebep halleri ayrıca değerlendirilir`,
   },
   {
     title: 'Ödeme Koşulları',
     content: `Kabul edilen ödeme yöntemleri:
-• Kredi kartı / Banka kartı
-• Apple Pay / Google Pay
-• Uygulama içi bakiye
+Kredi kartı / Banka kartı
+Apple Pay / Google Pay
+Uygulama içi bakiye
 
 Güvenlik:
-• Tüm ödemeler SSL ile şifrelenir
-• Kart bilgileriniz saklanmaz
-• 3D Secure doğrulama kullanılır`,
+Tüm ödemeler SSL ile şifrelenir
+Kart bilgileriniz saklanmaz
+3D Secure doğrulama kullanılır`,
   },
   {
     title: 'Sorumluluk Sınırları',
     content: `Tour App olarak:
 
-• Tur operatörlerinin hizmet kalitesinden doğrudan sorumlu değiliz
-• Doğal afetler ve mücbir sebeplerden kaynaklanan aksaklıklardan sorumlu tutulamayız
-• Kullanıcı hatalarından doğan zararlardan sorumlu değiliz
-• Üçüncü taraf bağlantılarının içeriğinden sorumlu değiliz
+Tur operatörlerinin hizmet kalitesinden doğrudan sorumlu değiliz
+Doğal afetler ve mücbir sebeplerden kaynaklanan aksaklıklardan sorumlu tutulamayız
+Kullanıcı hatalarından doğan zararlardan sorumlu değiliz
+Üçüncü taraf bağlantılarının içeriğinden sorumlu değiliz
 
 Ancak, platformumuzda listelenen tüm operatörleri dikkatle seçiyor ve denetliyoruz.`,
   },
@@ -85,19 +84,19 @@ Ancak, platformumuzda listelenen tüm operatörleri dikkatle seçiyor ve denetli
     content: `Tour App'in tüm içeriği, tasarımı, logosu ve yazılımı telif hakkı ile korunmaktadır.
 
 İzin verilmeyen kullanımlar:
-• İçeriğin kopyalanması veya çoğaltılması
-• Ticari amaçlı kullanım
-• Tersine mühendislik
-• Marka ve logoların izinsiz kullanımı`,
+İçeriğin kopyalanması veya çoğaltılması
+Ticari amaçlı kullanım
+Tersine mühendislik
+Marka ve logoların izinsiz kullanımı`,
   },
   {
     title: 'Değişiklikler',
     content: `Bu kullanım koşullarını önceden haber vermeksizin değiştirme hakkını saklı tutarız.
 
 Önemli değişiklikler:
-• Uygulama içi bildirim ile duyurulur
-• E-posta ile bilgilendirilirsiniz
-• Değişiklik tarihi belirtilir
+Uygulama içi bildirim ile duyurulur
+E-posta ile bilgilendirilirsiniz
+Değişiklik tarihi belirtilir
 
 Değişikliklerden sonra uygulamayı kullanmaya devam etmeniz, yeni koşulları kabul ettiğiniz anlamına gelir.`,
   },
@@ -105,10 +104,10 @@ Değişikliklerden sonra uygulamayı kullanmaya devam etmeniz, yeni koşulları 
     title: 'Uyuşmazlık Çözümü',
     content: `Bu koşullardan doğan uyuşmazlıklarda:
 
-• Öncelikle dostane çözüm aranır
-• Arabuluculuk yoluna başvurulabilir
-• KKTC mahkemeleri yetkilidir
-• KKTC hukuku uygulanır
+Öncelikle dostane çözüm aranır
+Arabuluculuk yoluna başvurulabilir
+KKTC mahkemeleri yetkilidir
+KKTC hukuku uygulanır
 
 İletişim:
 legal@tourapp.com
@@ -118,21 +117,21 @@ Son güncelleme: Kasım 2024`,
 ];
 
 export default function TermsOfUseScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity
           style={[
             styles.backButton,
-            { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
           ]}
           onPress={() => router.back()}
         >
@@ -150,74 +149,36 @@ export default function TermsOfUseScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
-        <BlurView
-          intensity={isDark ? 40 : 80}
-          tint={isDark ? 'dark' : 'light'}
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
-            },
-          ]}
-        >
-          <View style={[styles.heroIcon, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-            <Ionicons name="document-text" size={32} color={colors.primary} />
-          </View>
-          <Text style={[styles.heroTitle, { color: colors.text }]}>
-            Kullanım Koşulları
-          </Text>
-          <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
-            Tour App'i kullanmadan önce lütfen bu koşulları dikkatlice okuyunuz.
-          </Text>
-        </BlurView>
+        {/* Intro Text */}
+        <Text style={[styles.introText, { color: colors.textSecondary }]}>
+          Tour App'i kullanmadan önce lütfen bu koşulları dikkatlice okuyunuz.
+        </Text>
 
         {/* Content Sections */}
         {termsSections.map((section, index) => (
-          <BlurView
+          <View
             key={index}
-            intensity={isDark ? 40 : 80}
-            tint={isDark ? 'dark' : 'light'}
             style={[
               styles.sectionCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
               },
             ]}
           >
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionNumber, { backgroundColor: colors.primary }]}>
-                <Text style={styles.sectionNumberText}>{index + 1}</Text>
-              </View>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {section.title}
-              </Text>
-            </View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {section.title}
+            </Text>
             <Text style={[styles.sectionContent, { color: colors.textSecondary }]}>
               {section.content}
             </Text>
-          </BlurView>
+          </View>
         ))}
 
         {/* Accept Note */}
-        <BlurView
-          intensity={isDark ? 40 : 80}
-          tint={isDark ? 'dark' : 'light'}
-          style={[
-            styles.noteCard,
-            {
-              backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
-            },
-          ]}
-        >
-          <Ionicons name="information-circle" size={24} color={colors.primary} />
-          <Text style={[styles.noteText, { color: colors.textSecondary }]}>
-            Uygulamayı kullanmaya devam ederek bu koşulları kabul etmiş sayılırsınız.
-          </Text>
-        </BlurView>
+        <Text style={[styles.noteText, { color: colors.textSecondary }]}>
+          Uygulamayı kullanmaya devam ederek bu koşulları kabul etmiş sayılırsınız.
+        </Text>
       </ScrollView>
     </View>
   );
@@ -242,9 +203,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
+    letterSpacing: -0.2,
   },
   headerSpacer: {
     width: 44,
@@ -254,84 +216,39 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    gap: 16,
   },
-  heroCard: {
-    alignItems: 'center',
-    padding: 28,
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  heroIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  heroSubtitle: {
+  introText: {
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 24,
+    letterSpacing: -0.2,
   },
   sectionCard: {
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
-  },
-  sectionNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionNumberText: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    color: '#FFFFFF',
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
-    flex: 1,
+    marginBottom: 12,
+    letterSpacing: -0.3,
   },
   sectionContent: {
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    lineHeight: 24,
-  },
-  noteCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 12,
-    marginTop: 8,
+    lineHeight: 23,
+    letterSpacing: -0.2,
   },
   noteText: {
-    flex: 1,
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: -0.2,
   },
 });

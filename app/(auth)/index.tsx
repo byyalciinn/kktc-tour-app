@@ -23,9 +23,13 @@ import {
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuthStore, useUIStore } from '@/stores';
+import { StatusBar } from 'expo-status-bar';
+import { useAuthStore, useUIStore, useThemeStore, useTwoFactorStore } from '@/stores';
+import { checkTwoFactorEnabled } from '@/lib/twoFactorService';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Colors } from '@/constants/Colors';
+import { languages, changeLanguage, getCurrentLanguage, LanguageCode } from '@/lib/i18n';
 
 const { width, height } = Dimensions.get('window');
 
@@ -107,9 +111,10 @@ interface BottomSheetProps {
   onClose: () => void;
   sheetHeight: number;
   children: React.ReactNode;
+  isDark: boolean;
 }
 
-function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomSheetProps) {
+function AuthBottomSheet({ visible, onClose, sheetHeight, children, isDark }: BottomSheetProps) {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const keyboardAnim = useRef(new Animated.Value(0)).current;
@@ -217,9 +222,9 @@ function AuthBottomSheet({ visible, onClose, sheetHeight, children }: BottomShee
             },
           ]}
         >
-          <View style={sheetStyles.sheet}>
+          <View style={[sheetStyles.sheet, { backgroundColor: isDark ? '#1C1C1E' : '#fff' }]}>
             <View style={sheetStyles.handleContainer}>
-              <View style={sheetStyles.handle} />
+              <View style={[sheetStyles.handle, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }]} />
             </View>
             <ScrollView
               ref={scrollViewRef}
@@ -252,7 +257,6 @@ const sheetStyles = StyleSheet.create({
     right: 0,
   },
   sheet: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',
@@ -269,7 +273,6 @@ const sheetStyles = StyleSheet.create({
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
     borderRadius: 3,
   },
   content: {
@@ -278,21 +281,18 @@ const sheetStyles = StyleSheet.create({
   },
 });
 
-// Google Icon Component (Custom SVG-like design)
-function GoogleIcon() {
-  return (
-    <View style={{ width: 20, height: 20, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 18, fontWeight: '700' }}>
-        <Text style={{ color: '#4285F4' }}>G</Text>
-      </Text>
-    </View>
-  );
-}
-
 export default function WelcomeScreen() {
+  const { colorScheme } = useThemeStore();
+  const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  
   const [loginVisible, setLoginVisible] = useState(false);
   const [registerVisible, setRegisterVisible] = useState(false);
   const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [privacyVisible, setPrivacyVisible] = useState(false);
+  const [termsVisible, setTermsVisible] = useState(false);
+  const [twoFactorVisible, setTwoFactorVisible] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef<ScrollView>(null);
   const autoSlideTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -315,8 +315,98 @@ export default function WelcomeScreen() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
   
+  // Language state
+  const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage());
+  const slideAnim = useRef(new Animated.Value(300)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  
+  // 2FA states
+  const [twoFactorCode, setTwoFactorCode] = useState<string[]>(Array(6).fill(''));
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const twoFactorInputRefs = useRef<(TextInput | null)[]>([]);
+  const twoFactorSlideAnim = useRef(new Animated.Value(400)).current;
+  const twoFactorFadeAnim = useRef(new Animated.Value(0)).current;
+  
   const { signIn, signUp, resetPassword } = useAuthStore();
+  const { 
+    pendingAuth, 
+    isVerifying, 
+    error: twoFactorError, 
+    attemptsRemaining,
+    timeRemaining,
+    verifyCode: verify2FACode,
+    resendCode: resend2FACode,
+    updateTimeRemaining,
+    clearPending,
+  } = useTwoFactorStore();
   const { t } = useTranslation();
+  
+  // Debug: Log when twoFactorVisible changes
+  useEffect(() => {
+    console.log('[Auth] twoFactorVisible changed to:', twoFactorVisible);
+  }, [twoFactorVisible]);
+  
+  // 2FA timer effect
+  useEffect(() => {
+    if (twoFactorVisible && pendingAuth) {
+      const timer = setInterval(() => {
+        updateTimeRemaining();
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [twoFactorVisible, pendingAuth]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => {
+        setResendCooldown(resendCooldown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  // Language modal functions
+  const openLanguageModal = () => {
+    setLanguageModalVisible(true);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeLanguageModal = () => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 300,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setLanguageModalVisible(false);
+    });
+  };
+
+  const handleLanguageChange = async (langCode: LanguageCode) => {
+    if (languages[langCode].comingSoon) return;
+    await changeLanguage(langCode);
+    setCurrentLang(langCode);
+    closeLanguageModal();
+  };
 
   // Auto-slide effect
   useEffect(() => {
@@ -354,6 +444,8 @@ export default function WelcomeScreen() {
   };
 
   const handleLogin = async () => {
+    console.log('[handleLogin] Starting login process...');
+    
     // Validate email
     const emailValidation = validateEmail(loginEmail, t);
     if (!emailValidation.isValid) {
@@ -368,11 +460,68 @@ export default function WelcomeScreen() {
     }
 
     setLoginLoading(true);
+    
+    // Set checking flag BEFORE signIn to prevent auto-navigation
+    console.log('[handleLogin] Setting isCheckingRequired = true');
+    useTwoFactorStore.getState().setCheckingRequired(true);
+    
     const { error } = await signIn(loginEmail.trim(), loginPassword);
-    setLoginLoading(false);
+    console.log('[handleLogin] signIn result:', { error: error?.message });
+    
     if (error) {
+      console.log('[handleLogin] Login failed, clearing 2FA state');
+      useTwoFactorStore.getState().setCheckingRequired(false);
+      setLoginLoading(false);
       Alert.alert(t('auth.loginErrorTitle'), error.message);
+      return;
+    }
+
+    // Get the logged in user
+    const { user, profile } = useAuthStore.getState();
+    console.log('[handleLogin] User after signIn:', { userId: user?.id, hasProfile: !!profile });
+    
+    if (user) {
+      // Check if 2FA is enabled for this user
+      console.log('[handleLogin] Checking 2FA status for user:', user.id);
+      const twoFactorStatus = await checkTwoFactorEnabled(user.id);
+      console.log('[handleLogin] 2FA status:', twoFactorStatus);
+      
+      if (twoFactorStatus.enabled) {
+        console.log('[handleLogin] 2FA is enabled, initiating verification...');
+        // Initiate 2FA verification
+        const { initiateVerification } = useTwoFactorStore.getState();
+        const success = await initiateVerification(
+          user.id,
+          user.email || loginEmail.trim(),
+          profile?.full_name || undefined
+        );
+        console.log('[handleLogin] 2FA initiation result:', success);
+        
+        setLoginLoading(false);
+        setLoginVisible(false);
+        
+        if (success) {
+          console.log('[handleLogin] 2FA initiated, _layout will redirect to verify-2fa screen');
+          // Navigation will be handled by _layout.tsx when is2FAPending becomes true
+        } else {
+          console.log('[handleLogin] 2FA initiation failed, proceeding to tabs');
+          // If 2FA initiation fails, show error but allow login
+          useTwoFactorStore.getState().clearPending();
+          useUIStore.getState().showToast(t('twoFactor.initFailed'), 'error');
+          router.replace('/(tabs)');
+        }
+      } else {
+        console.log('[handleLogin] 2FA not enabled, proceeding to tabs');
+        // No 2FA, proceed normally
+        useTwoFactorStore.getState().setCheckingRequired(false);
+        setLoginLoading(false);
+        setLoginVisible(false);
+        router.replace('/(tabs)');
+      }
     } else {
+      console.log('[handleLogin] No user found after signIn, proceeding to tabs');
+      useTwoFactorStore.getState().setCheckingRequired(false);
+      setLoginLoading(false);
       setLoginVisible(false);
       router.replace('/(tabs)');
     }
@@ -408,6 +557,8 @@ export default function WelcomeScreen() {
     } else {
       setRegisterVisible(false);
       useUIStore.getState().showToast(t('auth.registerSuccess'), 'success');
+      // Yeni kullanıcıyı onboarding'e yönlendir
+      router.replace('/onboarding');
     }
   };
 
@@ -451,10 +602,143 @@ export default function WelcomeScreen() {
     setForgotEmail('');
   };
 
+  // 2FA Sheet Functions
+  const openTwoFactorSheet = () => {
+    console.log('[openTwoFactorSheet] Opening 2FA sheet, current twoFactorVisible:', twoFactorVisible);
+    setTwoFactorVisible(true);
+    setTwoFactorCode(Array(6).fill(''));
+    console.log('[openTwoFactorSheet] setTwoFactorVisible(true) called');
+    Animated.parallel([
+      Animated.timing(twoFactorSlideAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(twoFactorFadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      console.log('[openTwoFactorSheet] Animation completed');
+      // Focus first input after animation
+      setTimeout(() => {
+        twoFactorInputRefs.current[0]?.focus();
+      }, 100);
+    });
+  };
+
+  const closeTwoFactorSheet = () => {
+    Animated.parallel([
+      Animated.timing(twoFactorSlideAnim, {
+        toValue: 400,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(twoFactorFadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setTwoFactorVisible(false);
+      setTwoFactorCode(Array(6).fill(''));
+      clearPending();
+    });
+  };
+
+  const handleTwoFactorCodeChange = (index: number, value: string) => {
+    const digit = value.replace(/[^0-9]/g, '').slice(-1);
+    const newCode = [...twoFactorCode];
+    newCode[index] = digit;
+    setTwoFactorCode(newCode);
+
+    // Auto-advance to next input
+    if (digit && index < 5) {
+      twoFactorInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all digits entered
+    if (digit && index === 5) {
+      const fullCode = newCode.join('');
+      if (fullCode.length === 6) {
+        handleVerify2FA(fullCode);
+      }
+    }
+  };
+
+  const handleTwoFactorKeyPress = (index: number, key: string) => {
+    if (key === 'Backspace' && !twoFactorCode[index] && index > 0) {
+      twoFactorInputRefs.current[index - 1]?.focus();
+      const newCode = [...twoFactorCode];
+      newCode[index - 1] = '';
+      setTwoFactorCode(newCode);
+    }
+  };
+
+  const handleVerify2FA = async (codeString?: string) => {
+    const fullCode = codeString || twoFactorCode.join('');
+    
+    if (fullCode.length !== 6) {
+      useUIStore.getState().showToast(t('twoFactor.enterFullCode'), 'error');
+      return;
+    }
+
+    setTwoFactorLoading(true);
+    const result = await verify2FACode(fullCode);
+    setTwoFactorLoading(false);
+
+    if (result.success) {
+      useUIStore.getState().showToast(t('twoFactor.verificationSuccess'), 'success');
+      closeTwoFactorSheet();
+      router.replace('/(tabs)');
+    } else {
+      // Clear the code on error
+      setTwoFactorCode(Array(6).fill(''));
+      twoFactorInputRefs.current[0]?.focus();
+      
+      if (result.error === 'code_expired') {
+        useUIStore.getState().showToast(t('twoFactor.codeExpired'), 'error');
+      } else if (result.error === 'max_attempts_exceeded') {
+        useUIStore.getState().showToast(t('twoFactor.maxAttemptsExceeded'), 'error');
+        closeTwoFactorSheet();
+      }
+    }
+  };
+
+  const handleResend2FA = async () => {
+    if (resendCooldown > 0) return;
+
+    setTwoFactorLoading(true);
+    const success = await resend2FACode();
+    setTwoFactorLoading(false);
+    
+    if (success) {
+      setResendCooldown(60);
+      setTwoFactorCode(Array(6).fill(''));
+      twoFactorInputRefs.current[0]?.focus();
+      useUIStore.getState().showToast(t('twoFactor.codeSent'), 'success');
+    } else {
+      useUIStore.getState().showToast(t('twoFactor.resendFailed'), 'error');
+    }
+  };
+
+  const cancelTwoFactor = () => {
+    // Sign out and close sheet
+    useAuthStore.getState().signOut();
+    closeTwoFactorSheet();
+  };
+
+  const maskedEmail = pendingAuth?.email 
+    ? pendingAuth.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    : '';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      
       {/* Background */}
-      <View style={styles.background} />
+      <View style={[styles.background, { backgroundColor: colors.background }]} />
       
       {/* Rounded Image Container with Slider */}
       <View style={styles.imageContainer}>
@@ -480,10 +764,20 @@ export default function WelcomeScreen() {
         
         {/* Gradient Overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.7)']}
+          colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.6)']}
           style={styles.gradientOverlay}
           pointerEvents="none"
         />
+        
+        {/* Language Button - Top Right */}
+        <TouchableOpacity
+          style={styles.languageButtonOverlay}
+          onPress={openLanguageModal}
+        >
+          <BlurView intensity={60} tint="dark" style={styles.languageButtonBlur}>
+            <Ionicons name="globe-outline" size={20} color="#fff" />
+          </BlurView>
+        </TouchableOpacity>
         
         {/* Hero Text */}
         <View style={styles.heroSection} pointerEvents="none">
@@ -509,66 +803,42 @@ export default function WelcomeScreen() {
         </View>
       </View>
 
-      {/* Bottom Section */}
+      {/* Bottom Section - Minimalist Design */}
       <View style={styles.bottomSection}>
-        {/* Auth Buttons */}
-        <View style={styles.authButtonsRow}>
+        {/* Auth Buttons - Stacked Full Width */}
+        <View style={styles.authButtonsContainer}>
           <TouchableOpacity
-            style={styles.loginButton}
+            style={styles.primaryButton}
             onPress={() => setLoginVisible(true)}
           >
-            <Text style={styles.loginButtonText}>{t('auth.login')}</Text>
+            <Text style={styles.primaryButtonText}>{t('auth.login')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.signUpButton}
+            style={[styles.secondaryButton, { 
+              backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
+              borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)',
+            }]}
             onPress={() => setRegisterVisible(true)}
           >
-            <Text style={styles.signUpButtonText}>{t('auth.register')}</Text>
+            <Text style={[styles.secondaryButtonText, { color: colors.text }]}>{t('auth.register')}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{t('auth.or')}</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Social Login Buttons - Liquid Glass Design */}
-        <View style={styles.socialButtonsContainer}>
-          <TouchableOpacity style={styles.socialButtonGlass}>
-            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
-              <View style={styles.socialButtonInner}>
-                <View style={styles.googleIconContainer}>
-                  <Text style={styles.googleG}>G</Text>
-                </View>
-                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithGoogle')}</Text>
-              </View>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButtonGlass}>
-            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
-              <View style={styles.socialButtonInner}>
-                <View style={styles.socialIconContainer}>
-                  <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                </View>
-                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithFacebook')}</Text>
-              </View>
-            </BlurView>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.socialButtonGlass}>
-            <BlurView intensity={80} tint="light" style={styles.blurContainer}>
-              <View style={styles.socialButtonInner}>
-                <View style={styles.socialIconContainer}>
-                  <Ionicons name="logo-apple" size={20} color="#000" />
-                </View>
-                <Text style={styles.socialButtonTextGlass}>{t('auth.continueWithApple')}</Text>
-              </View>
-            </BlurView>
-          </TouchableOpacity>
+        {/* Legal Links */}
+        <View style={styles.legalContainer}>
+          <Text style={[styles.legalText, { color: colors.textSecondary }]}>
+            {t('auth.agreeToTerms')}{' '}
+          </Text>
+          <View style={styles.legalLinks}>
+            <TouchableOpacity onPress={() => setPrivacyVisible(true)}>
+              <Text style={[styles.legalLink, { color: colors.text }]}>{t('settings.privacyPolicy')}</Text>
+            </TouchableOpacity>
+            <Text style={[styles.legalText, { color: colors.textSecondary }]}> {t('common.and')} </Text>
+            <TouchableOpacity onPress={() => setTermsVisible(true)}>
+              <Text style={[styles.legalLink, { color: colors.text }]}>{t('settings.termsOfService')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -577,16 +847,17 @@ export default function WelcomeScreen() {
         visible={loginVisible}
         onClose={() => setLoginVisible(false)}
         sheetHeight={height * 0.55}
+        isDark={isDark}
       >
-        <Text style={styles.sheetTitle}>{t('auth.loginSheetTitle')}</Text>
-        <Text style={styles.sheetSubtitle}>{t('auth.loginSheetSubtitle')}</Text>
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('auth.loginSheetTitle')}</Text>
+        <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>{t('auth.loginSheetSubtitle')}</Text>
         
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+          <Ionicons name="mail-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder={t('auth.email')}
-            placeholderTextColor="#999"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
             value={loginEmail}
             onChangeText={setLoginEmail}
             keyboardType="email-address"
@@ -594,12 +865,12 @@ export default function WelcomeScreen() {
           />
         </View>
         
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+          <Ionicons name="lock-closed-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder={t('auth.password')}
-            placeholderTextColor="#999"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
             value={loginPassword}
             onChangeText={setLoginPassword}
             secureTextEntry={!showLoginPassword}
@@ -608,13 +879,13 @@ export default function WelcomeScreen() {
             <Ionicons
               name={showLoginPassword ? 'eye-outline' : 'eye-off-outline'}
               size={20}
-              color="#999"
+              color={isDark ? 'rgba(255,255,255,0.5)' : '#999'}
             />
           </TouchableOpacity>
         </View>
         
         <TouchableOpacity style={styles.forgotPassword} onPress={openForgotPassword}>
-          <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+          <Text style={[styles.forgotPasswordText, { color: colors.textSecondary }]}>{t('auth.forgotPassword')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -630,7 +901,7 @@ export default function WelcomeScreen() {
         </TouchableOpacity>
         
         <View style={styles.sheetFooter}>
-          <Text style={styles.sheetFooterText}>{t('auth.noAccount')} </Text>
+          <Text style={[styles.sheetFooterText, { color: colors.textSecondary }]}>{t('auth.noAccount')} </Text>
           <TouchableOpacity onPress={switchToRegister}>
             <Text style={styles.sheetFooterLink}>{t('auth.register')}</Text>
           </TouchableOpacity>
@@ -642,28 +913,29 @@ export default function WelcomeScreen() {
         visible={registerVisible}
         onClose={() => setRegisterVisible(false)}
         sheetHeight={height * 0.60}
+        isDark={isDark}
       >
-        <Text style={styles.sheetTitle}>{t('auth.registerSheetTitle')}</Text>
-        <Text style={styles.sheetSubtitle}>{t('auth.registerSheetSubtitle')}</Text>
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('auth.registerSheetTitle')}</Text>
+        <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>{t('auth.registerSheetSubtitle')}</Text>
         
-        <View style={styles.inputContainer}>
-          <Ionicons name="person-outline" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+          <Ionicons name="person-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder={t('auth.fullName')}
-            placeholderTextColor="#999"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
             value={registerName}
             onChangeText={setRegisterName}
             autoCapitalize="words"
           />
         </View>
         
-        <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+          <Ionicons name="mail-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder={t('auth.email')}
-            placeholderTextColor="#999"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
             value={registerEmail}
             onChangeText={setRegisterEmail}
             keyboardType="email-address"
@@ -671,12 +943,12 @@ export default function WelcomeScreen() {
           />
         </View>
         
-        <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
+        <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+          <Ionicons name="lock-closed-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
             placeholder={t('auth.password')}
-            placeholderTextColor="#999"
+            placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
             value={registerPassword}
             onChangeText={setRegisterPassword}
             secureTextEntry={!showRegisterPassword}
@@ -685,7 +957,7 @@ export default function WelcomeScreen() {
             <Ionicons
               name={showRegisterPassword ? 'eye-outline' : 'eye-off-outline'}
               size={20}
-              color="#999"
+              color={isDark ? 'rgba(255,255,255,0.5)' : '#999'}
             />
           </TouchableOpacity>
         </View>
@@ -703,7 +975,7 @@ export default function WelcomeScreen() {
         </TouchableOpacity>
         
         <View style={styles.sheetFooter}>
-          <Text style={styles.sheetFooterText}>{t('auth.hasAccount')} </Text>
+          <Text style={[styles.sheetFooterText, { color: colors.textSecondary }]}>{t('auth.hasAccount')} </Text>
           <TouchableOpacity onPress={switchToLogin}>
             <Text style={styles.sheetFooterLink}>{t('auth.login')}</Text>
           </TouchableOpacity>
@@ -715,15 +987,16 @@ export default function WelcomeScreen() {
         visible={forgotPasswordVisible}
         onClose={closeForgotPassword}
         sheetHeight={forgotEmailSent ? height * 0.45 : height * 0.42}
+        isDark={isDark}
       >
         {forgotEmailSent ? (
           // Success State
           <View style={styles.forgotSuccessContainer}>
-            <View style={styles.forgotSuccessIcon}>
+            <View style={[styles.forgotSuccessIcon, { backgroundColor: isDark ? 'rgba(76,175,80,0.15)' : 'rgba(76,175,80,0.1)' }]}>
               <Ionicons name="mail-open-outline" size={48} color="#4CAF50" />
             </View>
-            <Text style={styles.sheetTitle}>{t('auth.emailSentTitle')}</Text>
-            <Text style={[styles.sheetSubtitle, { textAlign: 'center', marginBottom: 24 }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('auth.emailSentTitle')}</Text>
+            <Text style={[styles.sheetSubtitle, { textAlign: 'center', marginBottom: 24, color: colors.textSecondary }]}>
               {t('auth.emailSentMessage', { email: forgotEmail })}
             </Text>
             <TouchableOpacity
@@ -736,26 +1009,26 @@ export default function WelcomeScreen() {
               style={styles.backToLoginButton}
               onPress={switchToLogin}
             >
-              <Text style={styles.backToLoginText}>{t('auth.backToLogin')}</Text>
+              <Text style={[styles.backToLoginText, { color: colors.textSecondary }]}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           // Form State
           <>
             <View style={styles.forgotIconContainer}>
-              <Ionicons name="key-outline" size={36} color="#333" />
+              <Ionicons name="key-outline" size={36} color={colors.text} />
             </View>
-            <Text style={styles.sheetTitle}>{t('auth.forgotPasswordTitle')}</Text>
-            <Text style={styles.sheetSubtitle}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('auth.forgotPasswordTitle')}</Text>
+            <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>
               {t('auth.forgotPasswordSubtitle')}
             </Text>
             
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
+            <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+              <Ionicons name="mail-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: colors.text }]}
                 placeholder={t('auth.email')}
-                placeholderTextColor="#999"
+                placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
                 value={forgotEmail}
                 onChangeText={setForgotEmail}
                 keyboardType="email-address"
@@ -779,12 +1052,333 @@ export default function WelcomeScreen() {
               style={styles.backToLoginButton}
               onPress={switchToLogin}
             >
-              <Ionicons name="arrow-back" size={16} color="#666" />
-              <Text style={styles.backToLoginText}>{t('auth.backToLogin')}</Text>
+              <Ionicons name="arrow-back" size={16} color={colors.textSecondary} />
+              <Text style={[styles.backToLoginText, { color: colors.textSecondary }]}>{t('auth.backToLogin')}</Text>
             </TouchableOpacity>
           </>
         )}
       </AuthBottomSheet>
+
+      {/* Language Selection Modal */}
+      <Modal
+        visible={languageModalVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={closeLanguageModal}
+      >
+        <TouchableWithoutFeedback onPress={closeLanguageModal}>
+          <Animated.View
+            style={[
+              styles.modalOverlay,
+              {
+                backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.4)',
+                opacity: fadeAnim,
+              },
+            ]}
+          />
+        </TouchableWithoutFeedback>
+
+        <Animated.View
+          style={[
+            styles.languageModalContainer,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.languageModal,
+              {
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+              },
+            ]}
+          >
+            {/* Modal Handle */}
+            <View style={styles.modalHandle}>
+              <View
+                style={[
+                  styles.handleBar,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
+                ]}
+              />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t('settings.language')}
+            </Text>
+
+            {/* Language Options */}
+            <View style={styles.languageOptions}>
+              {(Object.keys(languages) as LanguageCode[]).map((langCode, index) => {
+                const lang = languages[langCode];
+                const isSelected = currentLang === langCode;
+                const isComingSoon = lang.comingSoon;
+                const isLast = index === Object.keys(languages).length - 1;
+
+                return (
+                  <TouchableOpacity
+                    key={langCode}
+                    style={[
+                      styles.languageOption,
+                      {
+                        backgroundColor: isSelected
+                          ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
+                          : 'transparent',
+                      },
+                      !isLast && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                      },
+                    ]}
+                    onPress={() => handleLanguageChange(langCode)}
+                    activeOpacity={isComingSoon ? 1 : 0.6}
+                    disabled={isComingSoon}
+                  >
+                    <View style={styles.languageLeft}>
+                      <Text style={[
+                        styles.languageName,
+                        { color: isComingSoon ? colors.textSecondary : colors.text },
+                        isComingSoon && { opacity: 0.5 },
+                      ]}>
+                        {lang.nativeName}
+                      </Text>
+                    </View>
+
+                    <View style={styles.languageRight}>
+                      {isComingSoon ? (
+                        <View style={[
+                          styles.comingSoonBadge,
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+                        ]}>
+                          <Text style={[styles.comingSoonText, { color: colors.textSecondary }]}>
+                            {t('common.comingSoon') || 'Yakında'}
+                          </Text>
+                        </View>
+                      ) : isSelected ? (
+                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Cancel Button */}
+            <View style={styles.cancelButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.cancelButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+                ]}
+                onPress={closeLanguageModal}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+      </Modal>
+
+      {/* Privacy Policy Sheet */}
+      <AuthBottomSheet
+        visible={privacyVisible}
+        onClose={() => setPrivacyVisible(false)}
+        sheetHeight={height * 0.85}
+        isDark={isDark}
+      >
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('settings.privacyPolicy')}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.7 }}>
+          <Text style={[styles.legalContentText, { color: colors.textSecondary }]}>
+            {t('auth.privacyPolicyContent')}
+          </Text>
+        </ScrollView>
+      </AuthBottomSheet>
+
+      {/* Terms of Service Sheet */}
+      <AuthBottomSheet
+        visible={termsVisible}
+        onClose={() => setTermsVisible(false)}
+        sheetHeight={height * 0.85}
+        isDark={isDark}
+      >
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('settings.termsOfService')}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.7 }}>
+          <Text style={[styles.legalContentText, { color: colors.textSecondary }]}>
+            {t('auth.termsOfServiceContent')}
+          </Text>
+        </ScrollView>
+      </AuthBottomSheet>
+
+      {/* Two-Factor Authentication Sheet */}
+      <Modal
+        visible={twoFactorVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={cancelTwoFactor}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Animated.View
+              style={[
+                styles.modalOverlay,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)',
+                  opacity: twoFactorFadeAnim,
+                },
+              ]}
+            />
+          </TouchableWithoutFeedback>
+
+          <Animated.View
+            style={[
+              styles.twoFactorContainer,
+              {
+                transform: [{ translateY: twoFactorSlideAnim }],
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.twoFactorSheet,
+                {
+                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                },
+              ]}
+            >
+              {/* Handle Bar */}
+              <View style={styles.modalHandle}>
+                <View
+                  style={[
+                    styles.handleBar,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
+                  ]}
+                />
+              </View>
+
+              {/* Icon */}
+              <View style={[styles.twoFactorIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="shield-checkmark" size={40} color={colors.primary} />
+              </View>
+
+              {/* Title */}
+              <Text style={[styles.twoFactorTitle, { color: colors.text }]}>
+                {t('twoFactor.verifyTitle')}
+              </Text>
+
+              {/* Description */}
+              <Text style={[styles.twoFactorDescription, { color: colors.textSecondary }]}>
+                {t('twoFactor.verifyDescription', { email: maskedEmail })}
+              </Text>
+
+              {/* Code Input */}
+              <View style={styles.twoFactorCodeContainer}>
+                {Array(6).fill(0).map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.twoFactorCodeInputWrapper,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                        borderColor: twoFactorCode[index] 
+                          ? colors.primary 
+                          : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'),
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      ref={(ref) => { twoFactorInputRefs.current[index] = ref; }}
+                      style={[styles.twoFactorCodeInput, { color: colors.text }]}
+                      value={twoFactorCode[index]}
+                      onChangeText={(value) => handleTwoFactorCodeChange(index, value)}
+                      onKeyPress={({ nativeEvent }) => handleTwoFactorKeyPress(index, nativeEvent.key)}
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      selectTextOnFocus
+                    />
+                  </View>
+                ))}
+              </View>
+
+              {/* Timer */}
+              {timeRemaining && (
+                <Text style={[styles.twoFactorTimer, { color: colors.textSecondary }]}>
+                  {t('twoFactor.codeExpiresIn', { time: timeRemaining })}
+                </Text>
+              )}
+
+              {/* Error Message */}
+              {twoFactorError && (
+                <View style={styles.twoFactorErrorContainer}>
+                  <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                  <Text style={styles.twoFactorErrorText}>{twoFactorError}</Text>
+                </View>
+              )}
+
+              {/* Attempts Remaining */}
+              {attemptsRemaining !== null && attemptsRemaining < 5 && (
+                <Text style={[styles.twoFactorAttemptsText, { color: '#F59E0B' }]}>
+                  {t('twoFactor.attemptsRemaining', { count: attemptsRemaining })}
+                </Text>
+              )}
+
+              {/* Verify Button */}
+              <TouchableOpacity
+                style={[
+                  styles.twoFactorVerifyButton,
+                  { backgroundColor: colors.primary },
+                  (twoFactorLoading || isVerifying) && { opacity: 0.6 },
+                ]}
+                onPress={() => handleVerify2FA()}
+                disabled={twoFactorLoading || isVerifying || twoFactorCode.join('').length !== 6}
+              >
+                {(twoFactorLoading || isVerifying) ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.twoFactorVerifyButtonText}>{t('twoFactor.verify')}</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Resend Code */}
+              <TouchableOpacity
+                style={styles.twoFactorResendButton}
+                onPress={handleResend2FA}
+                disabled={resendCooldown > 0 || twoFactorLoading}
+              >
+                <Text
+                  style={[
+                    styles.twoFactorResendText,
+                    { color: resendCooldown > 0 ? colors.textSecondary : colors.primary },
+                  ]}
+                >
+                  {resendCooldown > 0
+                    ? t('twoFactor.resendIn', { seconds: resendCooldown })
+                    : t('twoFactor.resendCode')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                style={styles.twoFactorCancelButton}
+                onPress={cancelTwoFactor}
+              >
+                <Text style={[styles.twoFactorCancelText, { color: colors.textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -801,7 +1395,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     marginTop: IMAGE_MARGIN + (Platform.OS === 'ios' ? 44 : 24),
     marginHorizontal: IMAGE_MARGIN,
-    height: height * 0.55,
+    height: height * 0.68,
     borderRadius: IMAGE_BORDER_RADIUS,
     overflow: 'hidden',
   },
@@ -856,9 +1450,78 @@ const styles = StyleSheet.create({
   bottomSection: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
+    paddingTop: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    justifyContent: 'space-between',
   },
+  authButtonsContainer: {
+    gap: 12,
+  },
+  primaryButton: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  secondaryButton: {
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  secondaryButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+  },
+  legalContainer: {
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  legalText: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  legalLink: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  legalContentText: {
+    fontSize: 15,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+  },
+  languageButtonOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  languageButtonBlur: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  // Legacy styles - keeping for reference
   authButtonsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -1080,5 +1743,212 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Language Button
+  languageButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  // Language Modal Styles
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  languageModalContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  languageModal: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  handleBar: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+  },
+  languageOptions: {
+    paddingHorizontal: 16,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  languageLeft: {
+    flex: 1,
+  },
+  languageName: {
+    fontSize: 17,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  languageRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  comingSoonText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cancelButtonContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  cancelButton: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 17,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  // Two-Factor Authentication Styles
+  twoFactorContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  twoFactorSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  twoFactorIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  twoFactorTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+  },
+  twoFactorDescription: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorCodeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  twoFactorCodeInputWrapper: {
+    width: 46,
+    height: 54,
+    borderRadius: 12,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  twoFactorCodeInput: {
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
+    height: '100%',
+    fontFamily: Platform.OS === 'ios' ? 'SF Mono' : 'monospace',
+  },
+  twoFactorTimer: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  twoFactorErrorText: {
+    fontSize: 14,
+    color: '#EF4444',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorAttemptsText: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorVerifyButton: {
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  twoFactorVerifyButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorResendButton: {
+    marginTop: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  twoFactorResendText: {
+    fontSize: 15,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  twoFactorCancelButton: {
+    marginTop: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  twoFactorCancelText: {
+    fontSize: 15,
+    fontWeight: '400',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
   },
 });

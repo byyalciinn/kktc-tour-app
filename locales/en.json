@@ -26,7 +26,10 @@
     "updating": "Updating...",
     "changes": "Changes",
     "reminder": "Reminder",
-    "allRightsReserved": "All rights reserved."
+    "allRightsReserved": "All rights reserved.",
+    "and": "and",
+    "enable": "Enable",
+    "disable": "Disable"
   },
   "auth": {
     "login": "Login",
@@ -78,7 +81,10 @@
     "passwordMinLength": "Password must be at least 8 characters",
     "passwordNeedsUppercase": "Password must contain at least one uppercase letter",
     "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
-    "passwordNeedsNumber": "Password must contain at least one number"
+    "passwordNeedsNumber": "Password must contain at least one number",
+    "agreeToTerms": "By continuing, you agree to our",
+    "privacyPolicyContent": "Privacy Policy\n\nAt Tour App, we value your privacy. This policy explains how we collect, use, and protect your personal data.\n\nData Collection\nWhen you use our app, we may collect personal data such as your name, email address, and location information. This data is used to provide you with better service.\n\nData Usage\nWe use the collected data for the following purposes:\n• Processing your tour reservations\n• Providing personalized recommendations\n• Improving the app experience\n• Security and fraud prevention\n\nData Security\nYour data security is our priority. We use SSL/TLS encryption and conduct regular security audits.\n\nYour Rights\nYou have the right to access, correct, and delete your data under applicable data protection laws.\n\nContact\nFor questions: privacy@tourapp.com",
+    "termsOfServiceContent": "Terms of Service\n\nBy using Tour App, you agree to the following terms.\n\nService Usage\nYou may only use our app for lawful purposes. Behavior that violates others' rights or disrupts the app's operation is prohibited.\n\nAccount Security\nYou are responsible for your account security. Do not share your password and notify us if you notice suspicious activity.\n\nReservations and Cancellations\nTour reservations are subject to conditions set by tour operators. Cancellation policies are specified in tour details.\n\nIntellectual Property\nApp content and design belong to Tour App. Unauthorized copying or distribution is prohibited.\n\nLimitation of Liability\nTour App is not responsible for issues arising from tour operators' services.\n\nChanges\nWe reserve the right to change these terms without prior notice.\n\nContact\nFor questions: support@tourapp.com"
   },
   "home": {
     "location": "Location",
@@ -120,14 +126,57 @@
     "loginSubtitle": "Sign in to view your favorites",
     "removeConfirmTitle": "Remove from Favorites",
     "removeConfirmMessage": "Are you sure you want to remove this tour from favorites?",
-    "countLabel": "{{count}} tours"
+    "countLabel": "{{count}} tours",
+    "hint1": "Save your favorite tours and access them anytime",
+    "hint2": "Get notified about deals on your favorite tours"
   },
   "tabs": {
     "home": "Home",
     "explore": "Explore",
     "community": "Community",
     "favorites": "Favorites",
+    "scan": "Scan",
     "profile": "Profile"
+  },
+  "scan": {
+    "title": "Scan",
+    "subtitle": "Discover historical places",
+    "placeInFrame": "Place the historical site inside the frame",
+    "analyzingPlace": "Analyzing the place...",
+    "cameraPermission": "Camera permission is required to scan historical places",
+    "enableCamera": "Enable Camera",
+    "tryAgain": "Try Again",
+    "aiAnalyzing": "Our AI is using advanced image processing",
+    "steps": {
+      "detecting": "Detecting Location",
+      "analyzing": "Analyzing Details",
+      "identifying": "Identifying History",
+      "finishing": "Preparing Results"
+    },
+    "confidence": "Match",
+    "description": "About",
+    "significance": "Historical Significance",
+    "funFacts": "Did You Know?",
+    "visitTips": "Visitor Guide",
+    "period": "Period",
+    "yearBuilt": "Year Built",
+    "bestTime": "Best Time",
+    "duration": "Est. Duration",
+    "nearbyAttractions": "Nearby Places",
+    "viewOnMap": "View on Map",
+    "scanAgain": "New Scan",
+    "sharePlace": "Share",
+    "discoveredWith": "Discovered with KKTC Tour App",
+    "categories": {
+      "historical": "Historical Site",
+      "natural": "Natural Area",
+      "religious": "Religious Site",
+      "architectural": "Architecture",
+      "beach": "Beach",
+      "monument": "Monument",
+      "museum": "Museum",
+      "unknown": "Unknown"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -163,7 +212,20 @@
     "deletePhoto": "Delete Photo",
     "defaultUser": "User",
     "memberSuffix": "Member",
-    "version": "Version"
+    "version": "Version",
+    "myPanel": "My Panel",
+    "membershipType": "Membership Type",
+    "membershipStart": "Start Date",
+    "membershipEnd": "End Date",
+    "memberSince": "Member Since",
+    "noEndDate": "No Expiry",
+    "unlimited": "Unlimited",
+    "normalMember": "Standard Member",
+    "goldMember": "Gold Member",
+    "businessMember": "Business Member",
+    "membershipStatus": "Membership Status",
+    "active": "Active",
+    "membershipDetails": "Membership Details"
   },
   "settings": {
     "title": "Settings",
@@ -187,7 +249,16 @@
     "dangerZone": "Danger Zone",
     "deleteAccount": "Delete Account",
     "deleteAccountConfirm": "This action cannot be undone. Your account and all data will be permanently deleted.",
-    "comingSoon": "This feature is coming soon"
+    "deleteAccountFinal": "Are you sure?",
+    "deleteAccountFinalConfirm": "This action cannot be undone! All your posts, favorites, and account information will be permanently deleted.",
+    "deleteAccountConfirmButton": "Yes, Delete My Account",
+    "accountDeleted": "Your account has been successfully deleted",
+    "comingSoon": "This feature is coming soon",
+    "twoFactorAuth": "Two-Factor Authentication",
+    "twoFactorEnableConfirm": "Are you sure you want to enable two-factor authentication? You will need to enter a code sent to your email on your next login.",
+    "twoFactorDisableConfirm": "Are you sure you want to disable two-factor authentication? This may reduce your account security.",
+    "twoFactorEnabled": "Two-factor authentication enabled",
+    "twoFactorDisabled": "Two-factor authentication disabled"
   },
   "search": {
     "title": "Search",
@@ -235,8 +306,10 @@
     "locationToggleEnabled": "Location enabled",
     "locationToggleDisabled": "Location disabled",
     "addressFetching": "Fetching location...",
-    "searchPlaceholder": "Where would you like to explore?",
+    "currentLocation": "Current Location",
+    "searchPlaceholder": "Search routes...",
     "nearbyTitleDefault": "Tours to Explore",
+    "categoryTitle": "{{category}} Tours",
     "seeAll": "See All",
     "suggestedRoutes": "Suggested Routes",
     "allRoutes": "All Routes",
@@ -421,6 +494,31 @@
     "addComment": "Write a comment...",
     "deleteComment": "Delete Comment",
     "deleteCommentConfirm": "Are you sure you want to delete this comment?",
+    "deletePost": "Delete Post",
+    "deletePostConfirm": "Are you sure you want to delete this post? This action cannot be undone.",
+    "postOptions": "Post Options",
+    "report": "Report",
+    "notInterested": "Not Interested",
+    "reportTitle": "Report Post",
+    "reportMessage": "Why do you want to report this post?",
+    "reportConfirm": "Report",
+    "reportSuccess": "Report Submitted",
+    "reportSuccessMessage": "Your report has been submitted. Our team will review it shortly.",
+    "reportError": "An error occurred while submitting the report.",
+    "hiddenSuccess": "This post will no longer be shown to you.",
+    "hideError": "An error occurred while hiding the post.",
+    "reportReasons": {
+      "spam": "Spam / Advertising",
+      "inappropriate": "Inappropriate Content",
+      "harassment": "Harassment / Bullying",
+      "misinformation": "Misinformation",
+      "other": "Other"
+    },
+    "premium": {
+      "title": "See All Posts",
+      "subtitle": "Want to share your experiences and catch community opportunities? Upgrade to Gold membership!",
+      "button": "Get Gold Membership"
+    },
     "pending": "Under Review",
     "approved": "Approved",
     "rejected": "Rejected",
@@ -438,5 +536,54 @@
       "approveConfirm": "Are you sure you want to approve \"{{title}}\"?",
       "rejectReasonRequired": "Please enter a rejection reason"
     }
+  },
+  "paywall": {
+    "title": "Upgrade to Premium",
+    "favoriteLimitReached": "You've reached your favorite limit! Go Premium for unlimited favorites.",
+    "unlockPremium": "Unlock premium features and explore North Cyprus without limits.",
+    "bestValue": "BEST VALUE",
+    "savePercent": "Save {{percent}}%",
+    "month": "month",
+    "year": "year",
+    "justPerMonth": "Just ₺{{price}}/month",
+    "premiumFeatures": "Premium Benefits",
+    "subscribe": "Subscribe",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "restorePurchases": "Restore Purchases",
+    "legalText": "Subscription auto-renews. Cancel anytime.",
+    "plans": {
+      "monthly": {
+        "name": "Monthly Plan"
+      },
+      "yearly": {
+        "name": "Yearly Plan"
+      }
+    },
+    "features": {
+      "unlimitedFavorites": "Unlimited favorites",
+      "adFree": "Ad-free experience",
+      "prioritySupport": "Priority support",
+      "specialDiscounts": "Special discounts and offers"
+    }
+  },
+  "twoFactor": {
+    "title": "Two-Factor Authentication",
+    "verifyTitle": "Email Verification",
+    "verifyDescription": "We sent a 6-digit verification code to {{email}}. Please enter the code.",
+    "digit": "Digit",
+    "verify": "Verify",
+    "resendCode": "Resend Code",
+    "resendIn": "Resend in ({{seconds}}s)",
+    "codeSent": "Verification code sent",
+    "codeExpiresIn": "Code expires in {{time}}",
+    "enterFullCode": "Please enter the full 6-digit code",
+    "verificationSuccess": "Verification successful!",
+    "invalidCode": "Invalid code. Please try again.",
+    "codeExpired": "Code expired. Please request a new one.",
+    "maxAttemptsExceeded": "Too many attempts. Please request a new code.",
+    "resendFailed": "Failed to send code. Please try again.",
+    "initFailed": "Failed to send verification code. Please try again.",
+    "attemptsRemaining": "{{count}} attempts remaining"
   }
 }

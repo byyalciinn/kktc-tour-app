@@ -11,9 +11,10 @@ import {
   Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { useOnboardingStore } from '@/stores';
+import { useOnboardingStore, useThemeStore } from '@/stores';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,6 +48,10 @@ const INTRO_DATA = [
  * Elegant, minimal, premium hissi veren tasarım
  */
 export default function IntroScreen() {
+  const { colorScheme } = useThemeStore();
+  const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -115,7 +120,7 @@ export default function IntroScreen() {
           <Image source={item.image} style={styles.image} resizeMode="cover" />
           {/* Gradient Overlay */}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.1)', Colors.light.background]}
+            colors={['transparent', isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)', colors.background]}
             style={styles.imageGradient}
             locations={[0, 0.5, 1]}
           />
@@ -131,18 +136,18 @@ export default function IntroScreen() {
           ]}
         >
           {/* Page Indicator */}
-          <Text style={styles.pageIndicator}>
+          <Text style={[styles.pageIndicator, { color: colors.primary }]}>
             {String(index + 1).padStart(2, '0')}
           </Text>
 
           {/* Title */}
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: colors.text }]}>
             {item.title}{'\n'}
             <Text style={styles.titleBold}>{item.titleBold}</Text>
           </Text>
 
           {/* Description */}
-          <Text style={styles.description}>{item.description}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>{item.description}</Text>
         </Animated.View>
       </View>
     );
@@ -175,8 +180,8 @@ export default function IntroScreen() {
                   width: dotWidth,
                   opacity: dotOpacity,
                   backgroundColor: currentIndex === index 
-                    ? Colors.light.primary 
-                    : Colors.light.textSecondary,
+                    ? colors.primary 
+                    : colors.textSecondary,
                 },
               ]}
             />
@@ -187,10 +192,12 @@ export default function IntroScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      
       {/* Skip Button */}
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Atla</Text>
+        <Text style={[styles.skipText, { color: colors.textSecondary }]}>Atla</Text>
       </TouchableOpacity>
 
       {/* Slides */}

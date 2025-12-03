@@ -10,8 +10,10 @@ const LANGUAGE_KEY = '@app_language';
 
 // Available languages
 export const languages = {
-  tr: { name: 'Türkçe', nativeName: 'Türkçe', flag: '🇹🇷' },
-  en: { name: 'English', nativeName: 'English', flag: '🇬🇧' },
+  tr: { name: 'Türkçe', nativeName: 'Türkçe', flag: '🇹🇷', comingSoon: false },
+  en: { name: 'English', nativeName: 'English', flag: '🇬🇧', comingSoon: false },
+  el: { name: 'Greek', nativeName: 'Ελληνικά', flag: '🇬🇷', comingSoon: true },
+  uk: { name: 'Ukrainian', nativeName: 'Українська', flag: '🇺🇦', comingSoon: true },
 } as const;
 
 export type LanguageCode = keyof typeof languages;

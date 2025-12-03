@@ -45,6 +45,19 @@ export default function TabLayout() {
         })}
       </NativeTabs.Trigger>
 
+      {/* Scan Tab - Center */}
+      <NativeTabs.Trigger name="scan">
+        <Label>{t('tabs.scan')}</Label>
+        {Platform.select({
+          ios: <Icon sf={{ default: 'viewfinder', selected: 'viewfinder' }} />,
+          default: (
+            <Icon
+              src={<VectorIcon family={MaterialIcons} name="center-focus-strong" />}
+            />
+          ),
+        })}
+      </NativeTabs.Trigger>
+
       {/* Community Tab */}
       <NativeTabs.Trigger name="community">
         <Label>{t('tabs.community')}</Label>
@@ -66,19 +79,6 @@ export default function TabLayout() {
           default: (
             <Icon
               src={<VectorIcon family={MaterialIcons} name="favorite" />}
-            />
-          ),
-        })}
-      </NativeTabs.Trigger>
-
-      {/* Profile Tab */}
-      <NativeTabs.Trigger name="profile">
-        <Label>{t('tabs.profile')}</Label>
-        {Platform.select({
-          ios: <Icon sf={{ default: 'person', selected: 'person.fill' }} />,
-          default: (
-            <Icon
-              src={<VectorIcon family={MaterialIcons} name="person" />}
             />
           ),
         })}

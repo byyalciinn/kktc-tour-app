@@ -11,7 +11,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
   Alert,
   ActivityIndicator,
   ActionSheetIOS,
@@ -21,12 +20,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { optimizeAvatar } from '@/lib/imageOptimizer';
 
 export default function PersonalInfoScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
@@ -246,7 +245,7 @@ export default function PersonalInfoScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>

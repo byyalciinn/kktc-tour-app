@@ -1,7 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import { Platform, Linking, Alert } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 // =============================================
 // TYPES
@@ -75,14 +77,161 @@ Notifications.setNotificationHandler({
 // PUSH TOKEN MANAGEMENT
 // =============================================
 
+// =============================================
+// PERMISSION STATUS TYPES
+// =============================================
+
+export type NotificationPermissionStatus = 
+  | 'granted' 
+  | 'denied' 
+  | 'undetermined' 
+  | 'not_supported';
+
+export interface NotificationRegistrationResult {
+  token: string | null;
+  status: NotificationPermissionStatus;
+  error?: string;
+}
+
+/**
+ * Get the Expo project ID from environment or constants
+ */
+function getProjectId(): string | undefined {
+  // First try environment variable
+  const envProjectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+  if (envProjectId) {
+    return envProjectId;
+  }
+  
+  // Fallback to expo-constants
+  const constantsProjectId = Constants.expoConfig?.extra?.eas?.projectId;
+  if (constantsProjectId) {
+    return constantsProjectId;
+  }
+  
+  // Try easConfig (for EAS builds)
+  const easProjectId = (Constants.expoConfig as any)?.eas?.projectId;
+  if (easProjectId) {
+    return easProjectId;
+  }
+  
+  logger.warn('[Notifications] No project ID found in env or constants');
+  return undefined;
+}
+
+/**
+ * Check if push notifications are supported on this device
+ */
+export function isPushNotificationSupported(): boolean {
+  return Device.isDevice;
+}
+
+/**
+ * Get current notification permission status
+ */
+export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
+  if (!Device.isDevice) {
+    return 'not_supported';
+  }
+  
+  const { status } = await Notifications.getPermissionsAsync();
+  
+  switch (status) {
+    case 'granted':
+      return 'granted';
+    case 'denied':
+      return 'denied';
+    default:
+      return 'undetermined';
+  }
+}
+
+/**
+ * Open device settings for notification permissions
+ */
+export async function openNotificationSettings(): Promise<boolean> {
+  try {
+    if (Platform.OS === 'ios') {
+      await Linking.openURL('app-settings:');
+      return true;
+    } else if (Platform.OS === 'android') {
+      await Linking.openSettings();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    logger.error('[Notifications] Failed to open settings:', error);
+    return false;
+  }
+}
+
+/**
+ * Show alert to guide user to settings when permission is denied
+ */
+export function showPermissionDeniedAlert(
+  onOpenSettings?: () => void,
+  translations?: {
+    title?: string;
+    message?: string;
+    openSettings?: string;
+    cancel?: string;
+  }
+): void {
+  const t = translations || {};
+  
+  Alert.alert(
+    t.title || 'Bildirim İzni Gerekli',
+    t.message || 'Bildirimleri alabilmek için ayarlardan izin vermeniz gerekiyor.',
+    [
+      {
+        text: t.cancel || 'İptal',
+        style: 'cancel',
+      },
+      {
+        text: t.openSettings || 'Ayarları Aç',
+        onPress: async () => {
+          const opened = await openNotificationSettings();
+          if (opened && onOpenSettings) {
+            onOpenSettings();
+          }
+        },
+      },
+    ]
+  );
+}
+
 /**
  * Register for push notifications and get the Expo push token
+ * Returns detailed result with status and error information
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  const result = await registerForPushNotificationsWithStatus();
+  return result.token;
+}
+
+/**
+ * Register for push notifications with detailed status
+ */
+export async function registerForPushNotificationsWithStatus(): Promise<NotificationRegistrationResult> {
   // Check if physical device
   if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
-    return null;
+    logger.info('[Notifications] Push notifications require a physical device');
+    return {
+      token: null,
+      status: 'not_supported',
+      error: 'Push notifications require a physical device',
+    };
+  }
+
+  // Validate project ID before proceeding
+  const projectId = getProjectId();
+  if (!projectId) {
+    logger.error('[Notifications] Missing EXPO_PUBLIC_PROJECT_ID or EAS projectId');
+    return {
+      token: null,
+      status: 'undetermined',
+      error: 'Missing project ID configuration. Please set EXPO_PUBLIC_PROJECT_ID in your environment.',
+    };
   }
 
   // Check existing permissions
@@ -96,14 +245,22 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission not granted');
-    return null;
+    const permissionStatus: NotificationPermissionStatus = 
+      finalStatus === 'denied' ? 'denied' : 'undetermined';
+    
+    logger.info(`[Notifications] Permission ${permissionStatus}`);
+    
+    return {
+      token: null,
+      status: permissionStatus,
+      error: 'Push notification permission not granted',
+    };
   }
 
   // Get Expo push token
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+      projectId,
     });
     
     // Configure Android channel
@@ -116,10 +273,19 @@ export async function registerForPushNotifications(): Promise<string | null> {
       });
     }
 
-    return tokenData.data;
+    logger.info('[Notifications] Push token obtained successfully');
+    
+    return {
+      token: tokenData.data,
+      status: 'granted',
+    };
   } catch (error) {
-    console.error('Error getting push token:', error);
-    return null;
+    logger.error('[Notifications] Error getting push token:', error);
+    return {
+      token: null,
+      status: 'granted', // Permission was granted but token failed
+      error: error instanceof Error ? error.message : 'Failed to get push token',
+    };
   }
 }
 
@@ -556,50 +722,71 @@ export function subscribeToNotifications(
   onNewNotification: (notification: NotificationData) => void,
   onNotificationUpdate?: () => void
 ) {
-  // Subscribe to user_notifications table for this user
+  console.log('[Notifications] Setting up realtime subscription for user:', userId);
+  
+  // Subscribe to notifications table for this user
   const channel = supabase
     .channel(`notifications:${userId}`)
+    // Listen for notifications targeted to all users
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'user_notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      async (payload) => {
-        // Fetch the full notification data
-        const { data: notification } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('id', payload.new.notification_id)
-          .single();
-        
-        if (notification) {
-          onNewNotification(notification as NotificationData);
-        }
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
         table: 'notifications',
         filter: `target=eq.all`,
       },
       async (payload) => {
-        if (payload.eventType === 'INSERT') {
+        console.log('[Notifications] New broadcast notification:', payload.new);
+        if (payload.new && (payload.new as any).status === 'sent') {
           onNewNotification(payload.new as NotificationData);
-        } else if (onNotificationUpdate) {
-          onNotificationUpdate();
         }
       }
     )
-    .subscribe();
+    // Listen for notifications targeted to this specific user
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `target_user_id=eq.${userId}`,
+      },
+      async (payload) => {
+        console.log('[Notifications] New user notification:', payload.new);
+        if (payload.new && (payload.new as any).status === 'sent') {
+          onNewNotification(payload.new as NotificationData);
+        }
+      }
+    )
+    // Listen for notification status updates (e.g., pending -> sent)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+      },
+      async (payload) => {
+        const newData = payload.new as any;
+        const oldData = payload.old as any;
+        
+        // If notification just became 'sent' and is for this user or all
+        if (newData.status === 'sent' && oldData.status !== 'sent') {
+          if (newData.target === 'all' || newData.target_user_id === userId) {
+            console.log('[Notifications] Notification status changed to sent:', newData);
+            onNewNotification(newData as NotificationData);
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log('[Notifications] Subscription status:', status);
+    });
 
   // Return unsubscribe function
   return () => {
+    console.log('[Notifications] Unsubscribing from realtime');
     supabase.removeChannel(channel);
   };
 }

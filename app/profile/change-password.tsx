@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -11,7 +10,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
   KeyboardAvoidingView,
   Alert,
 } from 'react-native';
@@ -19,9 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
 import { useToast } from '@/components/ui';
+import { useThemeStore } from '@/stores';
 
 export default function ChangePasswordScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
@@ -97,14 +96,12 @@ export default function ChangePasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Info Card */}
-          <BlurView
-            intensity={isDark ? 40 : 80}
-            tint={isDark ? 'dark' : 'light'}
+          <View
             style={[
               styles.infoCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F7',
+                borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
               },
             ]}
           >
@@ -114,7 +111,7 @@ export default function ChangePasswordScreen() {
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
               Güvenliğiniz için güçlü bir şifre seçin. En az 8 karakter, büyük/küçük harf ve rakam içermelidir.
             </Text>
-          </BlurView>
+          </View>
 
           {/* Form */}
           <View style={styles.form}>
@@ -123,21 +120,19 @@ export default function ChangePasswordScreen() {
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                 Mevcut Şifre
               </Text>
-              <BlurView
-                intensity={isDark ? 40 : 80}
-                tint={isDark ? 'dark' : 'light'}
+              <View
                 style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                   },
                 ]}
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Mevcut şifrenizi girin"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
@@ -150,10 +145,10 @@ export default function ChangePasswordScreen() {
                   <Ionicons
                     name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={22}
-                    color={colors.textSecondary}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'}
                   />
                 </TouchableOpacity>
-              </BlurView>
+              </View>
             </View>
 
             {/* New Password */}
@@ -161,21 +156,19 @@ export default function ChangePasswordScreen() {
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                 Yeni Şifre
               </Text>
-              <BlurView
-                intensity={isDark ? 40 : 80}
-                tint={isDark ? 'dark' : 'light'}
+              <View
                 style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                   },
                 ]}
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Yeni şifrenizi girin"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -188,10 +181,10 @@ export default function ChangePasswordScreen() {
                   <Ionicons
                     name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={22}
-                    color={colors.textSecondary}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'}
                   />
                 </TouchableOpacity>
-              </BlurView>
+              </View>
             </View>
 
             {/* Confirm Password */}
@@ -199,21 +192,19 @@ export default function ChangePasswordScreen() {
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                 Yeni Şifre (Tekrar)
               </Text>
-              <BlurView
-                intensity={isDark ? 40 : 80}
-                tint={isDark ? 'dark' : 'light'}
+              <View
                 style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
                   },
                 ]}
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
                   placeholder="Yeni şifrenizi tekrar girin"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -226,10 +217,10 @@ export default function ChangePasswordScreen() {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={22}
-                    color={colors.textSecondary}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'}
                   />
                 </TouchableOpacity>
-              </BlurView>
+              </View>
             </View>
           </View>
 
@@ -336,9 +327,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
-    overflow: 'hidden',
   },
   input: {
     flex: 1,

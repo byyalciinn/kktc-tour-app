@@ -36,6 +36,7 @@ import {
   getUserStats,
   UserProfile,
   UserFilters,
+  MembershipDuration,
 } from '@/lib/userService';
 
 interface UsersTabProps {
@@ -54,8 +55,16 @@ const memberClassColors: Record<string, string> = {
 // Role colors
 const roleColors: Record<string, string> = {
   user: '#6B7280',
-  moderator: '#F59E0B',
   admin: '#EF4444',
+};
+
+// Duration labels
+const durationLabels: Record<MembershipDuration, string> = {
+  '1_day': '1 Gün',
+  '1_week': '1 Hafta',
+  '1_month': '1 Ay',
+  '1_year': '1 Yıl',
+  'unlimited': 'Sınırsız',
 };
 
 export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
@@ -80,6 +89,10 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Gold duration selection
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState<MembershipDuration>('1_month');
   
   // Filters
   const [filters, setFilters] = useState<UserFilters>({
@@ -152,7 +165,7 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
     setIsModalVisible(true);
   };
 
-  const handleUpdateRole = async (role: 'user' | 'admin' | 'moderator') => {
+  const handleUpdateRole = async (role: 'user' | 'admin') => {
     if (!selectedUser) return;
     
     setIsUpdating(true);
@@ -170,22 +183,52 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
     }
   };
 
-  const handleUpdateMemberClass = async (memberClass: 'Normal' | 'Gold' | 'Business') => {
+  const handleMemberClassSelect = (memberClass: 'Normal' | 'Gold' | 'Business') => {
+    if (memberClass === 'Gold') {
+      // Show duration picker for Gold
+      setShowDurationPicker(true);
+    } else {
+      // Direct update for Normal and Business
+      handleUpdateMemberClass(memberClass);
+    }
+  };
+
+  const handleUpdateMemberClass = async (memberClass: 'Normal' | 'Gold' | 'Business', duration?: MembershipDuration) => {
     if (!selectedUser) return;
     
     setIsUpdating(true);
-    const { success, error } = await updateUserMemberClass(selectedUser.id, memberClass);
+    const { success, error } = await updateUserMemberClass(selectedUser.id, memberClass, duration);
     setIsUpdating(false);
+    setShowDurationPicker(false);
     
     if (success) {
+      const expiresAt = duration && duration !== 'unlimited' ? calculateLocalExpiry(duration) : null;
       setUsers(prev => prev.map(u => 
-        u.id === selectedUser.id ? { ...u, member_class: memberClass } : u
+        u.id === selectedUser.id ? { ...u, member_class: memberClass, membership_expires_at: expiresAt } : u
       ));
-      setSelectedUser(prev => prev ? { ...prev, member_class: memberClass } : null);
-      Alert.alert('Başarılı', 'Üyelik sınıfı güncellendi');
+      setSelectedUser(prev => prev ? { ...prev, member_class: memberClass, membership_expires_at: expiresAt } : null);
+      
+      let message = 'Üyelik sınıfı güncellendi';
+      if (memberClass === 'Gold' && duration && duration !== 'unlimited') {
+        message = `Gold üyelik ${durationLabels[duration]} süreli olarak atanıdı`;
+      }
+      Alert.alert('Başarılı', message);
     } else {
       Alert.alert('Hata', error || 'Üyelik sınıfı güncellenemedi');
     }
+  };
+
+  // Helper to calculate local expiry for UI
+  const calculateLocalExpiry = (duration: MembershipDuration): string | null => {
+    if (duration === 'unlimited') return null;
+    const now = new Date();
+    switch (duration) {
+      case '1_day': now.setDate(now.getDate() + 1); break;
+      case '1_week': now.setDate(now.getDate() + 7); break;
+      case '1_month': now.setMonth(now.getMonth() + 1); break;
+      case '1_year': now.setFullYear(now.getFullYear() + 1); break;
+    }
+    return now.toISOString();
   };
 
   const handleToggleStatus = async () => {
@@ -361,7 +404,7 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                   </View>
                   <View style={[styles.badge, { backgroundColor: roleColors[user.role] + '20' }]}>
                     <Text style={[styles.badgeText, { color: roleColors[user.role] }]}>
-                      {user.role === 'admin' ? 'Admin' : user.role === 'moderator' ? 'Moderatör' : 'Kullanıcı'}
+                      {user.role === 'admin' ? 'Admin' : 'Kullanıcı'}
                     </Text>
                   </View>
                 </View>
@@ -453,17 +496,20 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
               </View>
 
               {/* Role Section */}
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Kullanıcı Rolü</Text>
-              <View style={styles.optionsGrid}>
-                {(['user', 'moderator', 'admin'] as const).map((role) => (
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ROL</Text>
+              <View style={styles.optionsRow}>
+                {(['user', 'admin'] as const).map((role) => (
                   <TouchableOpacity
                     key={role}
                     style={[
-                      styles.optionButton,
+                      styles.optionChip,
                       {
                         backgroundColor: selectedUser.role === role 
-                          ? roleColors[role] 
-                          : isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
+                          ? colors.primary
+                          : isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F5',
+                        borderColor: selectedUser.role === role 
+                          ? colors.primary
+                          : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                       },
                     ]}
                     onPress={() => handleUpdateRole(role)}
@@ -471,36 +517,39 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                   >
                     <Text
                       style={[
-                        styles.optionText,
+                        styles.optionChipText,
                         { color: selectedUser.role === role ? '#fff' : colors.text },
                       ]}
                     >
-                      {role === 'admin' ? 'Admin' : role === 'moderator' ? 'Moderatör' : 'Kullanıcı'}
+                      {role === 'admin' ? 'Admin' : 'Kullanıcı'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
               {/* Member Class Section */}
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Üyelik Sınıfı</Text>
-              <View style={styles.optionsGrid}>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>ÜYELİK SINIFI</Text>
+              <View style={styles.optionsRow}>
                 {(['Normal', 'Gold', 'Business'] as const).map((memberClass) => (
                   <TouchableOpacity
                     key={memberClass}
                     style={[
-                      styles.optionButton,
+                      styles.optionChip,
                       {
                         backgroundColor: selectedUser.member_class === memberClass 
-                          ? memberClassColors[memberClass] 
-                          : isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
+                          ? memberClassColors[memberClass]
+                          : isDark ? 'rgba(255,255,255,0.06)' : '#F5F5F5',
+                        borderColor: selectedUser.member_class === memberClass 
+                          ? memberClassColors[memberClass]
+                          : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                       },
                     ]}
-                    onPress={() => handleUpdateMemberClass(memberClass)}
+                    onPress={() => handleMemberClassSelect(memberClass)}
                     disabled={isUpdating}
                   >
                     <Text
                       style={[
-                        styles.optionText,
+                        styles.optionChipText,
                         { color: selectedUser.member_class === memberClass ? '#fff' : colors.text },
                       ]}
                     >
@@ -509,6 +558,65 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                   </TouchableOpacity>
                 ))}
               </View>
+              
+              {/* Show expiry date if Gold */}
+              {selectedUser.member_class === 'Gold' && selectedUser.membership_expires_at && (
+                <Text style={[styles.expiryText, { color: colors.textSecondary }]}>
+                  Bitiş: {formatDate(selectedUser.membership_expires_at)}
+                </Text>
+              )}
+
+              {/* Duration Picker for Gold */}
+              {showDurationPicker && (
+                <View style={[styles.durationPicker, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F9F9F9', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
+                  <Text style={[styles.durationTitle, { color: colors.text }]}>Gold Süresi Seçin</Text>
+                  <View style={styles.durationOptions}>
+                    {(Object.keys(durationLabels) as MembershipDuration[]).map((duration) => (
+                      <TouchableOpacity
+                        key={duration}
+                        style={[
+                          styles.durationChip,
+                          {
+                            backgroundColor: selectedDuration === duration 
+                              ? memberClassColors.Gold
+                              : isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF',
+                            borderColor: selectedDuration === duration 
+                              ? memberClassColors.Gold
+                              : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                          },
+                        ]}
+                        onPress={() => setSelectedDuration(duration)}
+                      >
+                        <Text style={[
+                          styles.durationChipText,
+                          { color: selectedDuration === duration ? '#fff' : colors.text }
+                        ]}>
+                          {durationLabels[duration]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={styles.durationActions}>
+                    <TouchableOpacity
+                      style={[styles.durationCancel, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                      onPress={() => setShowDurationPicker(false)}
+                    >
+                      <Text style={[styles.durationCancelText, { color: colors.textSecondary }]}>Vazgeç</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.durationConfirm, { backgroundColor: memberClassColors.Gold }]}
+                      onPress={() => handleUpdateMemberClass('Gold', selectedDuration)}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.durationConfirmText}>Onayla</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {/* Status Toggle */}
               <TouchableOpacity
@@ -791,27 +899,94 @@ const styles = StyleSheet.create({
   },
   // Section title
   sectionTitle: {
-    fontSize: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+    letterSpacing: 0.8,
     marginBottom: 12,
   },
-  // Options grid
-  optionsGrid: {
+  // Options row
+  optionsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  optionButton: {
+  optionChip: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 12,
     borderRadius: 12,
+    borderWidth: 1,
   },
-  optionText: {
+  optionChipText: {
     fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+  },
+  // Expiry text
+  expiryText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    marginTop: -12,
+    marginBottom: 20,
+  },
+  // Duration picker
+  durationPicker: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+  },
+  durationTitle: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
+    marginBottom: 14,
+  },
+  durationOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  durationChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  durationChipText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+  },
+  durationActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  durationCancel: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  durationCancelText: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+  },
+  durationConfirm: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  durationConfirmText: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    color: '#fff',
   },
   // Status button
   statusButton: {
@@ -825,7 +1000,7 @@ const styles = StyleSheet.create({
   },
   statusButtonText: {
     fontSize: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
   },
 });

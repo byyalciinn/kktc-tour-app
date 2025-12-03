@@ -26,7 +26,10 @@
     "updating": "Güncelleniyor...",
     "changes": "Değişiklikler",
     "reminder": "Hatırlatma",
-    "allRightsReserved": "Tüm hakları saklıdır."
+    "allRightsReserved": "Tüm hakları saklıdır.",
+    "and": "ve",
+    "enable": "Etkinleştir",
+    "disable": "Devre Dışı Bırak"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -78,7 +81,10 @@
     "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
     "passwordNeedsUppercase": "Şifre en az bir büyük harf içermelidir",
     "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
-    "passwordNeedsNumber": "Şifre en az bir rakam içermelidir"
+    "passwordNeedsNumber": "Şifre en az bir rakam içermelidir",
+    "agreeToTerms": "Devam ederek kabul etmiş olursunuz:",
+    "privacyPolicyContent": "Gizlilik Politikası\n\nTour App olarak, gizliliğinize önem veriyoruz. Bu politika, kişisel verilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.\n\nVeri Toplama\nUygulamamızı kullandığınızda, ad, e-posta adresi ve konum bilgileri gibi kişisel verilerinizi toplayabiliriz. Bu veriler, size daha iyi hizmet sunmak için kullanılır.\n\nVeri Kullanımı\nTopladığımız verileri şu amaçlarla kullanıyoruz:\n• Tur rezervasyonlarınızı işlemek\n• Size özelleştirilmiş öneriler sunmak\n• Uygulama deneyimini iyileştirmek\n• Güvenlik ve dolandırıcılık önleme\n\nVeri Güvenliği\nVerilerinizin güvenliği bizim için önceliktir. SSL/TLS şifreleme kullanıyor ve düzenli güvenlik denetimleri yapıyoruz.\n\nHaklarınız\nKVKK kapsamında verilerinize erişim, düzeltme ve silme haklarına sahipsiniz.\n\nİletişim\nSorularınız için: privacy@tourapp.com",
+    "termsOfServiceContent": "Kullanım Koşulları\n\nTour App'i kullanarak aşağıdaki koşulları kabul etmiş olursunuz.\n\nHizmet Kullanımı\nUygulamamızı yalnızca yasal amaçlarla kullanabilirsiniz. Başkalarının haklarını ihlal eden veya uygulamanın işleyişini bozan davranışlar yasaktır.\n\nHesap Güvenliği\nHesabınızın güvenliğinden siz sorumlusunuz. Şifrenizi kimseyle paylaşmayın ve şüpheli aktivite fark ederseniz bize bildirin.\n\nRezervasyon ve İptal\nTur rezervasyonları, tur operatörlerinin belirlediği koşullara tabidir. İptal politikaları tur detaylarında belirtilir.\n\nFikri Mülkiyet\nUygulama içeriği ve tasarımı Tour App'e aittir. İzinsiz kopyalama veya dağıtım yasaktır.\n\nSorumluluk Sınırlaması\nTur operatörlerinin hizmetlerinden kaynaklanan sorunlardan Tour App sorumlu tutulamaz.\n\nDeğişiklikler\nBu koşulları önceden bildirmeksizin değiştirme hakkını saklı tutarız.\n\nİletişim\nSorularınız için: support@tourapp.com"
   },
   "home": {
     "location": "Konum",
@@ -120,14 +126,57 @@
     "loginSubtitle": "Favorilerinizi görmek için giriş yapın",
     "removeConfirmTitle": "Favorilerden Kaldır",
     "removeConfirmMessage": "Bu turu favorilerden kaldırmak istediğinize emin misiniz?",
-    "countLabel": "{{count}} tur"
+    "countLabel": "{{count}} tur",
+    "hint1": "Favori turlarınızı kaydedin ve istediğiniz zaman kolayca erişin",
+    "hint2": "Favori turlarınızdaki fırsatlardan haberdar olun"
   },
   "tabs": {
     "home": "Ana Sayfa",
     "explore": "Keşfet",
     "community": "Topluluk",
     "favorites": "Favoriler",
+    "scan": "Tarat",
     "profile": "Profil"
+  },
+  "scan": {
+    "title": "Tarat",
+    "subtitle": "Tarihi yerleri keşfedin",
+    "placeInFrame": "Tarihi yeri çerçeve içine yerleştirin",
+    "analyzingPlace": "Yer analiz ediliyor...",
+    "cameraPermission": "Tarihi yerleri taramak için kamera izni gerekli",
+    "enableCamera": "Kamerayı Etkinleştir",
+    "tryAgain": "Tekrar Dene",
+    "aiAnalyzing": "AI gelişmiş görüntü işleme kullanıyor",
+    "steps": {
+      "detecting": "Yer Tespit Ediliyor",
+      "analyzing": "Detaylar Analiz Ediliyor",
+      "identifying": "Tarihi Bilgiler Alınıyor",
+      "finishing": "Sonuçlar Hazırlanıyor"
+    },
+    "confidence": "Eşleşme",
+    "description": "Hakkında",
+    "significance": "Tarihi Önemi",
+    "funFacts": "Biliyor muydunuz?",
+    "visitTips": "Ziyaretçi Rehberi",
+    "period": "Dönem",
+    "yearBuilt": "Yapım Yılı",
+    "bestTime": "En İyi Zaman",
+    "duration": "Tahmini Süre",
+    "nearbyAttractions": "Yakın Yerler",
+    "viewOnMap": "Haritada Gör",
+    "scanAgain": "Yeni Tarama",
+    "sharePlace": "Paylaş",
+    "discoveredWith": "KKTC Tour App ile keşfedildi",
+    "categories": {
+      "historical": "Tarihi Yapı",
+      "natural": "Doğal Alan",
+      "religious": "Dini Mekan",
+      "architectural": "Mimari Eser",
+      "beach": "Plaj",
+      "monument": "Anıt",
+      "museum": "Müze",
+      "unknown": "Bilinmiyor"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -163,7 +212,20 @@
     "deletePhoto": "Fotoğrafı Sil",
     "defaultUser": "Kullanıcı",
     "memberSuffix": "Üye",
-    "version": "Versiyon"
+    "version": "Versiyon",
+    "myPanel": "Kullanıcı Panelim",
+    "membershipType": "Üyelik Tipi",
+    "membershipStart": "Üyelik Başlangıç",
+    "membershipEnd": "Üyelik Bitiş",
+    "memberSince": "Üyelik Tarihi",
+    "noEndDate": "Süresiz",
+    "unlimited": "Sınırsız",
+    "normalMember": "Standart Üye",
+    "goldMember": "Gold Üye",
+    "businessMember": "Business Üye",
+    "membershipStatus": "Üyelik Durumu",
+    "active": "Aktif",
+    "membershipDetails": "Üyelik Detayları"
   },
   "settings": {
     "title": "Ayarlar",
@@ -187,7 +249,16 @@
     "dangerZone": "Tehlikeli Bölge",
     "deleteAccount": "Hesabı Sil",
     "deleteAccountConfirm": "Bu işlem geri alınamaz. Hesabınız ve tüm verileriniz kalıcı olarak silinecek.",
-    "comingSoon": "Bu özellik yakında eklenecek"
+    "deleteAccountFinal": "Emin misiniz?",
+    "deleteAccountFinalConfirm": "Bu işlem geri alınamaz! Tüm paylaşımlarınız, favorileriniz ve hesap bilgileriniz kalıcı olarak silinecek.",
+    "deleteAccountConfirmButton": "Evet, Hesabımı Sil",
+    "accountDeleted": "Hesabınız başarıyla silindi",
+    "comingSoon": "Bu özellik yakında eklenecek",
+    "twoFactorAuth": "2 Adımlı Doğrulama",
+    "twoFactorEnableConfirm": "2 adımlı doğrulamayı etkinleştirmek istediğinize emin misiniz? Bir sonraki girişinizde e-postanıza gönderilen kodu girmeniz gerekecek.",
+    "twoFactorDisableConfirm": "2 adımlı doğrulamayı devre dışı bırakmak istediğinize emin misiniz? Bu, hesabınızın güvenliğini azaltabilir.",
+    "twoFactorEnabled": "2 adımlı doğrulama etkinleştirildi",
+    "twoFactorDisabled": "2 adımlı doğrulama devre dışı bırakıldı"
   },
   "search": {
     "title": "Ara",
@@ -235,8 +306,10 @@
     "locationToggleEnabled": "Konum açık",
     "locationToggleDisabled": "Konum kapalı",
     "addressFetching": "Konum alınıyor...",
-    "searchPlaceholder": "Nereyi keşfetmek istersiniz?",
+    "currentLocation": "Mevcut Konum",
+    "searchPlaceholder": "Rota ara...",
     "nearbyTitleDefault": "Keşfedilecek Turlar",
+    "categoryTitle": "{{category}} Turları",
     "seeAll": "Tümünü Gör",
     "suggestedRoutes": "Önerilen Rotalar",
     "allRoutes": "Tüm Rotalar",
@@ -421,6 +494,31 @@
     "addComment": "Yorum yazın...",
     "deleteComment": "Yorumu Sil",
     "deleteCommentConfirm": "Bu yorumu silmek istediğinize emin misiniz?",
+    "deletePost": "Paylaşımı Sil",
+    "deletePostConfirm": "Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+    "postOptions": "Paylaşım Seçenekleri",
+    "report": "Şikayet Et",
+    "notInterested": "İlgilenmiyorum",
+    "reportTitle": "Paylaşımı Şikayet Et",
+    "reportMessage": "Bu paylaşımı neden şikayet etmek istiyorsunuz?",
+    "reportConfirm": "Şikayet Et",
+    "reportSuccess": "Şikayet Alındı",
+    "reportSuccessMessage": "Şikayetiniz alındı. Ekibimiz en kısa sürede inceleyecektir.",
+    "reportError": "Şikayet gönderilirken bir hata oluştu.",
+    "hiddenSuccess": "Bu paylaşım artık size gösterilmeyecek.",
+    "hideError": "Paylaşım gizlenirken bir hata oluştu.",
+    "reportReasons": {
+      "spam": "Spam / Reklam",
+      "inappropriate": "Uygunsuz İçerik",
+      "harassment": "Taciz / Zorbalık",
+      "misinformation": "Yanlış Bilgi",
+      "other": "Diğer"
+    },
+    "premium": {
+      "title": "Tüm Paylaşımları Gör",
+      "subtitle": "Sen de paylaşım yapmak ve topluluk fırsatlarını yakalamak istiyorsan Gold üyeliğe geç!",
+      "button": "Gold Üyelik Al"
+    },
     "pending": "İnceleniyor",
     "approved": "Onaylandı",
     "rejected": "Reddedildi",
@@ -438,5 +536,54 @@
       "approveConfirm": "\"{{title}}\" içeriğini onaylamak istediğinize emin misiniz?",
       "rejectReasonRequired": "Lütfen bir red nedeni girin"
     }
+  },
+  "paywall": {
+    "title": "Premium'a Yükselt",
+    "favoriteLimitReached": "Favori limitinize ulaştınız! Sınırsız favori eklemek için Premium'a geçin.",
+    "unlockPremium": "Premium özelliklerin kilidini açın ve KKTC'yi sınırsız keşfedin.",
+    "bestValue": "EN AVANTAJLI",
+    "savePercent": "%{{percent}} tasarruf",
+    "month": "ay",
+    "year": "yıl",
+    "justPerMonth": "Aylık sadece ₺{{price}}",
+    "premiumFeatures": "Premium Avantajlar",
+    "subscribe": "Abone Ol",
+    "termsOfService": "Kullanım Koşulları",
+    "privacyPolicy": "Gizlilik Politikası",
+    "restorePurchases": "Satın Alımları Geri Yükle",
+    "legalText": "Abonelik otomatik olarak yenilenir. İstediğiniz zaman iptal edebilirsiniz.",
+    "plans": {
+      "monthly": {
+        "name": "Aylık Plan"
+      },
+      "yearly": {
+        "name": "Yıllık Plan"
+      }
+    },
+    "features": {
+      "unlimitedFavorites": "Sınırsız favori ekleme",
+      "adFree": "Reklamsız deneyim",
+      "prioritySupport": "Öncelikli destek",
+      "specialDiscounts": "Özel indirimler ve teklifler"
+    }
+  },
+  "twoFactor": {
+    "title": "2 Adımlı Doğrulama",
+    "verifyTitle": "E-posta Doğrulama",
+    "verifyDescription": "{{email}} adresine 6 haneli bir doğrulama kodu gönderdik. Lütfen kodu girin.",
+    "digit": "Rakam",
+    "verify": "Doğrula",
+    "resendCode": "Kodu Tekrar Gönder",
+    "resendIn": "Tekrar gönder ({{seconds}}s)",
+    "codeSent": "Doğrulama kodu gönderildi",
+    "codeExpiresIn": "Kod {{time}} içinde geçerliliğini yitirecek",
+    "enterFullCode": "Lütfen 6 haneli kodu tam olarak girin",
+    "verificationSuccess": "Doğrulama başarılı!",
+    "invalidCode": "Geçersiz kod. Lütfen tekrar deneyin.",
+    "codeExpired": "Kod süresi doldu. Lütfen yeni bir kod isteyin.",
+    "maxAttemptsExceeded": "Çok fazla deneme yapıldı. Lütfen yeni bir kod isteyin.",
+    "resendFailed": "Kod gönderilemedi. Lütfen tekrar deneyin.",
+    "initFailed": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
+    "attemptsRemaining": "{{count}} deneme hakkınız kaldı"
   }
 }

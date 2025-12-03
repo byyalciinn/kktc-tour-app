@@ -16,13 +16,14 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore, useThemeStore } from '@/stores';
+import { useAuthStore, useThemeStore, useTwoFactorStore } from '@/stores';
 import { useToast } from '@/components/ui';
 import { languages, changeLanguage, getCurrentLanguage, LanguageCode } from '@/lib/i18n';
+import { clearAllCache } from '@/lib/cacheService';
 
 interface SettingItemProps {
   label: string;
@@ -102,7 +103,21 @@ export default function SettingsScreen() {
   const toast = useToast();
   const { t } = useTranslation();
 
-  const { signOut } = useAuthStore();
+  const { signOut, user } = useAuthStore();
+  const { 
+    twoFactorEnabled, 
+    isLoadingSettings: is2FALoading,
+    loadTwoFactorStatus,
+    enableTwoFactor,
+    disableTwoFactor,
+  } = useTwoFactorStore();
+
+  // Load 2FA status on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadTwoFactorStatus(user.id);
+    }
+  }, [user?.id]);
 
   // Settings state
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -148,6 +163,10 @@ export default function SettingsScreen() {
   };
 
   const handleLanguageChange = async (langCode: LanguageCode) => {
+    // Don't allow selecting coming soon languages
+    if (languages[langCode].comingSoon) {
+      return;
+    }
     await changeLanguage(langCode);
     setCurrentLang(langCode);
     closeLanguageModal();
@@ -163,9 +182,17 @@ export default function SettingsScreen() {
         {
           text: t('common.delete'),
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement cache clearing
-            toast.success(t('settings.cacheCleared'));
+          onPress: async () => {
+            try {
+              const result = await clearAllCache();
+              if (result.success) {
+                toast.success(t('settings.cacheCleared'));
+              } else {
+                toast.error(result.error || t('common.error'));
+              }
+            } catch (error) {
+              toast.error(t('common.error'));
+            }
           },
         },
       ]
@@ -181,9 +208,34 @@ export default function SettingsScreen() {
         {
           text: t('settings.deleteAccount'),
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement account deletion
-            toast.error(t('settings.comingSoon'));
+          onPress: async () => {
+            // Second confirmation for destructive action
+            Alert.alert(
+              t('settings.deleteAccountFinal'),
+              t('settings.deleteAccountFinalConfirm'),
+              [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                  text: t('settings.deleteAccountConfirmButton'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      const { deleteAccount } = useAuthStore.getState();
+                      const result = await deleteAccount();
+                      
+                      if (result.success) {
+                        toast.success(t('settings.accountDeleted'));
+                        router.replace('/(auth)');
+                      } else {
+                        toast.error(result.error || t('common.error'));
+                      }
+                    } catch (error) {
+                      toast.error(t('common.error'));
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -206,6 +258,53 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleToggle2FA = async (enabled: boolean) => {
+    if (!user?.id) return;
+
+    if (enabled) {
+      // Show confirmation before enabling
+      Alert.alert(
+        t('settings.twoFactorAuth'),
+        t('settings.twoFactorEnableConfirm'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.enable'),
+            onPress: async () => {
+              const result = await enableTwoFactor(user.id);
+              if (result.success) {
+                toast.success(t('settings.twoFactorEnabled'));
+              } else {
+                toast.error(result.error || t('common.error'));
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      // Show confirmation before disabling
+      Alert.alert(
+        t('settings.twoFactorAuth'),
+        t('settings.twoFactorDisableConfirm'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.disable'),
+            style: 'destructive',
+            onPress: async () => {
+              const result = await disableTwoFactor(user.id);
+              if (result.success) {
+                toast.success(t('settings.twoFactorDisabled'));
+              } else {
+                toast.error(result.error || t('common.error'));
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   return (
@@ -300,6 +399,13 @@ export default function SettingsScreen() {
             ]}
           >
             <SettingItem
+              label={t('settings.twoFactorAuth')}
+              hasSwitch
+              switchValue={twoFactorEnabled}
+              onSwitchChange={handleToggle2FA}
+              hasArrow={false}
+            />
+            <SettingItem
               label={t('settings.changePassword')}
               onPress={() => router.push('/profile/change-password')}
             />
@@ -386,7 +492,7 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      {/* Language Selection Modal */}
+      {/* Language Selection Modal - Premium Minimalist Design */}
       <Modal
         visible={languageModalVisible}
         transparent
@@ -394,38 +500,32 @@ export default function SettingsScreen() {
         statusBarTranslucent
         onRequestClose={closeLanguageModal}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={closeLanguageModal}
-        >
+        <TouchableWithoutFeedback onPress={closeLanguageModal}>
           <Animated.View
             style={[
               styles.modalOverlay,
               {
-                backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
+                backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.4)',
                 opacity: fadeAnim,
               },
             ]}
           />
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
 
         <Animated.View
           style={[
             styles.languageModalContainer,
             {
               transform: [{ translateY: slideAnim }],
-              paddingBottom: insets.bottom + 20,
             },
           ]}
         >
-          <BlurView
-            intensity={isDark ? 60 : 90}
-            tint={isDark ? 'dark' : 'light'}
+          <View
             style={[
               styles.languageModal,
               {
-                backgroundColor: isDark ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.95)',
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                paddingBottom: insets.bottom + 16,
               },
             ]}
           >
@@ -434,7 +534,7 @@ export default function SettingsScreen() {
               <View
                 style={[
                   styles.handleBar,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.15)' },
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
                 ]}
               />
             </View>
@@ -446,53 +546,76 @@ export default function SettingsScreen() {
 
             {/* Language Options */}
             <View style={styles.languageOptions}>
-              {(Object.keys(languages) as LanguageCode[]).map((langCode) => (
-                <TouchableOpacity
-                  key={langCode}
-                  style={[
-                    styles.languageOption,
-                    {
-                      backgroundColor: currentLang === langCode
-                        ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,122,255,0.1)')
-                        : 'transparent',
-                      borderColor: currentLang === langCode
-                        ? colors.primary
-                        : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
-                    },
-                  ]}
-                  onPress={() => handleLanguageChange(langCode)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.languageFlag}>{languages[langCode].flag}</Text>
-                  <View style={styles.languageTextContainer}>
-                    <Text style={[styles.languageName, { color: colors.text }]}>
-                      {languages[langCode].nativeName}
-                    </Text>
-                    <Text style={[styles.languageNameSecondary, { color: colors.textSecondary }]}>
-                      {languages[langCode].name}
-                    </Text>
-                  </View>
-                  {currentLang === langCode && (
-                    <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {(Object.keys(languages) as LanguageCode[]).map((langCode, index) => {
+                const lang = languages[langCode];
+                const isSelected = currentLang === langCode;
+                const isComingSoon = lang.comingSoon;
+                const isLast = index === Object.keys(languages).length - 1;
+
+                return (
+                  <TouchableOpacity
+                    key={langCode}
+                    style={[
+                      styles.languageOption,
+                      {
+                        backgroundColor: isSelected
+                          ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')
+                          : 'transparent',
+                      },
+                      !isLast && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                      },
+                    ]}
+                    onPress={() => handleLanguageChange(langCode)}
+                    activeOpacity={isComingSoon ? 1 : 0.6}
+                    disabled={isComingSoon}
+                  >
+                    <View style={styles.languageLeft}>
+                      <Text style={[
+                        styles.languageName,
+                        { color: isComingSoon ? colors.textSecondary : colors.text },
+                        isComingSoon && { opacity: 0.5 },
+                      ]}>
+                        {lang.nativeName}
+                      </Text>
+                    </View>
+
+                    <View style={styles.languageRight}>
+                      {isComingSoon ? (
+                        <View style={[
+                          styles.comingSoonBadge,
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+                        ]}>
+                          <Text style={[styles.comingSoonText, { color: colors.textSecondary }]}>
+                            Yakında
+                          </Text>
+                        </View>
+                      ) : isSelected ? (
+                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Cancel Button */}
-            <TouchableOpacity
-              style={[
-                styles.cancelButton,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
-              ]}
-              onPress={closeLanguageModal}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.text }]}>
-                {t('common.cancel')}
-              </Text>
-            </TouchableOpacity>
-          </BlurView>
+            <View style={styles.cancelButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.cancelButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
+                ]}
+                onPress={closeLanguageModal}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </Animated.View>
       </Modal>
     </View>
@@ -585,10 +708,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
-  // Language Modal Styles
+  // Language Modal Styles - Premium Minimalist
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
   },
   languageModalContainer: {
     position: 'absolute',
@@ -597,59 +719,69 @@ const styles = StyleSheet.create({
     right: 0,
   },
   languageModal: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     overflow: 'hidden',
   },
   modalHandle: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   handleBar: {
     width: 36,
-    height: 5,
-    borderRadius: 3,
+    height: 4,
+    borderRadius: 2,
   },
   modalTitle: {
-    fontSize: 20,
-    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 20,
+    letterSpacing: -0.2,
+    paddingBottom: 16,
   },
   languageOptions: {
-    gap: 12,
+    paddingHorizontal: 0,
   },
   languageOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 2,
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
   },
-  languageFlag: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  languageTextContainer: {
+  languageLeft: {
     flex: 1,
+  },
+  languageRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   languageName: {
     fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    marginBottom: 2,
+    fontWeight: '400',
+    letterSpacing: -0.3,
   },
-  languageNameSecondary: {
-    fontSize: 14,
+  comingSoonBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  comingSoonText: {
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+    letterSpacing: -0.1,
+  },
+  cancelButtonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
   cancelButton: {
-    marginTop: 16,
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
   },
   cancelButtonText: {

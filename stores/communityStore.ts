@@ -13,6 +13,8 @@ import {
   postDataToPost,
   commentDataToComment,
 } from '@/types';
+import { createNotification, sendNotification } from '@/lib/notificationService';
+import { useAuthStore } from './authStore';
 
 /**
  * Helper function to enrich posts with user profiles and tour data
@@ -55,12 +57,16 @@ async function enrichPostsWithRelations(posts: any[]): Promise<CommunityPostData
   }));
 }
 
+// Report reason types
+export type ReportReason = 'spam' | 'inappropriate' | 'harassment' | 'misinformation' | 'other';
+
 interface CommunityState {
   // Posts
   posts: CommunityPost[];
   userPosts: CommunityPost[];
   pendingPosts: CommunityPost[]; // For admin moderation
   selectedPost: CommunityPost | null;
+  hiddenPostIds: string[]; // Posts hidden by user
   
   // Comments
   comments: CommunityComment[];
@@ -101,6 +107,11 @@ interface CommunityState {
   approvePost: (postId: string, adminId: string) => Promise<{ success: boolean; error?: string }>;
   rejectPost: (postId: string, adminId: string, reason: string) => Promise<{ success: boolean; error?: string }>;
   
+  // Reporting & Hiding
+  reportPost: (postId: string, reason: ReportReason, description?: string) => Promise<{ success: boolean; error?: string }>;
+  hidePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
+  fetchHiddenPosts: () => Promise<void>;
+  
   // UI
   setSelectedPost: (post: CommunityPost | null) => void;
   clearError: () => void;
@@ -114,6 +125,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   userPosts: [],
   pendingPosts: [],
   selectedPost: null,
+  hiddenPostIds: [],
   comments: [],
   isLoading: false,
   isLoadingMore: false,
@@ -124,7 +136,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   page: 0,
   error: null,
 
-  // Fetch approved posts (public feed)
+  // Fetch posts (public feed - Gold/Business see all, others see only approved)
   fetchPosts: async (refresh = false) => {
     const { isLoading, isRefreshing } = get();
     if (isLoading || isRefreshing) return;
@@ -138,12 +150,27 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     });
 
     try {
-      const { data, error } = await supabase
+      // Check if user is Gold or Business member
+      const profile = useAuthStore.getState().profile;
+      const memberClass = profile?.member_class;
+      const isPremiumMember = memberClass === 'Gold' || memberClass === 'Business';
+
+      let query = supabase
         .from('community_posts')
         .select('*')
-        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .range(0, PAGE_SIZE - 1);
+
+      // Normal users only see approved posts
+      // Gold/Business members see all posts (approved + pending)
+      if (!isPremiumMember) {
+        query = query.eq('status', 'approved');
+      } else {
+        // Premium members see approved and pending (not rejected)
+        query = query.in('status', ['approved', 'pending']);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -174,15 +201,29 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     set({ isLoadingMore: true });
 
     try {
+      // Check if user is Gold or Business member
+      const profile = useAuthStore.getState().profile;
+      const memberClass = profile?.member_class;
+      const isPremiumMember = memberClass === 'Gold' || memberClass === 'Business';
+
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('community_posts')
         .select('*')
-        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .range(from, to);
+
+      // Normal users only see approved posts
+      // Gold/Business members see all posts (approved + pending)
+      if (!isPremiumMember) {
+        query = query.eq('status', 'approved');
+      } else {
+        query = query.in('status', ['approved', 'pending']);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -520,6 +561,9 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
   // Approve post (admin)
   approvePost: async (postId: string, adminId: string) => {
     try {
+      // First get the post to find the user
+      const post = get().pendingPosts.find(p => p.id === postId);
+      
       const { error } = await supabase
         .from('community_posts')
         .update({
@@ -539,6 +583,35 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
           admin_id: adminId,
           action: 'approved',
         });
+
+      // Send notification to the post owner
+      if (post?.userId) {
+        try {
+          const { data: notification } = await createNotification(
+            {
+              title: 'Paylaşımınız Onaylandı! 🎉',
+              message: post.title 
+                ? `"${post.title}" başlıklı paylaşımınız onaylandı ve artık toplulukta görünür.`
+                : 'Paylaşımınız onaylandı ve artık toplulukta görünür.',
+              type: 'system',
+              icon: 'checkmark-circle',
+              target: 'user',
+              target_user_id: post.userId,
+              deep_link: `/community/${postId}`,
+              data: { postId, action: 'post_approved' },
+            },
+            adminId
+          );
+
+          // Send push notification
+          if (notification?.id) {
+            await sendNotification(notification.id);
+          }
+        } catch (notifError) {
+          console.error('[CommunityStore] Failed to send approval notification:', notifError);
+          // Don't fail the approval if notification fails
+        }
+      }
 
       // Update local state
       set(state => ({
@@ -584,6 +657,99 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
+    }
+  },
+
+  // Report post
+  reportPost: async (postId: string, reason: ReportReason, description?: string) => {
+    try {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { error } = await supabase
+        .from('community_reports')
+        .insert({
+          post_id: postId,
+          reporter_id: userId,
+          reason,
+          description: description || null,
+        });
+
+      if (error) {
+        // Handle duplicate report
+        if (error.code === '23505') {
+          return { success: false, error: 'You have already reported this post' };
+        }
+        // Handle rate limit
+        if (error.message?.includes('Rate limit')) {
+          return { success: false, error: 'Too many reports. Please try again later.' };
+        }
+        throw error;
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[CommunityStore] Report post error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Hide post (not interested)
+  hidePost: async (postId: string) => {
+    try {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { error } = await supabase
+        .from('hidden_posts')
+        .insert({
+          user_id: userId,
+          post_id: postId,
+        });
+
+      if (error) {
+        // Handle duplicate
+        if (error.code === '23505') {
+          // Already hidden, just update local state
+        } else {
+          throw error;
+        }
+      }
+
+      // Update local state to hide the post
+      set(state => ({
+        hiddenPostIds: [...state.hiddenPostIds, postId],
+        posts: state.posts.filter(p => p.id !== postId),
+      }));
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[CommunityStore] Hide post error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Fetch hidden posts for current user
+  fetchHiddenPosts: async () => {
+    try {
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) return;
+
+      const { data, error } = await supabase
+        .from('hidden_posts')
+        .select('post_id')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      const hiddenIds = data?.map(h => h.post_id) || [];
+      set({ hiddenPostIds: hiddenIds });
+    } catch (error) {
+      console.error('[CommunityStore] Fetch hidden posts error:', error);
     }
   },
 

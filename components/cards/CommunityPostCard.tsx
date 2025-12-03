@@ -10,14 +10,15 @@ import {
   Dimensions,
   ScrollView,
   ActivityIndicator,
+  Alert,
+  ActionSheetIOS,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { CommunityPost } from '@/types';
-import { useThemeStore } from '@/stores';
+import { useThemeStore, useAuthStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
 
 const { width } = Dimensions.get('window');
@@ -66,6 +67,9 @@ interface CommunityPostCardProps {
   post: CommunityPost;
   onPress: (post: CommunityPost) => void;
   onLikePress: (post: CommunityPost) => void;
+  onDeletePress?: (post: CommunityPost) => void;
+  onReportPress?: (post: CommunityPost) => void;
+  onHidePress?: (post: CommunityPost) => void;
   isLiked?: boolean;
 }
 
@@ -76,12 +80,19 @@ export function CommunityPostCard({
   post,
   onPress,
   onLikePress,
+  onDeletePress,
+  onReportPress,
+  onHidePress,
   isLiked = false,
 }: CommunityPostCardProps) {
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  
+  // Check if current user owns this post
+  const isOwnPost = user?.id === post.userId;
   
   // Animations
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -185,6 +196,92 @@ export function CommunityPostCard({
     onLikePress(post);
   };
 
+  // Handle menu press
+  const handleMenuPress = () => {
+    if (Platform.OS === 'ios') {
+      const options = isOwnPost
+        ? [t('common.cancel'), t('common.delete')]
+        : [t('common.cancel'), t('community.report'), t('community.notInterested')];
+      
+      const destructiveButtonIndex = isOwnPost ? 1 : undefined;
+      const cancelButtonIndex = 0;
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (buttonIndex) => {
+          if (isOwnPost) {
+            if (buttonIndex === 1) {
+              // Delete
+              Alert.alert(
+                t('community.deletePost'),
+                t('community.deletePostConfirm'),
+                [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  {
+                    text: t('common.delete'),
+                    style: 'destructive',
+                    onPress: () => onDeletePress?.(post),
+                  },
+                ]
+              );
+            }
+          } else {
+            if (buttonIndex === 1) {
+              // Report
+              onReportPress?.(post);
+            } else if (buttonIndex === 2) {
+              // Not interested
+              onHidePress?.(post);
+            }
+          }
+        }
+      );
+    } else {
+      // Android - use Alert
+      if (isOwnPost) {
+        Alert.alert(
+          t('community.postOptions'),
+          '',
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            {
+              text: t('common.delete'),
+              style: 'destructive',
+              onPress: () => {
+                Alert.alert(
+                  t('community.deletePost'),
+                  t('community.deletePostConfirm'),
+                  [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    {
+                      text: t('common.delete'),
+                      style: 'destructive',
+                      onPress: () => onDeletePress?.(post),
+                    },
+                  ]
+                );
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          t('community.postOptions'),
+          '',
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('community.report'), onPress: () => onReportPress?.(post) },
+            { text: t('community.notInterested'), onPress: () => onHidePress?.(post) },
+          ]
+        );
+      }
+    }
+  };
+
   const hasImages = post.images && post.images.length > 0;
 
   return (
@@ -213,7 +310,7 @@ export function CommunityPostCard({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
       >
-        {/* Header: User info + Type badge */}
+        {/* Header: User info + Menu */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
             <Image
@@ -224,17 +321,24 @@ export function CommunityPostCard({
               <Text style={[styles.userName, { color: colors.text }]}>
                 {post.user?.fullName || t('community.anonymous')}
               </Text>
-              <Text style={[styles.postTime, { color: colors.textSecondary }]}>
-                {formatDate(post.createdAt)}
-              </Text>
+              <View style={styles.postMeta}>
+                <Text style={[styles.postTime, { color: colors.textSecondary }]}>
+                  {formatDate(post.createdAt)}
+                </Text>
+                <View style={[styles.typeDot, { backgroundColor: typeInfo.color }]} />
+                <Text style={[styles.typeText, { color: typeInfo.color }]}>
+                  {typeInfo.label}
+                </Text>
+              </View>
             </View>
           </View>
-          <View style={[styles.typeBadge, { backgroundColor: `${typeInfo.color}20` }]}>
-            <Ionicons name={typeInfo.icon as any} size={14} color={typeInfo.color} />
-            <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>
-              {typeInfo.label}
-            </Text>
-          </View>
+          <TouchableOpacity 
+            style={styles.menuButton}
+            onPress={handleMenuPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Content */}
@@ -405,20 +509,29 @@ const styles = StyleSheet.create({
   postTime: {
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    marginTop: 2,
   },
-  typeBadge: {
+  postMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    marginTop: 2,
+    gap: 6,
   },
-  typeBadgeText: {
+  typeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  typeText: {
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  menuButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Content
   title: {

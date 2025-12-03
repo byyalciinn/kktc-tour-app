@@ -87,6 +87,13 @@ const TIME_OPTIONS: { value: TimeOfDay; label: string }[] = [
   { value: 'evening', label: 'Akşam' },
 ];
 
+// Check if route is a local fallback (not in Supabase)
+const isLocalRoute = (id: string): boolean => {
+  // Local routes have IDs like 'route-1', 'route-2', etc.
+  // Supabase routes have UUID format
+  return id.startsWith('route-') || !id.includes('-') || id.length < 32;
+};
+
 // Empty stop template
 const createEmptyStop = (order: number): RouteStop => ({
   id: `stop_${Date.now()}_${order}`,
@@ -207,6 +214,15 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
 
   // Open edit modal
   const openEditModal = (route: ThematicRoute) => {
+    // Check if this is a local fallback route
+    if (isLocalRoute(route.id)) {
+      Alert.alert(
+        'Düzenleme Yapılamaz',
+        'Bu rota yerel verilerden yüklendi ve düzenlenemez. Lütfen önce "Yeni Rota Ekle" ile Supabase\'e kaydedin.',
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
     setEditingRoute(route);
     setTitle(route.title);
     setSubtitle(route.subtitle || '');
@@ -230,7 +246,7 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
   // Pick cover image
   const pickCoverImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 1,
@@ -390,6 +406,16 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
 
   // Delete route
   const handleDelete = (route: ThematicRoute) => {
+    // Check if this is a local fallback route
+    if (isLocalRoute(route.id)) {
+      Alert.alert(
+        'Silme Yapılamaz',
+        'Bu rota yerel verilerden yüklendi ve silinemez.',
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+    
     Alert.alert(
       'Rotayı Sil',
       `"${route.title}" rotasını silmek istediğinize emin misiniz?`,
@@ -484,10 +510,18 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
         ) : (
           filteredRoutes.map((route) => {
             const themeInfo = getThemeInfo(route.theme);
+            const isLocal = isLocalRoute(route.id);
             return (
               <View
                 key={route.id}
-                style={[styles.routeCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}
+                style={[
+                  styles.routeCard, 
+                  { 
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff', 
+                    borderColor: isLocal ? '#F59E0B' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                    opacity: isLocal ? 0.7 : 1,
+                  }
+                ]}
               >
                 <Image source={{ uri: route.coverImage }} style={styles.routeImage} />
                 <View style={styles.routeInfo}>
@@ -495,9 +529,9 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
                     <Text style={[styles.routeTitle, { color: colors.text }]} numberOfLines={1}>
                       {route.title}
                     </Text>
-                    {route.highlighted && (
-                      <View style={[styles.highlightedBadge, { backgroundColor: colors.primary + '20' }]}>
-                        <Ionicons name="star" size={12} color={colors.primary} />
+                    {isLocal && (
+                      <View style={[styles.localBadge, { backgroundColor: '#F59E0B20' }]}>
+                        <Ionicons name="cloud-offline-outline" size={10} color="#F59E0B" />
                       </View>
                     )}
                   </View>
@@ -514,16 +548,18 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
                 </View>
                 <View style={styles.cardActions}>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: 'rgba(0, 122, 255, 0.1)' }]}
+                    style={[styles.actionButton, { backgroundColor: isLocal ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 122, 255, 0.1)' }]}
                     onPress={() => openEditModal(route)}
+                    disabled={isLocal}
                   >
-                    <Ionicons name="pencil" size={18} color="#007AFF" />
+                    <Ionicons name="pencil" size={18} color={isLocal ? '#999' : '#007AFF'} />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}
+                    style={[styles.actionButton, { backgroundColor: isLocal ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 59, 48, 0.1)' }]}
                     onPress={() => handleDelete(route)}
+                    disabled={isLocal}
                   >
-                    <Ionicons name="trash" size={18} color="#FF3B30" />
+                    <Ionicons name="trash" size={18} color={isLocal ? '#999' : '#FF3B30'} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -929,7 +965,7 @@ const styles = StyleSheet.create({
   routeInfo: { flex: 1, justifyContent: 'center' },
   routeHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   routeTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
-  highlightedBadge: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  localBadge: { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
   routeMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   themeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   themeBadgeText: { fontSize: 11, fontWeight: '500' },

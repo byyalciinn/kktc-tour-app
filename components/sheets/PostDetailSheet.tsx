@@ -82,7 +82,7 @@ export default function PostDetailSheet({
   const { t } = useTranslation();
 
   // Stores
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const {
     comments,
     isLoadingComments,
@@ -529,7 +529,7 @@ export default function PostDetailSheet({
               ]}
             >
               <Image
-                source={{ uri: getAvatarUrl(null, user.id) }}
+                source={{ uri: getAvatarUrl(profile?.avatar_url, user.id) }}
                 style={styles.inputAvatar}
               />
               <TextInput

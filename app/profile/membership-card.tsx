@@ -10,14 +10,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
@@ -96,7 +95,7 @@ const planConfigs: Record<
 };
 
 export default function MembershipCardScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
@@ -194,13 +193,17 @@ export default function MembershipCardScreen() {
       ? '#1F2937'
       : isDark
         ? 'rgba(255,255,255,0.08)'
-        : '#FFFBEB';
+        : level === 'Normal' 
+          ? '#FFFBEB' 
+          : '#F0FDF4';
 
     const cardBorder = cardIsDark
       ? '#374151'
       : isDark
-        ? 'rgba(255,255,255,0.1)'
-        : '#FEF3C7';
+        ? 'rgba(255,255,255,0.15)'
+        : level === 'Normal'
+          ? '#FEF3C7'
+          : '#DCFCE7';
 
     const textColor = cardIsDark ? '#fff' : colors.text;
     const secondaryTextColor = cardIsDark

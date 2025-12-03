@@ -8,9 +8,10 @@ import {
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useThemeStore } from '@/stores';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,6 +20,10 @@ const { width, height } = Dimensions.get('window');
  * Elegant, minimal, premium hissi veren tek sayfalık tasarım
  */
 export default function WelcomeScreen() {
+  const { colorScheme } = useThemeStore();
+  const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  
   const { clearNewUserFlag, profile } = useAuthStore();
   
   // Animations
@@ -60,10 +65,12 @@ export default function WelcomeScreen() {
   const userName = profile?.full_name?.split(' ')[0] || 'Gezgin';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      
       {/* Background Gradient */}
       <LinearGradient
-        colors={['#FFFFFF', Colors.light.background]}
+        colors={isDark ? [colors.background, colors.background] : ['#FFFFFF', Colors.light.background]}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
@@ -71,9 +78,9 @@ export default function WelcomeScreen() {
 
       {/* Decorative Elements */}
       <View style={styles.decorativeContainer}>
-        <View style={[styles.decorativeCircle, styles.circle1]} />
-        <View style={[styles.decorativeCircle, styles.circle2]} />
-        <View style={[styles.decorativeCircle, styles.circle3]} />
+        <View style={[styles.decorativeCircle, styles.circle1, { backgroundColor: colors.primary }]} />
+        <View style={[styles.decorativeCircle, styles.circle2, { backgroundColor: colors.primary }]} />
+        <View style={[styles.decorativeCircle, styles.circle3, { backgroundColor: colors.primary }]} />
       </View>
 
       {/* Main Content */}
@@ -90,19 +97,19 @@ export default function WelcomeScreen() {
         ]}
       >
         {/* Welcome Badge */}
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>KKTC Tour</Text>
+        <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(240, 58, 82, 0.15)' : 'rgba(240, 58, 82, 0.08)' }]}>
+          <Text style={[styles.badgeText, { color: colors.primary }]}>KKTC Tour</Text>
         </View>
 
         {/* Main Title */}
-        <Text style={styles.greeting}>Hoş Geldin,</Text>
-        <Text style={styles.userName}>{userName}</Text>
+        <Text style={[styles.greeting, { color: colors.textSecondary }]}>Hoş Geldin,</Text>
+        <Text style={[styles.userName, { color: colors.text }]}>{userName}</Text>
 
         {/* Divider Line */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.primary }]} />
 
         {/* Description */}
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           Kuzey Kıbrıs'ın eşsiz güzelliklerini{'\n'}
           keşfetmeye hazır mısın?
         </Text>
@@ -110,16 +117,16 @@ export default function WelcomeScreen() {
         {/* Features List - Minimal */}
         <View style={styles.featuresContainer}>
           <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Benzersiz rotalar</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Benzersiz rotalar</Text>
           </View>
           <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Yerel deneyimler</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Yerel deneyimler</Text>
           </View>
           <View style={styles.featureItem}>
-            <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Kişiselleştirilmiş öneriler</Text>
+            <View style={[styles.featureDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Kişiselleştirilmiş öneriler</Text>
           </View>
         </View>
       </Animated.View>
@@ -149,7 +156,7 @@ export default function WelcomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>
+        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
           Maceraya hazır ol
         </Text>
       </Animated.View>

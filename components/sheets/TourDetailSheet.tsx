@@ -13,14 +13,14 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
-import { useFavoritesStore, useAuthStore, useTourStore } from '@/stores';
+import { useFavoritesStore, useAuthStore, useTourStore, useThemeStore } from '@/stores';
+import { PaywallSheet } from '@/components/ui';
 
 const { width, height } = Dimensions.get('window');
 const SHEET_MAX_HEIGHT = height * 0.92;
@@ -38,7 +38,7 @@ export default function TourDetailSheet({
   visible,
   onClose,
 }: TourDetailSheetProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
@@ -54,6 +54,7 @@ export default function TourDetailSheet({
   const [isFavorited, setIsFavorited] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [currentTour, setCurrentTour] = useState<Tour | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Update current tour when tour prop changes
   useEffect(() => {
@@ -110,10 +111,13 @@ export default function TourDetailSheet({
     if (!currentTour) return;
 
     setIsTogglingFavorite(true);
-    const { isFavorited: newState, error } = await toggleFavorite(user.id, currentTour);
+    const { isFavorited: newState, error, requiresUpgrade } = await toggleFavorite(user.id, currentTour);
     setIsTogglingFavorite(false);
 
-    if (error) {
+    if (requiresUpgrade) {
+      // Show paywall when user hits favorite limit
+      setShowPaywall(true);
+    } else if (error) {
       Alert.alert('Hata', error);
     } else {
       setIsFavorited(newState);
@@ -231,16 +235,20 @@ export default function TourDetailSheet({
           {/* Top Buttons */}
           <View style={[styles.topButtons, { paddingTop: insets.top + 10 }]}>
             <TouchableOpacity
-              style={styles.topButton}
+              style={[
+                styles.topButton,
+                { backgroundColor: isDark ? 'rgba(40,40,40,0.95)' : 'rgba(255, 255, 255, 0.95)' }
+              ]}
               onPress={handleClose}
               activeOpacity={0.8}
             >
-              <Ionicons name="chevron-back" size={24} color="#000" />
+              <Ionicons name="chevron-back" size={24} color={isDark ? '#FFF' : '#000'} />
             </TouchableOpacity>
             <TouchableOpacity 
               style={[
                 styles.topButton, 
-                isFavorited && { backgroundColor: 'rgba(255, 107, 107, 0.15)' }
+                { backgroundColor: isDark ? 'rgba(40,40,40,0.95)' : 'rgba(255, 255, 255, 0.95)' },
+                isFavorited && { backgroundColor: 'rgba(255, 107, 107, 0.2)' }
               ]} 
               activeOpacity={0.8}
               onPress={handleToggleFavorite}
@@ -249,7 +257,7 @@ export default function TourDetailSheet({
               <Ionicons 
                 name={isFavorited ? "heart" : "heart-outline"} 
                 size={24} 
-                color={isFavorited ? "#FF6B6B" : "#000"} 
+                color={isFavorited ? "#FF6B6B" : (isDark ? '#FFF' : '#000')} 
               />
             </TouchableOpacity>
           </View>
@@ -277,7 +285,7 @@ export default function TourDetailSheet({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
           >
-            {/* Title & Rating */}
+            {/* Title & Location */}
             <View style={styles.headerRow}>
               <View style={styles.titleSection}>
                 <Text style={[styles.title, { color: colors.text }]}>
@@ -285,14 +293,6 @@ export default function TourDetailSheet({
                 </Text>
                 <Text style={[styles.location, { color: colors.textSecondary }]}>
                   {currentTour.location}
-                </Text>
-              </View>
-              <View style={styles.ratingSection}>
-                <Text style={[styles.ratingScore, { color: colors.text }]}>
-                  {currentTour.rating}/5
-                </Text>
-                <Text style={[styles.reviewCount, { color: colors.textSecondary }]}>
-                  {currentTour.reviewCount} değerlendirme
                 </Text>
               </View>
             </View>
@@ -360,7 +360,10 @@ export default function TourDetailSheet({
                       <View style={styles.upcomingGradient} />
                       {/* Arrow Button */}
                       <TouchableOpacity 
-                        style={styles.upcomingArrow}
+                        style={[
+                          styles.upcomingArrow,
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(255, 255, 255, 0.95)' }
+                        ]}
                         onPress={() => handleRelatedTourPress(relatedTour)}
                       >
                         <Ionicons name="arrow-forward" size={16} color="#000" />
@@ -400,9 +403,28 @@ export default function TourDetailSheet({
             ]}
           >
             <View style={styles.priceContainer}>
-              <Text style={[styles.ctaPrice, { color: colors.text }]}>
-                {currentTour.currency}{currentTour.price}
-              </Text>
+              <View style={styles.priceRow}>
+                <Text style={[styles.ctaPrice, { color: colors.text }]}>
+                  {currentTour.currency}{currentTour.price}
+                </Text>
+                <TouchableOpacity
+                  style={styles.priceInfoButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'Fiyat Bilgisi',
+                      'Fiyatlar tahmini fiyatlardır. Lütfen güncel fiyatları gözden geçiriniz.',
+                      [{ text: 'Tamam', style: 'default' }]
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={18}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             <TouchableOpacity
               style={[styles.bookButton, { backgroundColor: colors.primary }]}
@@ -415,6 +437,13 @@ export default function TourDetailSheet({
           </View>
         </View>
       </Animated.View>
+
+      {/* Paywall Sheet */}
+      <PaywallSheet
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="favorites"
+      />
     </Modal>
   );
 }
@@ -455,12 +484,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -590,7 +618,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -642,8 +669,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   priceContainer: {
+    flexDirection: 'column',
+  },
+  priceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    gap: 6,
+  },
+  priceInfoButton: {
+    padding: 2,
   },
   ctaPrice: {
     fontSize: 24,

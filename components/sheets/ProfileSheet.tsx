@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore, useThemeStore } from '@/stores';
@@ -35,27 +36,29 @@ const memberClassColors: Record<string, string> = {
   'Business': '#3B82F6',
 };
 
-const personalDetailsItems = [
-  { label: 'Kişisel Bilgiler', icon: 'person-outline', route: '/profile/personal-info' },
-  { label: 'Kimlik Bilgileri', icon: 'card-outline', route: '' },
-  { label: 'Ödeme Yöntemleri', icon: 'wallet-outline', route: '' },
-  { label: 'Tur Tercihleri', icon: 'options-outline', route: '' },
-];
+// Menu keys matching profile.tsx structure
+const PERSONAL_DETAILS_KEYS = [
+  { key: 'personalInfo', icon: 'person-outline', route: '/profile/personal-info' },
+  { key: 'idInfo', icon: 'card-outline', route: '/profile/id-info' },
+  { key: 'paymentMethods', icon: 'wallet-outline', route: '/profile/payment-methods' },
+  { key: 'tourPreferences', icon: 'options-outline', route: '/profile/tour-preferences' },
+] as const;
 
-const supportItems = [
-  { label: 'Yardım', route: '/profile/help' },
-  { label: 'İletişim', route: '/profile/contact' },
-];
+const SUPPORT_KEYS = [
+  { key: 'help', route: '/profile/help' },
+  { key: 'contact', route: '/profile/contact' },
+] as const;
 
-const adminMenuItems = [
-  { label: 'Yönetim Menüsü', icon: 'settings-outline', route: '/admin/menu' },
-];
+const ADMIN_MENU_KEYS = [
+  { key: 'adminMenu', icon: 'settings-outline', route: '/admin/menu' },
+] as const;
 
 export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   // Auth store
   const { profile, user, signOut } = useAuthStore();
@@ -65,19 +68,38 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
 
   // Dynamic account info based on profile
   const accountInfoItems = [
-    { label: 'Üye No', value: profile?.member_number || '-', route: '' },
-    { label: 'Üyelik Sınıfı', value: profile?.member_class || 'Normal', route: '' },
-    { label: 'Üyelik Kartı', value: '', hasArrow: true, route: '/profile/membership-card' },
+    { label: t('profile.memberNumber'), value: profile?.member_number || '-', route: '' },
+    { label: t('profile.memberClass'), value: profile?.member_class || 'Normal', route: '' },
+    { label: t('profile.memberCard'), value: '', hasArrow: true, route: '/profile/membership-card' },
+    { label: t('profile.myPanel'), value: '', hasArrow: true, route: '/profile/my-panel' },
   ];
+
+  // Translated menu items
+  const personalDetailsItems = PERSONAL_DETAILS_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    icon: item.icon,
+    route: item.route,
+  }));
+
+  const supportItems = SUPPORT_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    route: item.route,
+  }));
+
+  const adminMenuItems = ADMIN_MENU_KEYS.map((item) => ({
+    label: t(`profile.${item.key}`),
+    icon: item.icon,
+    route: item.route,
+  }));
 
   const handleLogout = () => {
     Alert.alert(
-      'Çıkış Yap',
-      'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
+      t('auth.logout'),
+      t('auth.logoutConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Çıkış Yap',
+          text: t('auth.logout'),
           style: 'destructive',
           onPress: async () => {
             closeSheet();
@@ -193,9 +215,9 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={closeSheet} style={styles.closeButton}>
-              <Text style={[styles.doneText, { color: colors.primary }]}>Kapat</Text>
+              <Text style={[styles.doneText, { color: colors.primary }]}>{t('common.close')}</Text>
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Profil</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
             <TouchableOpacity 
               style={[
                 styles.settingsButton,
@@ -221,17 +243,17 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                 />
               </View>
               <Text style={[styles.userName, { color: colors.text }]}>
-                {profile?.full_name || user?.user_metadata?.full_name || 'Kullanıcı'}
+                {profile?.full_name || user?.user_metadata?.full_name || t('profile.defaultUser')}
               </Text>
               <Text style={[styles.memberType, { color: memberClassColor }]}>
-                {profile?.member_class || 'Normal'} Üye
+                {profile?.member_class || 'Normal'} {t('profile.memberSuffix')}
               </Text>
             </View>
 
             {/* Account Information Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                HESAP BİLGİLERİ
+                {t('profile.accountInfo').toUpperCase()}
               </Text>
               <View
                 style={[
@@ -274,7 +296,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
             {/* Personal Details Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                KİŞİSEL DETAYLAR
+                {t('profile.personalDetails').toUpperCase()}
               </Text>
               <View
                 style={[
@@ -308,7 +330,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
             {/* Support Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                DESTEK
+                {t('profile.support').toUpperCase()}
               </Text>
               <View
                 style={[
@@ -342,7 +364,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
             {/* Admin Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                YÖNETİM
+                {t('profile.admin').toUpperCase()}
               </Text>
               <View
                 style={[
@@ -366,12 +388,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                     activeOpacity={0.7}
                     onPress={() => handleNavigate(item.route)}
                   >
-                    <View style={styles.adminMenuItem}>
-                      <View style={[styles.adminMenuIcon, { backgroundColor: colors.primary + '15' }]}>
-                        <Ionicons name={item.icon as any} size={20} color={colors.primary} />
-                      </View>
-                      <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
-                    </View>
+                    <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
                     <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 ))}
@@ -390,12 +407,12 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
               onPress={handleLogout}
             >
               <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-              <Text style={styles.logoutText}>Çıkış Yap</Text>
+              <Text style={styles.logoutText}>{t('auth.logout')}</Text>
             </TouchableOpacity>
 
             {/* App Version */}
             <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-              Versiyon 1.0.0
+              {t('profile.version')} 1.0.0
             </Text>
           </ScrollView>
         </View>
@@ -548,18 +565,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '400',
-  },
-  adminMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  adminMenuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',

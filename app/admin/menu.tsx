@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
-  useColorScheme,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,7 +30,7 @@ import {
   Category 
 } from '@/lib/tourService';
 import { featuredTours } from '@/constants/Tours';
-import { useAuthStore, useCommunityStore } from '@/stores';
+import { useAuthStore, useCommunityStore, useThemeStore } from '@/stores';
 import {
   getAllNotifications,
   createNotification,
@@ -70,7 +69,7 @@ const AVAILABLE_ICONS = [
 ];
 
 export default function AdminMenuScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';

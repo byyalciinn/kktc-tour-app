@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 import { useEffect, useCallback, useState } from 'react';
 import {
   Image,
@@ -12,14 +14,18 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const { width } = Dimensions.get('window');
+
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
-import { useFavoritesStore, useAuthStore, useUIStore, useThemeStore } from '@/stores';
+import { useFavoritesStore, useAuthStore, useUIStore, useThemeStore, useSubscriptionStore, FREE_TIER_LIMITS } from '@/stores';
 import { TourDetailSheet } from '@/components/sheets';
-import { FavoritesEmptyState, LoginRequiredEmptyState, FavoritesScreenSkeleton } from '@/components/ui';
+import { FavoritesEmptyState, LoginRequiredEmptyState, FavoritesScreenSkeleton, PaywallSheet } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 import { FavoriteCard } from '@/components/cards';
 
@@ -43,8 +49,15 @@ export default function FavoritesScreen() {
     openTourDetail, 
     closeTourDetail 
   } = useUIStore();
+  
+  const { isPremium, getRemainingFavorites } = useSubscriptionStore();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  
+  // Computed values
+  const isPremiumUser = isPremium();
+  const remainingSlots = getRemainingFavorites(favorites.length);
 
   // Load favorites when user changes
   useEffect(() => {
@@ -112,13 +125,36 @@ export default function FavoritesScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {t('favorites.title')}
-          </Text>
-          {favorites.length > 0 && (
-            <Text style={[styles.headerCount, { color: colors.textSecondary }]}> 
-              {t('favorites.countLabel', { count: favorites.length })}
+          <View style={styles.headerLeft}>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              {t('favorites.title')}
             </Text>
+            {favorites.length > 0 && (
+              <Text style={[styles.headerCount, { color: colors.textSecondary }]}> 
+                {t('favorites.countLabel', { count: favorites.length })}
+              </Text>
+            )}
+          </View>
+          
+          {/* Premium Badge or Remaining Slots */}
+          {user && (
+            isPremiumUser ? (
+              <View style={[styles.premiumBadge, { backgroundColor: 'rgba(255, 215, 0, 0.15)' }]}>
+                <Ionicons name="diamond" size={14} color="#FFD700" />
+                <Text style={styles.premiumBadgeText}>Premium</Text>
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.slotIndicator, { backgroundColor: colors.card }]}
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.slotText, { color: colors.text }]}>
+                  {remainingSlots}/{FREE_TIER_LIMITS.maxFavorites}
+                </Text>
+                <Ionicons name="add-circle" size={16} color={colors.primary} />
+              </TouchableOpacity>
+            )
           )}
         </View>
 
@@ -179,18 +215,86 @@ export default function FavoritesScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="heart-outline"
-              size={64}
-              color={colors.textSecondary}
-            />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              {t('favorites.empty')}
-            </Text>
-            <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              {t('favorites.emptySubtitle')}
-            </Text>
+          /* Premium Empty State */
+          <View style={styles.emptyStateContainer}>
+            {/* Decorative Background Elements */}
+            <View style={styles.emptyStateDecor}>
+              <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: `${colors.primary}10` }]} />
+              <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: `${colors.primary}08` }]} />
+              <View style={[styles.decorCircle, styles.decorCircle3, { backgroundColor: `${colors.primary}05` }]} />
+            </View>
+            
+            {/* Main Content */}
+            <View style={styles.emptyStateContent}>
+              {/* Animated Heart Icon */}
+              <View style={styles.emptyIconWrapper}>
+                <LinearGradient
+                  colors={[`${colors.primary}20`, `${colors.primary}10`]}
+                  style={styles.emptyIconGradient}
+                >
+                  <View style={[styles.emptyIconInner, { backgroundColor: `${colors.primary}15` }]}>
+                    <Ionicons name="heart" size={48} color={colors.primary} />
+                  </View>
+                </LinearGradient>
+                {/* Floating hearts decoration */}
+                <View style={[styles.floatingHeart, styles.floatingHeart1]}>
+                  <Ionicons name="heart" size={16} color={`${colors.primary}40`} />
+                </View>
+                <View style={[styles.floatingHeart, styles.floatingHeart2]}>
+                  <Ionicons name="heart" size={12} color={`${colors.primary}30`} />
+                </View>
+                <View style={[styles.floatingHeart, styles.floatingHeart3]}>
+                  <Ionicons name="heart" size={14} color={`${colors.primary}35`} />
+                </View>
+              </View>
+              
+              {/* Text Content */}
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {t('favorites.empty')}
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                {t('favorites.emptySubtitle')}
+              </Text>
+              
+              {/* CTA Button */}
+              <TouchableOpacity
+                style={styles.exploreCTAButton}
+                onPress={() => router.push('/(tabs)')}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[colors.primary, '#E8354D']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.exploreCTAGradient}
+                >
+                  <Ionicons name="compass-outline" size={20} color="#FFF" />
+                  <Text style={styles.exploreCTAText}>
+                    {t('favorites.exploreTours')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              {/* Feature hints */}
+              <View style={styles.featureHints}>
+                <View style={styles.featureHint}>
+                  <View style={[styles.featureHintIcon, { backgroundColor: `${colors.primary}10` }]}>
+                    <Ionicons name="bookmark-outline" size={16} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.featureHintText, { color: colors.textSecondary }]}>
+                    {t('favorites.hint1')}
+                  </Text>
+                </View>
+                <View style={styles.featureHint}>
+                  <View style={[styles.featureHintIcon, { backgroundColor: `${colors.primary}10` }]}>
+                    <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.featureHintText, { color: colors.textSecondary }]}>
+                    {t('favorites.hint2')}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -200,6 +304,13 @@ export default function FavoritesScreen() {
         tour={selectedTour}
         visible={isTourDetailVisible}
         onClose={handleCloseSheet}
+      />
+
+      {/* Paywall Sheet */}
+      <PaywallSheet
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="favorites"
       />
     </View>
   );
@@ -219,7 +330,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
     alignItems: 'baseline',
+    gap: 8,
   },
   headerTitle: {
     fontSize: 32,
@@ -228,6 +344,31 @@ const styles = StyleSheet.create({
   headerCount: {
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  premiumBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFD700',
+  },
+  slotIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 6,
+  },
+  slotText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   loadingState: {
     flex: 1,
@@ -296,14 +437,138 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 100,
   },
+  // Premium Empty State Styles
+  emptyStateContainer: {
+    flex: 1,
+    paddingTop: 40,
+    position: 'relative',
+  },
+  emptyStateDecor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
+  decorCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  decorCircle1: {
+    width: 200,
+    height: 200,
+    top: -50,
+    right: -80,
+  },
+  decorCircle2: {
+    width: 150,
+    height: 150,
+    top: 100,
+    left: -60,
+  },
+  decorCircle3: {
+    width: 120,
+    height: 120,
+    bottom: 50,
+    right: -40,
+  },
+  emptyStateContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyIconWrapper: {
+    position: 'relative',
+    marginBottom: 32,
+  },
+  emptyIconGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyIconInner: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingHeart: {
+    position: 'absolute',
+  },
+  floatingHeart1: {
+    top: -5,
+    right: 5,
+  },
+  floatingHeart2: {
+    top: 20,
+    left: -10,
+  },
+  floatingHeart3: {
+    bottom: 10,
+    right: -5,
+  },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginTop: 16,
+    fontSize: 24,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   emptySubtitle: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  exploreCTAButton: {
+    marginBottom: 40,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#F03A52',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  exploreCTAGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  exploreCTAText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  featureHints: {
+    width: '100%',
+    gap: 16,
+  },
+  featureHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+  },
+  featureHintIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  featureHintText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    lineHeight: 20,
   },
 });

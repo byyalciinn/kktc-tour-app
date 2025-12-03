@@ -1,14 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Dimensions,
-  Image,
   Modal,
   PanResponder,
   Platform,
@@ -18,18 +15,81 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { PROVIDER_DEFAULT } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, selectCategories, selectHighlightedRoutes } from '@/stores';
+import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, selectCategories, selectHighlightedRoutes, selectRoutes } from '@/stores';
 import { Tour, Category, ThematicRoute } from '@/types';
 import { TourDetailSheet, RouteDetailSheet } from '@/components/sheets';
 import { RouteCard } from '@/components/cards';
+import { MapMarkers } from '@/components/map';
+import { useLocation } from '@/hooks';
+import { LocationPermissionModal } from '@/components/ui';
+import CachedImage, { prefetchImages } from '@/components/ui/CachedImage';
 
 // View All Modal Types
 type ViewAllType = 'routes' | 'tours' | null;
+
+// Memoized Tour Card Component for better performance
+interface TourListItemProps {
+  tour: Tour;
+  onPress: (tour: Tour) => void;
+  isDark: boolean;
+  colors: typeof Colors.light | typeof Colors.dark;
+}
+
+const TourListItem = memo(function TourListItem({ 
+  tour, 
+  onPress, 
+  isDark, 
+  colors 
+}: TourListItemProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.tourCard,
+        {
+          backgroundColor: isDark ? 'rgba(30,30,30,0.92)' : 'rgba(255,255,255,0.85)',
+          borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)',
+        },
+      ]}
+      activeOpacity={0.9}
+      onPress={() => onPress(tour)}
+    >
+      <CachedImage 
+        uri={tour.image} 
+        style={styles.tourImage} 
+        fallbackIcon="map-outline" 
+        priority="normal"
+        skeletonColor={isDark ? '#374151' : '#E5E7EB'}
+      />
+      <View style={styles.tourContent}>
+        <Text
+          style={[styles.tourName, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {tour.title}
+        </Text>
+        <View style={styles.tourInfo}>
+          <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
+          <Text style={[styles.tourLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
+            {tour.location}
+          </Text>
+        </View>
+        <View style={styles.tourPriceRow}>
+          <Text style={[styles.tourPrice, { color: colors.primary }]}>
+            {tour.currency}{tour.price}
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.tourArrow, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)' }]}>
+        <Ionicons name="chevron-forward" size={18} color={isDark ? '#FFF' : colors.textSecondary} />
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,7 +127,9 @@ export default function ExploreScreen() {
 
   // Route store for thematic routes
   const highlightedRoutes = useRouteStore(selectHighlightedRoutes);
+  const allRoutes = useRouteStore(selectRoutes);
   const fetchHighlightedRoutes = useRouteStore((state) => state.fetchHighlightedRoutes);
+  const fetchAllRoutes = useRouteStore((state) => state.fetchRoutes);
   const isLoadingRoutes = useRouteStore((state) => state.isLoadingHighlighted);
 
   // Route detail sheet state
@@ -77,48 +139,76 @@ export default function ExploreScreen() {
   // View All modal state
   const [viewAllType, setViewAllType] = useState<ViewAllType>(null);
 
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [address, setAddress] = useState<string>(t('explore.addressFetching'));
-  const [loading, setLoading] = useState(true);
+  // Use the location hook for centralized location management
+  const {
+    location,
+    address,
+    isLoading: locationLoading,
+    isPermissionDenied,
+    requestLocation,
+    openLocationSettings,
+  } = useLocation({
+    autoRequest: true,
+    enableGeocoding: true,
+    translations: {
+      defaultLocation: t('home.defaultLocation'),
+      fetchingAddress: t('explore.addressFetching'),
+      currentLocation: t('explore.currentLocation'),
+    },
+  });
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [region, setRegion] = useState(DEFAULT_REGION);
   const [isLocationEnabled, setIsLocationEnabled] = useState(true);
   const [selectedMapTour, setSelectedMapTour] = useState<Tour | null>(null);
-  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
-  // Bottom sheet animation
+  // Bottom sheet animation - improved gesture handling
   const sheetHeight = useRef(new Animated.Value(SHEET_MIN_HEIGHT)).current;
-  const lastGestureDy = useRef(0);
   const currentHeight = useRef(SHEET_MIN_HEIGHT);
+  const isDragging = useRef(false);
+  
+  // Track if data is ready to prevent UI blocking
+  const [isDataReady, setIsDataReady] = useState(false);
 
-  const panResponder = useRef(
+  // Snap to a specific height with animation
+  const snapToHeight = useCallback((targetHeight: number) => {
+    currentHeight.current = targetHeight;
+    Animated.spring(sheetHeight, {
+      toValue: targetHeight,
+      useNativeDriver: false,
+      damping: 25,
+      stiffness: 250,
+      mass: 0.8,
+    }).start();
+  }, [sheetHeight]);
+
+  // Track if sheet is at max height to allow ScrollView to scroll
+  const isSheetExpanded = useRef(false);
+
+  const panResponder = useMemo(() => 
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
-      },
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        lastGestureDy.current = 0;
+        isDragging.current = true;
+        sheetHeight.stopAnimation();
       },
       onPanResponderMove: (_, gestureState) => {
         const newHeight = currentHeight.current - gestureState.dy;
-        if (newHeight >= SHEET_MIN_HEIGHT && newHeight <= SHEET_MAX_HEIGHT) {
-          sheetHeight.setValue(newHeight);
-        }
+        const clampedHeight = Math.max(SHEET_MIN_HEIGHT, Math.min(SHEET_MAX_HEIGHT, newHeight));
+        sheetHeight.setValue(clampedHeight);
       },
       onPanResponderRelease: (_, gestureState) => {
+        isDragging.current = false;
         const newHeight = currentHeight.current - gestureState.dy;
         let snapPoint = SHEET_MIN_HEIGHT;
 
-        // Determine snap point based on velocity and position
         if (gestureState.vy < -0.5) {
-          // Fast swipe up
           snapPoint = SHEET_MAX_HEIGHT;
         } else if (gestureState.vy > 0.5) {
-          // Fast swipe down
           snapPoint = SHEET_MIN_HEIGHT;
         } else {
-          // Snap to nearest point
           const distances = [
             { point: SHEET_MIN_HEIGHT, distance: Math.abs(newHeight - SHEET_MIN_HEIGHT) },
             { point: SHEET_MID_HEIGHT, distance: Math.abs(newHeight - SHEET_MID_HEIGHT) },
@@ -128,16 +218,15 @@ export default function ExploreScreen() {
           snapPoint = distances[0].point;
         }
 
-        currentHeight.current = snapPoint;
-        Animated.spring(sheetHeight, {
-          toValue: snapPoint,
-          useNativeDriver: false,
-          damping: 20,
-          stiffness: 200,
-        }).start();
+        isSheetExpanded.current = snapPoint === SHEET_MAX_HEIGHT;
+        snapToHeight(snapPoint);
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
+        snapToHeight(currentHeight.current);
       },
     })
-  ).current;
+  , [sheetHeight, snapToHeight]);
 
   // Filter tours by category - only show tours with coordinates (memoized)
   const filteredTours = useMemo(() => {
@@ -164,70 +253,59 @@ export default function ExploreScreen() {
     return map;
   }, [categories]);
 
-  // Load data on mount
+  // Load data on mount with delayed rendering
   useEffect(() => {
-    fetchCategories();
-    fetchTours();
-    fetchHighlightedRoutes();
-  }, [fetchCategories, fetchTours, fetchHighlightedRoutes]);
+    const loadData = async () => {
+      await Promise.all([
+        fetchCategories(),
+        fetchTours(),
+        fetchHighlightedRoutes(),
+        fetchAllRoutes(),
+      ]);
+      // Small delay to let UI settle
+      setTimeout(() => setIsDataReady(true), 100);
+    };
+    loadData();
+  }, [fetchCategories, fetchTours, fetchHighlightedRoutes, fetchAllRoutes]);
 
-  // Request location permission and get current location
-  const requestLocationPermission = async () => {
-    try {
-      setLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        setLocationPermissionDenied(true);
-        setAddress(t('home.defaultLocation'));
-        setLoading(false);
-        return;
-      }
+  // Prefetch tour images for faster loading
+  useEffect(() => {
+    if (tours.length > 0) {
+      // Prefetch first 10 tour images
+      const imageUrls = tours.slice(0, 10).map(tour => tour.image).filter(Boolean);
+      prefetchImages(imageUrls);
+    }
+  }, [tours]);
 
-      setLocationPermissionDenied(false);
-      
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      
-      setLocation(currentLocation);
-      
-      // Update region to user's location
+  // Prefetch route images
+  useEffect(() => {
+    if (highlightedRoutes.length > 0) {
+      const imageUrls = highlightedRoutes.map(route => route.coverImage).filter(Boolean);
+      prefetchImages(imageUrls);
+    }
+  }, [highlightedRoutes]);
+
+  // Update region when location changes
+  useEffect(() => {
+    if (location) {
       const newRegion = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       };
       setRegion(newRegion);
-
-      // Get address from coordinates
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-
-      if (addressResult) {
-        const formattedAddress = [
-          addressResult.street,
-          addressResult.district,
-          addressResult.city,
-        ]
-          .filter(Boolean)
-          .join(', ');
-        setAddress(formattedAddress || t('explore.currentLocation'));
-      }
-    } catch (error) {
-      console.log('Location error:', error);
-      setAddress(t('home.defaultLocation'));
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [location]);
 
-  useEffect(() => {
-    requestLocationPermission();
-  }, []);
+  // Show location modal when permission is denied and user tries to use location features
+  const handleLocationPermissionRequest = useCallback(() => {
+    if (isPermissionDenied) {
+      setShowLocationModal(true);
+    } else {
+      requestLocation();
+    }
+  }, [isPermissionDenied, requestLocation]);
 
   const handleBackPress = () => {
     // Navigate back or handle back action
@@ -273,15 +351,29 @@ export default function ExploreScreen() {
   // Toggle location tracking (memoized)
   const toggleLocationTracking = useCallback(() => {
     if (!location && !isLocationEnabled) {
-      Alert.alert(
-        t('explore.locationPermissionTitle'),
-        t('explore.locationPermissionSubtitle'),
-        [{ text: t('common.done') }]
-      );
+      handleLocationPermissionRequest();
       return;
     }
     setIsLocationEnabled(prev => !prev);
-  }, [location, isLocationEnabled, t]);
+  }, [location, isLocationEnabled, handleLocationPermissionRequest]);
+
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const revalidateRoutes = useRouteStore((state) => state.revalidate);
+
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchCategories(),
+        fetchTours(),
+        revalidateRoutes(),
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchCategories, fetchTours, revalidateRoutes]);
 
   return (
     <View style={styles.container}>
@@ -298,30 +390,44 @@ export default function ExploreScreen() {
           showsMyLocationButton={false}
           showsCompass={false}
         >
-          {/* Tour Markers - optimized with tracksViewChanges=false and memoized icon lookup */}
-          {filteredTours.map((tour) => (
-            <Marker
-              key={tour.id}
-              coordinate={{
-                latitude: tour.latitude!,
-                longitude: tour.longitude!,
-              }}
-              onPress={() => handleTourPress(tour)}
-              tracksViewChanges={false}
-            >
-              <View style={styles.markerContainer}>
-                <View style={[styles.marker, { backgroundColor: colors.primary }]}>
-                  <Ionicons
-                    name={(categoryIconMap[tour.category] || 'location') as any}
-                    size={16}
-                    color="#FFF"
-                  />
-                </View>
-                <View style={[styles.markerArrow, { borderTopColor: colors.primary }]} />
-              </View>
-            </Marker>
-          ))}
+          {/* Tour Markers - using memoized MapMarkers component */}
+          <MapMarkers
+            tours={filteredTours}
+            categoryIconMap={categoryIconMap}
+            primaryColor={colors.primary}
+            onMarkerPress={handleTourPress}
+          />
         </MapView>
+
+        {/* Refresh Button - Left Side */}
+        <View style={[styles.refreshButtonContainer, { top: insets.top + 10 }]}>
+          {Platform.OS === 'ios' ? (
+            <BlurView
+              intensity={80}
+              tint={isDark ? 'dark' : 'light'}
+              style={styles.liquidGlassBlur}
+            />
+          ) : (
+            <View 
+              style={[
+                styles.liquidGlassBlur, 
+                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
+              ]} 
+            />
+          )}
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+            activeOpacity={0.8}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Liquid Glass Location Toggle Button */}
         <View style={[styles.locationToggleContainer, { top: insets.top + 10 }]}>
@@ -388,10 +494,10 @@ export default function ExploreScreen() {
           },
         ]}
       >
-        {/* Blur Background */}
+        {/* Blur Background - increased opacity for better readability */}
         {Platform.OS === 'ios' ? (
           <BlurView
-            intensity={isDark ? 50 : 80}
+            intensity={isDark ? 70 : 80}
             tint={isDark ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
@@ -399,12 +505,12 @@ export default function ExploreScreen() {
           <View 
             style={[
               StyleSheet.absoluteFill, 
-              { backgroundColor: isDark ? 'rgba(26,26,26,0.92)' : 'rgba(255,255,255,0.92)' }
+              { backgroundColor: isDark ? 'rgba(20,20,20,0.96)' : 'rgba(255,255,255,0.92)' }
             ]} 
           />
         )}
         
-        {/* Drag Handle */}
+        {/* Drag Handle - captures pan gestures */}
         <View 
           style={styles.handleContainer}
           {...panResponder.panHandlers}
@@ -412,7 +518,7 @@ export default function ExploreScreen() {
           <View
             style={[
               styles.handle,
-              { backgroundColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)' },
+              { backgroundColor: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.25)' },
             ]}
           />
         </View>
@@ -421,11 +527,15 @@ export default function ExploreScreen() {
         <ScrollView 
           style={styles.sheetContent}
           showsVerticalScrollIndicator={false}
-          bounces={false}
+          bounces={true}
+          scrollEnabled={true}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={true}
           contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         >
           {/* Location Permission Banner */}
-          {locationPermissionDenied && (
+          {isPermissionDenied && (
             <TouchableOpacity
               style={[
                 styles.permissionBanner,
@@ -434,7 +544,7 @@ export default function ExploreScreen() {
                   borderColor: isDark ? 'rgba(240,58,82,0.3)' : 'rgba(240,58,82,0.2)',
                 },
               ]}
-              onPress={requestLocationPermission}
+              onPress={() => setShowLocationModal(true)}
               activeOpacity={0.8}
             >
               <View style={styles.permissionBannerContent}>
@@ -448,12 +558,12 @@ export default function ExploreScreen() {
                   </Text>
                 </View>
               </View>
-              <Ionicons name="refresh-outline" size={18} color={colors.primary} />
+              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
             </TouchableOpacity>
           )}
 
           {/* Search Bar */}
-          <View
+          <TouchableOpacity
             style={[
               styles.searchBar,
               {
@@ -461,15 +571,16 @@ export default function ExploreScreen() {
                 borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
               },
             ]}
+            activeOpacity={0.7}
           >
             <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
             <Text
               style={[styles.searchText, { color: colors.textSecondary }]}
               numberOfLines={1}
             >
-              {loading ? t('explore.addressFetching') : (address || t('explore.searchPlaceholder'))}
+              {t('explore.searchPlaceholder')}
             </Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Suggested Routes Section */}
           {highlightedRoutes.length > 0 && (
@@ -518,12 +629,12 @@ export default function ExploreScreen() {
                       backgroundColor: isActive
                         ? colors.primary
                         : isDark
-                        ? 'rgba(255,255,255,0.08)'
+                        ? 'rgba(40,40,40,0.9)'
                         : 'rgba(255,255,255,0.7)',
                       borderColor: isActive
                         ? colors.primary
                         : isDark
-                        ? 'rgba(255,255,255,0.15)'
+                        ? 'rgba(255,255,255,0.2)'
                         : 'rgba(0,0,0,0.08)',
                     },
                   ]}
@@ -533,7 +644,7 @@ export default function ExploreScreen() {
                   <Ionicons
                     name={category.icon as any}
                     size={16}
-                    color={isActive ? '#FFF' : colors.textSecondary}
+                    color={isActive ? '#FFF' : (isDark ? 'rgba(255,255,255,0.85)' : colors.textSecondary)}
                   />
                   <Text
                     style={[
@@ -562,50 +673,19 @@ export default function ExploreScreen() {
             </View>
 
             {/* Tours - Vertical List */}
-            {loading ? (
+            {locationLoading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
               </View>
             ) : filteredTours.length > 0 ? (
-              filteredTours.map((tour: Tour) => (
-                <TouchableOpacity
+              filteredTours.slice(0, 10).map((tour: Tour) => (
+                <TourListItem
                   key={tour.id}
-                  style={[
-                    styles.tourCard,
-                    {
-                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.85)',
-                      borderColor: isDark
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'rgba(0,0,0,0.06)',
-                    },
-                  ]}
-                  activeOpacity={0.9}
-                  onPress={() => handleTourPress(tour)}
-                >
-                  <Image source={{ uri: tour.image }} style={styles.tourImage} />
-                  <View style={styles.tourContent}>
-                    <Text
-                      style={[styles.tourName, { color: colors.text }]}
-                      numberOfLines={1}
-                    >
-                      {tour.title}
-                    </Text>
-                    <View style={styles.tourInfo}>
-                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.tourLocation, { color: colors.textSecondary }]}>
-                        {tour.location}
-                      </Text>
-                    </View>
-                    <View style={styles.tourPriceRow}>
-                      <Text style={[styles.tourPrice, { color: colors.primary }]}>
-                        {tour.currency}{tour.price}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={[styles.tourArrow, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                    <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-                  </View>
-                </TouchableOpacity>
+                  tour={tour}
+                  onPress={handleTourPress}
+                  isDark={isDark}
+                  colors={colors}
+                />
               ))
             ) : (
               <View style={styles.emptyState}>
@@ -661,25 +741,40 @@ export default function ExploreScreen() {
             showsVerticalScrollIndicator={false}
           >
             {viewAllType === 'routes' ? (
-              // All Routes
-              highlightedRoutes.map((route: ThematicRoute) => (
+              // All Routes - show all routes from Supabase
+              allRoutes.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="compass-outline" size={48} color={colors.textSecondary} />
+                  <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                    {t('explore.noRoutes')}
+                  </Text>
+                  <Text style={[styles.emptyStateSubtext, { color: colors.textSecondary }]}>
+                    {t('explore.noRoutesSubtitle')}
+                  </Text>
+                </View>
+              ) : allRoutes.map((route: ThematicRoute) => (
                 <TouchableOpacity
                   key={route.id}
-                  style={[styles.viewAllRouteCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}
+                  style={[styles.viewAllRouteCard, { backgroundColor: isDark ? 'rgba(30,30,30,0.95)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}
                   onPress={() => {
                     setViewAllType(null);
                     setTimeout(() => handleRoutePress(route), 300);
                   }}
                   activeOpacity={0.8}
                 >
-                  <Image source={{ uri: route.coverImage }} style={styles.viewAllRouteImage} />
+                  <CachedImage 
+                    uri={route.coverImage} 
+                    style={styles.viewAllRouteImage} 
+                    fallbackIcon="compass-outline"
+                    skeletonColor={isDark ? '#374151' : '#E5E7EB'}
+                  />
                   <View style={styles.viewAllRouteContent}>
                     <Text style={[styles.viewAllRouteTitle, { color: colors.text }]} numberOfLines={2}>
                       {route.title}
                     </Text>
                     <View style={styles.viewAllRouteMeta}>
-                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.viewAllRouteLocation, { color: colors.textSecondary }]}>
+                      <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
+                      <Text style={[styles.viewAllRouteLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
                         {route.baseLocation}
                       </Text>
                     </View>
@@ -689,14 +784,14 @@ export default function ExploreScreen() {
                           {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
                         </Text>
                       </View>
-                      <View style={[styles.viewAllRouteBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                        <Text style={[styles.viewAllRouteBadgeText, { color: colors.textSecondary }]}>
+                      <View style={[styles.viewAllRouteBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Text style={[styles.viewAllRouteBadgeText, { color: isDark ? 'rgba(255,255,255,0.8)' : colors.textSecondary }]}>
                           {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stops')}
                         </Text>
                       </View>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={20} color={isDark ? '#FFF' : colors.textSecondary} />
                 </TouchableOpacity>
               ))
             ) : (
@@ -704,21 +799,26 @@ export default function ExploreScreen() {
               filteredTours.map((tour: Tour) => (
                 <TouchableOpacity
                   key={tour.id}
-                  style={[styles.viewAllTourCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}
+                  style={[styles.viewAllTourCard, { backgroundColor: isDark ? 'rgba(30,30,30,0.95)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}
                   onPress={() => {
                     setViewAllType(null);
                     setTimeout(() => handleTourPress(tour), 300);
                   }}
                   activeOpacity={0.8}
                 >
-                  <Image source={{ uri: tour.image }} style={styles.viewAllTourImage} />
+                  <CachedImage 
+                    uri={tour.image} 
+                    style={styles.viewAllTourImage} 
+                    fallbackIcon="map-outline"
+                    skeletonColor={isDark ? '#374151' : '#E5E7EB'}
+                  />
                   <View style={styles.viewAllTourContent}>
                     <Text style={[styles.viewAllTourTitle, { color: colors.text }]} numberOfLines={2}>
                       {tour.title}
                     </Text>
                     <View style={styles.viewAllTourMeta}>
-                      <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.viewAllTourLocation, { color: colors.textSecondary }]}>
+                      <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
+                      <Text style={[styles.viewAllTourLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
                         {tour.location}
                       </Text>
                     </View>
@@ -726,13 +826,27 @@ export default function ExploreScreen() {
                       {tour.currency}{tour.price}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={20} color={isDark ? '#FFF' : colors.textSecondary} />
                 </TouchableOpacity>
               ))
             )}
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Location Permission Modal */}
+      <LocationPermissionModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onOpenSettings={async () => {
+          setShowLocationModal(false);
+          await openLocationSettings();
+        }}
+        onRetry={() => {
+          setShowLocationModal(false);
+          requestLocation();
+        }}
+      />
     </View>
   );
 }
@@ -746,6 +860,27 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  // Refresh Button - Left Side
+  refreshButtonContainer: {
+    position: 'absolute',
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  refreshButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Liquid Glass Location Toggle Button
   locationToggleContainer: {
@@ -793,34 +928,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Marker styles
-  markerContainer: {
-    alignItems: 'center',
-  },
-  marker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    marginTop: -3,
-  },
   // Bottom Sheet - Liquid Glass Style
   bottomSheet: {
     position: 'absolute',
@@ -840,10 +947,14 @@ const styles = StyleSheet.create({
   },
   handleContainer: {
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    // Larger touch area for better gesture detection
+    minHeight: 44,
+    justifyContent: 'center',
   },
   handle: {
-    width: 40,
+    width: 44,
     height: 5,
     borderRadius: 3,
   },
@@ -1013,6 +1124,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    textAlign: 'center',
+    marginTop: 4,
   },
   // Suggested Routes Section
   routesSection: {

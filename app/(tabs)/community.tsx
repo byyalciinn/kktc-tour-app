@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Dimensions,
   FlatList,
@@ -20,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useCommunityStore, useAuthStore, useThemeStore } from '@/stores';
+import { useCommunityStore, useAuthStore, useThemeStore, useSubscriptionStore } from '@/stores';
 import { CommunityPost, CommunityPostType } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
@@ -46,6 +48,9 @@ export default function CommunityScreen() {
 
   // Auth
   const { user, profile } = useAuthStore();
+  
+  // Subscription - check if user has premium (Gold membership)
+  const isPremium = useSubscriptionStore(state => state.isPremium());
 
   // Community store
   const {
@@ -92,10 +97,19 @@ export default function CommunityScreen() {
     fetchPosts();
   }, []);
 
-  // Filter posts
-  const filteredPosts = activeFilter === 'all' 
-    ? posts 
-    : posts.filter(post => post.type === activeFilter);
+  // Filter posts and apply premium restriction
+  const filteredPosts = useMemo(() => {
+    let filtered = activeFilter === 'all' 
+      ? posts 
+      : posts.filter(post => post.type === activeFilter);
+    
+    // For non-premium users, only show first post
+    // Premium users see all posts
+    return filtered;
+  }, [posts, activeFilter]);
+  
+  // Check if user should see premium paywall
+  const showPremiumPaywall = !isPremium && filteredPosts.length > 1;
 
   // Handlers
   const handleRefresh = useCallback(() => {
@@ -132,16 +146,158 @@ export default function CommunityScreen() {
     setIsProfileSheetVisible(true);
   }, []);
 
+  // Handle delete post
+  const handleDeletePost = useCallback(async (post: CommunityPost) => {
+    const { deletePost } = useCommunityStore.getState();
+    const { success, error } = await deletePost(post.id);
+    if (!success && error) {
+      Alert.alert(t('common.error'), error);
+    }
+  }, [t]);
 
-  // Render post item
-  const renderPostItem = useCallback(({ item }: { item: CommunityPost }) => (
-    <CommunityPostCard
-      post={item}
-      onPress={handlePostPress}
-      onLikePress={handleLikePress}
-      isLiked={item.isLiked}
-    />
-  ), [handlePostPress, handleLikePress]);
+  // Handle report post with reason selection
+  const handleReportPost = useCallback((post: CommunityPost) => {
+    const { reportPost } = useCommunityStore.getState();
+    
+    // Report reasons
+    const reasons = [
+      { id: 'spam', label: t('community.reportReasons.spam') },
+      { id: 'inappropriate', label: t('community.reportReasons.inappropriate') },
+      { id: 'harassment', label: t('community.reportReasons.harassment') },
+      { id: 'misinformation', label: t('community.reportReasons.misinformation') },
+      { id: 'other', label: t('community.reportReasons.other') },
+    ];
+
+    Alert.alert(
+      t('community.reportTitle'),
+      t('community.reportMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        ...reasons.map(reason => ({
+          text: reason.label,
+          onPress: async () => {
+            const { success, error } = await reportPost(post.id, reason.id as any);
+            if (success) {
+              Alert.alert(
+                t('community.reportSuccess'),
+                t('community.reportSuccessMessage')
+              );
+            } else {
+              Alert.alert(
+                t('common.error'),
+                error || t('community.reportError')
+              );
+            }
+          },
+        })),
+      ]
+    );
+  }, [t]);
+
+  // Handle hide post (not interested)
+  const handleHidePost = useCallback(async (post: CommunityPost) => {
+    const { hidePost } = useCommunityStore.getState();
+    const { success, error } = await hidePost(post.id);
+    
+    if (success) {
+      // Post is already removed from local state by hidePost
+      Alert.alert(t('community.hiddenSuccess'));
+    } else {
+      Alert.alert(t('common.error'), error || t('community.hideError'));
+    }
+  }, [t]);
+
+  // Navigate to membership card for premium upgrade
+  const handleUpgradePress = useCallback(() => {
+    router.push('/profile/membership-card');
+  }, []);
+
+  // Render post item with premium paywall for non-premium users
+  const renderPostItem = useCallback(({ item, index }: { item: CommunityPost; index: number }) => {
+    // For non-premium users, show paywall on second post (index === 1)
+    if (!isPremium && index === 1) {
+      // Show blurred post with paywall overlay on top
+      return (
+        <View style={styles.premiumPostWrapper}>
+          {/* Blurred post preview */}
+          <View style={styles.blurredPostContainer}>
+            <CommunityPostCard
+              post={item}
+              onPress={() => {}}
+              onLikePress={() => {}}
+              isLiked={item.isLiked}
+            />
+            {/* Blur overlay - light blur so post is still partially visible */}
+            <View style={[
+              styles.blurOverlay,
+              { backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.5)' }
+            ]}>
+              {Platform.OS === 'ios' && (
+                <BlurView
+                  intensity={isDark ? 15 : 20}
+                  tint={isDark ? 'dark' : 'light'}
+                  style={StyleSheet.absoluteFill}
+                />
+              )}
+            </View>
+          </View>
+          
+          {/* Premium CTA - centered on the blurred post */}
+          <View style={styles.premiumCTAOverlay}>
+            <View
+              style={[
+                styles.premiumCTAGradient,
+                { 
+                  backgroundColor: isDark ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)',
+                  borderColor: isDark ? 'rgba(240,58,82,0.3)' : 'rgba(240,58,82,0.2)',
+                }
+              ]}
+            >
+              <View style={styles.premiumCTAContent}>
+                <View style={[styles.premiumIconContainer, { backgroundColor: isDark ? 'rgba(240,58,82,0.2)' : 'rgba(240,58,82,0.15)' }]}>
+                  <Ionicons name="diamond" size={28} color={colors.primary} />
+                </View>
+                <Text style={[styles.premiumCTATitle, { color: colors.text }]}>
+                  {t('community.premium.title')}
+                </Text>
+                <Text style={[styles.premiumCTASubtitle, { color: colors.textSecondary }]}>
+                  {t('community.premium.subtitle')}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.premiumCTAButton, { backgroundColor: colors.primary }]}
+                  onPress={handleUpgradePress}
+                  activeOpacity={0.9}
+                >
+                  <Ionicons name="star" size={18} color="#FFF" />
+                  <Text style={styles.premiumCTAButtonText}>
+                    {t('community.premium.button')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+    
+    // For non-premium users, don't show posts after index 1
+    if (!isPremium && index > 1) {
+      return null;
+    }
+    
+    // Normal post for premium users or first post
+    return (
+      <CommunityPostCard
+        post={item}
+        onPress={handlePostPress}
+        onLikePress={handleLikePress}
+        onDeletePress={handleDeletePost}
+        onReportPress={handleReportPost}
+        onHidePress={handleHidePost}
+        isLiked={item.isLiked}
+      />
+    );
+  }, [isPremium, isDark, colors, t, handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost, handleUpgradePress]);
 
   // Render header
   const renderHeader = useCallback(() => (
@@ -290,7 +446,7 @@ export default function CommunityScreen() {
       <FlatList
         data={filteredPosts}
         renderItem={renderPostItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}
@@ -507,5 +663,81 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 8,
+  },
+  // Premium Paywall Styles
+  premiumPostWrapper: {
+    position: 'relative',
+  },
+  blurredPostContainer: {
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 20,
+  },
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 20,
+  },
+  premiumCTAOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  premiumCTAGradient: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(240,58,82,0.2)',
+  },
+  premiumCTAContent: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+  },
+  premiumIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(240,58,82,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  premiumCTATitle: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  premiumCTASubtitle: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  premiumCTAButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 28,
+    gap: 8,
+    shadowColor: '#F03A52',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  premiumCTAButtonText: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFF',
   },
 });

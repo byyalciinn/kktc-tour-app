@@ -12,17 +12,17 @@ import {
   ActivityIndicator,
   Platform,
   RefreshControl,
-  useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 import { getTours, deleteTour, TourData } from '@/lib/tourService';
 import { featuredTours } from '@/constants/Tours';
 
 export default function AdminToursScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';

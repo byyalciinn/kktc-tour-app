@@ -3,3 +3,4 @@
  */
 
 export { default as TourMarker } from './TourMarker';
+export { MapMarkers } from './MapMarkers';

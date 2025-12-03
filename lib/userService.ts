@@ -10,6 +10,9 @@
 
 import { supabase } from './supabase';
 
+// Membership duration types
+export type MembershipDuration = '1_day' | '1_week' | '1_month' | '1_year' | 'unlimited';
+
 // User profile interface
 export interface UserProfile {
   id: string;
@@ -19,11 +22,13 @@ export interface UserProfile {
   phone: string | null;
   member_class: 'Normal' | 'Gold' | 'Business';
   member_number: string | null;
-  role: 'user' | 'admin' | 'moderator';
+  role: 'user' | 'admin';
   is_active: boolean;
   created_at: string;
   updated_at: string;
   last_sign_in_at: string | null;
+  // Membership expiry
+  membership_expires_at: string | null;
   // Stats
   post_count?: number;
   tour_booking_count?: number;
@@ -39,7 +44,7 @@ export interface UserListResult {
 
 export interface UserFilters {
   search?: string;
-  role?: 'user' | 'admin' | 'moderator' | 'all';
+  role?: 'user' | 'admin' | 'all';
   memberClass?: 'Normal' | 'Gold' | 'Business' | 'all';
   isActive?: boolean | 'all';
   sortBy?: 'created_at' | 'full_name' | 'last_sign_in_at';
@@ -253,19 +258,95 @@ export const toggleUserStatus = async (
  */
 export const updateUserRole = async (
   userId: string,
-  role: 'user' | 'admin' | 'moderator'
+  role: 'user' | 'admin'
 ): Promise<{ success: boolean; error: string | null }> => {
   return updateUserProfile(userId, { role });
 };
 
 /**
- * Update user member class
+ * Calculate expiry date based on duration
+ */
+const calculateExpiryDate = (duration: MembershipDuration): string | null => {
+  if (duration === 'unlimited') return null;
+  
+  const now = new Date();
+  switch (duration) {
+    case '1_day':
+      now.setDate(now.getDate() + 1);
+      break;
+    case '1_week':
+      now.setDate(now.getDate() + 7);
+      break;
+    case '1_month':
+      now.setMonth(now.getMonth() + 1);
+      break;
+    case '1_year':
+      now.setFullYear(now.getFullYear() + 1);
+      break;
+  }
+  return now.toISOString();
+};
+
+/**
+ * Update user member class with optional duration for Gold
  */
 export const updateUserMemberClass = async (
   userId: string,
-  memberClass: 'Normal' | 'Gold' | 'Business'
+  memberClass: 'Normal' | 'Gold' | 'Business',
+  duration?: MembershipDuration
 ): Promise<{ success: boolean; error: string | null }> => {
-  return updateUserProfile(userId, { member_class: memberClass });
+  try {
+    let expiresAt: string | null = null;
+    
+    // Gold membership requires duration
+    if (memberClass === 'Gold' && duration) {
+      expiresAt = calculateExpiryDate(duration);
+    } else if (memberClass === 'Normal') {
+      // Reset expiry when downgrading to Normal
+      expiresAt = null;
+    }
+    // Business is always unlimited
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        member_class: memberClass,
+        membership_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Check and reset expired memberships
+ */
+export const checkExpiredMemberships = async (): Promise<void> => {
+  try {
+    const now = new Date().toISOString();
+    
+    // Find expired Gold memberships and reset to Normal
+    await supabase
+      .from('profiles')
+      .update({
+        member_class: 'Normal',
+        membership_expires_at: null,
+        updated_at: now,
+      })
+      .eq('member_class', 'Gold')
+      .not('membership_expires_at', 'is', null)
+      .lt('membership_expires_at', now);
+  } catch (error) {
+    console.error('Check expired memberships error:', error);
+  }
 };
 
 /**

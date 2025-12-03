@@ -28,7 +28,10 @@ export {
   selectFavoriteIds,
   selectFavoriteCount,
   selectIsLoading as selectFavoritesLoading,
+  selectCanAddMoreFavorites,
+  selectRemainingFavoriteSlots,
 } from './favoritesStore';
+export type { FavoriteResult } from './favoritesStore';
 
 // UI store
 export { 
@@ -79,3 +82,33 @@ export {
 
 // Onboarding store
 export { useOnboardingStore } from './onboardingStore';
+
+// Scan store
+export {
+  useScanStore,
+  selectIsAnalyzing,
+  selectAnalysisResult,
+  selectScanHistory,
+  selectImageUri,
+} from './scanStore';
+
+// Subscription store
+export {
+  useSubscriptionStore,
+  selectIsPremium,
+  selectCurrentPlan,
+  selectSubscriptionStatus,
+  PLANS,
+  FREE_TIER_LIMITS,
+} from './subscriptionStore';
+export type { SubscriptionPlan, SubscriptionStatus, PlanInfo } from './subscriptionStore';
+
+// Two-Factor Authentication store
+export {
+  useTwoFactorStore,
+  selectIsPending,
+  selectPendingAuth,
+  selectTwoFactorEnabled,
+  selectIsLoadingSettings,
+  selectIsCheckingRequired,
+} from './twoFactorStore';

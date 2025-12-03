@@ -9,11 +9,10 @@
  * - No pricing (informational only)
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -28,6 +27,7 @@ import { Colors } from '@/constants/Colors';
 import { ThematicRoute } from '@/types';
 import { useThemeStore } from '@/stores';
 import { getThemeIcon, getDifficultyInfo } from '@/constants/ThematicRoutes';
+import CachedImage from '@/components/ui/CachedImage';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40; // Full width with padding
@@ -42,7 +42,7 @@ interface RouteCardProps {
 /**
  * Main RouteCard component with liquid glass design
  */
-export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProps) {
+export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'default' }: RouteCardProps) {
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
@@ -51,6 +51,11 @@ export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProp
   const themeIcon = getThemeIcon(route.theme);
   const difficultyInfo = getDifficultyInfo(route.difficulty);
   const themeLabel = t(`explore.themes.${route.theme}`) || route.theme;
+
+  // Debug: Log if coverImage is missing
+  if (__DEV__ && (!route.coverImage || !route.coverImage.trim())) {
+    console.warn(`[RouteCard] Missing coverImage for route: ${route.id} - ${route.title}`);
+  }
 
   if (variant === 'compact') {
     return (
@@ -61,10 +66,15 @@ export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProp
         accessibilityRole="button"
         accessibilityLabel={`${route.title}, ${route.baseLocation}`}
       >
-        <Image
-          source={{ uri: route.coverImage }}
+        <CachedImage
+          uri={route.coverImage}
           style={styles.compactImage}
-          accessibilityIgnoresInvertColors
+          fallbackIcon="compass-outline"
+          fallbackIconSize={48}
+          fallbackIconColor="rgba(255,255,255,0.5)"
+          priority="normal"
+          fadeIn={true}
+          skeletonColor="#374151"
         />
         
         {/* Gradient overlay */}
@@ -112,10 +122,15 @@ export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProp
       accessibilityRole="button"
       accessibilityLabel={`${route.title}, ${route.durationDays} gün, ${route.baseLocation}`}
     >
-      <Image
-        source={{ uri: route.coverImage }}
+      <CachedImage
+        uri={route.coverImage}
         style={styles.image}
-        accessibilityIgnoresInvertColors
+        fallbackIcon="compass-outline"
+        fallbackIconSize={64}
+        fallbackIconColor="rgba(255,255,255,0.5)"
+        priority="high"
+        fadeIn={true}
+        skeletonColor="#374151"
       />
 
       {/* Gradient overlay */}
@@ -254,7 +269,7 @@ export function RouteCard({ route, onPress, variant = 'default' }: RouteCardProp
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Default (large) card styles
@@ -271,9 +286,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   image: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
-    position: 'absolute',
+    backgroundColor: '#1F2937',
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
@@ -423,9 +439,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   compactImage: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
-    position: 'absolute',
+    backgroundColor: '#1F2937',
   },
   compactGradient: {
     ...StyleSheet.absoluteFillObject,

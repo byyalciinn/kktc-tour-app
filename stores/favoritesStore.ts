@@ -7,6 +7,16 @@ import {
   isTourFavorited,
   toggleFavorite as toggleFavoriteService,
 } from '@/lib/tourService';
+import { useSubscriptionStore, FREE_TIER_LIMITS } from './subscriptionStore';
+
+/**
+ * Result type for favorite operations with paywall info
+ */
+export interface FavoriteResult {
+  success: boolean;
+  error: string | null;
+  requiresUpgrade?: boolean;
+}
 
 interface FavoritesState {
   // State
@@ -23,14 +33,16 @@ interface FavoritesState {
 
   // Async actions
   fetchFavorites: (userId: string) => Promise<void>;
-  addFavorite: (userId: string, tour: Tour) => Promise<{ success: boolean; error: string | null }>;
-  removeFavorite: (userId: string, tourId: string) => Promise<{ success: boolean; error: string | null }>;
-  toggleFavorite: (userId: string, tour: Tour) => Promise<{ isFavorited: boolean; error: string | null }>;
+  addFavorite: (userId: string, tour: Tour) => Promise<FavoriteResult>;
+  removeFavorite: (userId: string, tourId: string) => Promise<FavoriteResult>;
+  toggleFavorite: (userId: string, tour: Tour) => Promise<{ isFavorited: boolean; error: string | null; requiresUpgrade?: boolean }>;
   checkIsFavorited: (userId: string, tourId: string) => Promise<boolean>;
 
   // Computed
   isFavorited: (tourId: string) => boolean;
   getFavoriteCount: () => number;
+  canAddMoreFavorites: () => boolean;
+  getRemainingFavoriteSlots: () => number;
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
@@ -92,7 +104,17 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   // Add tour to favorites
   addFavorite: async (userId: string, tour: Tour) => {
     if (!userId) {
-      return { success: false, error: 'Giriş yapmalısınız' };
+      return { success: false, error: 'Giriş yapmalısınız', requiresUpgrade: false };
+    }
+
+    // Check subscription limit
+    const { canAddMoreFavorites } = get();
+    if (!canAddMoreFavorites()) {
+      return { 
+        success: false, 
+        error: 'Favori limitinize ulaştınız', 
+        requiresUpgrade: true 
+      };
     }
 
     // Optimistic update
@@ -109,16 +131,16 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
         favorites: state.favorites.filter(f => f.id !== tour.id),
         favoriteIds: new Set([...state.favoriteIds].filter(id => id !== tour.id)),
       }));
-      return { success: false, error };
+      return { success: false, error, requiresUpgrade: false };
     }
 
-    return { success: true, error: null };
+    return { success: true, error: null, requiresUpgrade: false };
   },
 
   // Remove tour from favorites
   removeFavorite: async (userId: string, tourId: string) => {
     if (!userId) {
-      return { success: false, error: 'Giriş yapmalısınız' };
+      return { success: false, error: 'Giriş yapmalısınız', requiresUpgrade: false };
     }
 
     // Store current state for rollback
@@ -136,26 +158,26 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     if (!success) {
       // Rollback on error
       set({ favorites: previousFavorites, favoriteIds: previousIds });
-      return { success: false, error };
+      return { success: false, error, requiresUpgrade: false };
     }
 
-    return { success: true, error: null };
+    return { success: true, error: null, requiresUpgrade: false };
   },
 
   // Toggle favorite status
   toggleFavorite: async (userId: string, tour: Tour) => {
     if (!userId) {
-      return { isFavorited: false, error: 'Giriş yapmalısınız' };
+      return { isFavorited: false, error: 'Giriş yapmalısınız', requiresUpgrade: false };
     }
 
     const currentlyFavorited = get().isFavorited(tour.id);
 
     if (currentlyFavorited) {
-      const { success, error } = await get().removeFavorite(userId, tour.id);
-      return { isFavorited: !success, error };
+      const { success, error, requiresUpgrade } = await get().removeFavorite(userId, tour.id);
+      return { isFavorited: !success, error, requiresUpgrade };
     } else {
-      const { success, error } = await get().addFavorite(userId, tour);
-      return { isFavorited: success, error };
+      const { success, error, requiresUpgrade } = await get().addFavorite(userId, tour);
+      return { isFavorited: success, error, requiresUpgrade };
     }
   },
 
@@ -174,6 +196,20 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   getFavoriteCount: () => {
     return get().favorites.length;
   },
+
+  // Check if user can add more favorites based on subscription
+  canAddMoreFavorites: () => {
+    const currentCount = get().favorites.length;
+    const subscriptionStore = useSubscriptionStore.getState();
+    return subscriptionStore.canAddFavorite(currentCount);
+  },
+
+  // Get remaining favorite slots
+  getRemainingFavoriteSlots: () => {
+    const currentCount = get().favorites.length;
+    const subscriptionStore = useSubscriptionStore.getState();
+    return subscriptionStore.getRemainingFavorites(currentCount);
+  },
 }));
 
 // Selectors for optimized re-renders
@@ -181,3 +217,5 @@ export const selectFavorites = (state: FavoritesState) => state.favorites;
 export const selectFavoriteIds = (state: FavoritesState) => state.favoriteIds;
 export const selectIsLoading = (state: FavoritesState) => state.isLoading;
 export const selectFavoriteCount = (state: FavoritesState) => state.favorites.length;
+export const selectCanAddMoreFavorites = (state: FavoritesState) => state.canAddMoreFavorites();
+export const selectRemainingFavoriteSlots = (state: FavoritesState) => state.getRemainingFavoriteSlots();

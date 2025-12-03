@@ -26,9 +26,9 @@ export { ErrorBoundary } from './ErrorBoundary';
 
 export { LoadingScreen } from './LoadingScreen';
 
-export {
-  default as CachedImage,
-  CachedAvatar,
-  CachedTourImage,
-  CachedThumbnail,
-} from './CachedImage';
+export { default as CachedImage } from './CachedImage';
+export { CachedAvatar, CachedTourImage, CachedThumbnail } from './CachedImage';
+
+export { LocationPermissionModal } from './LocationPermissionModal';
+
+export { PaywallSheet } from './PaywallSheet';

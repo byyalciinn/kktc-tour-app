@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -11,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
+import CachedImage from '@/components/ui/CachedImage';
 
 interface TourCardProps {
   tour: Tour;
@@ -21,7 +21,7 @@ interface TourCardProps {
 /**
  * Tour card component for home screen
  */
-export function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
+export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -36,10 +36,12 @@ export function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
       accessibilityLabel={`${tour.title}, ${tour.location}, ${tour.currency}${tour.price} kişi başı`}
       accessibilityHint="Tur detaylarını görüntülemek için dokunun"
     >
-      <Image
-        source={{ uri: tour.image }}
+      <CachedImage
+        uri={tour.image}
         style={styles.image}
-        accessibilityIgnoresInvertColors
+        fallbackIcon="map-outline"
+        priority="normal"
+        fadeIn={true}
       />
       {/* Overlay gradient */}
       <View style={styles.gradient} />
@@ -76,12 +78,12 @@ export function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 /**
  * Compact tour card for related tours section
  */
-export function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCategoryName'>) {
+export const CompactTourCard = memo(function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCategoryName'>) {
   return (
     <TouchableOpacity
       style={styles.compactContainer}
@@ -90,10 +92,12 @@ export function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCateg
       accessibilityRole="button"
       accessibilityLabel={`${tour.title}, ${tour.location}`}
     >
-      <Image
-        source={{ uri: tour.image }}
+      <CachedImage
+        uri={tour.image}
         style={styles.compactImage}
-        accessibilityIgnoresInvertColors
+        fallbackIcon="image-outline"
+        priority="low"
+        fadeIn={true}
       />
       <View style={styles.compactGradient} />
       <TouchableOpacity style={styles.compactArrow}>
@@ -115,7 +119,7 @@ export function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCateg
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   // Main tour card

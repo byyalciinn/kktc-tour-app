@@ -14,8 +14,8 @@ import { decode } from 'base64-arraybuffer';
 const ROUTE_BUCKET = 'routes';
 
 /**
- * Get all thematic routes
- * Falls back to local data if Supabase fails or returns empty
+ * Get all thematic routes from Supabase
+ * Returns empty array if no routes in database (no fallback to local data)
  */
 export const getThematicRoutes = async (): Promise<{ 
   data: ThematicRoute[]; 
@@ -28,25 +28,26 @@ export const getThematicRoutes = async (): Promise<{
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.log('Thematic routes fetch error, using fallback:', error.message);
-      return { data: featuredRoutes, error: null };
+      console.log('Thematic routes fetch error:', error.message);
+      return { data: [], error: error.message };
     }
 
     if (!data || data.length === 0) {
-      console.log('No thematic routes in database, using fallback');
-      return { data: featuredRoutes, error: null };
+      console.log('No thematic routes in database');
+      return { data: [], error: null };
     }
 
     const routes = (data as ThematicRouteData[]).map(routeDataToRoute);
     return { data: routes, error: null };
   } catch (err: any) {
-    console.log('Thematic routes exception, using fallback:', err.message);
-    return { data: featuredRoutes, error: null };
+    console.log('Thematic routes exception:', err.message);
+    return { data: [], error: err.message };
   }
 };
 
 /**
  * Get highlighted/featured thematic routes for Explore screen
+ * Returns only routes from Supabase (no fallback to local data)
  */
 export const getHighlightedRoutes = async (): Promise<{ 
   data: ThematicRoute[]; 
@@ -61,22 +62,20 @@ export const getHighlightedRoutes = async (): Promise<{
       .limit(5);
 
     if (error) {
-      console.log('Highlighted routes fetch error, using fallback:', error.message);
-      const highlighted = featuredRoutes.filter(r => r.highlighted);
-      return { data: highlighted, error: null };
+      console.log('Highlighted routes fetch error:', error.message);
+      return { data: [], error: error.message };
     }
 
     if (!data || data.length === 0) {
-      const highlighted = featuredRoutes.filter(r => r.highlighted);
-      return { data: highlighted, error: null };
+      console.log('No highlighted routes in database');
+      return { data: [], error: null };
     }
 
     const routes = (data as ThematicRouteData[]).map(routeDataToRoute);
     return { data: routes, error: null };
   } catch (err: any) {
-    console.log('Highlighted routes exception, using fallback:', err.message);
-    const highlighted = featuredRoutes.filter(r => r.highlighted);
-    return { data: highlighted, error: null };
+    console.log('Highlighted routes exception:', err.message);
+    return { data: [], error: err.message };
   }
 };
 
