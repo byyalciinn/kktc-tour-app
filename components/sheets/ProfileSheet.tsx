@@ -14,6 +14,22 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+
+// SwiftUI components for iOS 26+ Liquid Glass design
+let ContextMenu: any = null;
+let Host: any = null;
+let Button: any = null;
+
+if (Platform.OS === 'ios') {
+  try {
+    const SwiftUI = require('@expo/ui/swift-ui');
+    ContextMenu = SwiftUI.ContextMenu;
+    Host = SwiftUI.Host;
+    Button = SwiftUI.Button;
+  } catch (e) {
+    // @expo/ui not installed, fallback to regular UI
+  }
+}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +63,7 @@ const PERSONAL_DETAILS_KEYS = [
 const SUPPORT_KEYS = [
   { key: 'help', route: '/profile/help' },
   { key: 'contact', route: '/profile/contact' },
+  { key: 'myTickets', route: '/profile/support-tickets' },
 ] as const;
 
 const ADMIN_MENU_KEYS = [
@@ -218,15 +235,60 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
               <Text style={[styles.doneText, { color: colors.primary }]}>{t('common.close')}</Text>
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
-            <TouchableOpacity 
-              style={[
-                styles.settingsButton,
-                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
-              ]}
-              onPress={() => handleNavigate('/profile/settings')}
-            >
-              <Ionicons name="settings-outline" size={22} color={colors.text} />
-            </TouchableOpacity>
+            <View style={styles.headerRightButtons}>
+              <TouchableOpacity 
+                style={[
+                  styles.settingsButton,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+                ]}
+                onPress={() => handleNavigate('/profile/settings')}
+              >
+                <Ionicons name="settings-outline" size={22} color={colors.text} />
+              </TouchableOpacity>
+              {Platform.OS === 'ios' && ContextMenu && Host && Button && (
+                <Host style={{ width: 44, height: 44 }}>
+                  <ContextMenu>
+                    <ContextMenu.Items>
+                      <Button 
+                        systemImage="paintbrush" 
+                        onPress={() => Alert.alert('Tema', 'Tema değiştirme özelliği')}
+                      >
+                        Tema Değiştir
+                      </Button>
+                      <Button 
+                        systemImage="trash" 
+                        onPress={() => Alert.alert('Cache', 'Cache temizlendi')}
+                      >
+                        Cache Temizle
+                      </Button>
+                      <Button 
+                        systemImage="bell.badge" 
+                        onPress={() => Alert.alert('Bildirim', 'Test bildirimi gönderildi')}
+                      >
+                        Bildirimleri Test Et
+                      </Button>
+                      <Button 
+                        systemImage="doc.text" 
+                        onPress={() => Alert.alert('Loglar', 'Hata logları gösteriliyor')}
+                      >
+                        Hata Logları
+                      </Button>
+                      <Button 
+                        systemImage="wifi" 
+                        onPress={() => Alert.alert('Ağ', 'Ağ bağlantısı aktif')}
+                      >
+                        Ağ Durumu
+                      </Button>
+                    </ContextMenu.Items>
+                    <ContextMenu.Trigger>
+                      <Button variant="bordered" systemImage="flask">
+                        Test
+                      </Button>
+                    </ContextMenu.Trigger>
+                  </ContextMenu>
+                </Host>
+              )}
+            </View>
           </View>
 
           <ScrollView
@@ -461,6 +523,11 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     minWidth: 60,
+  },
+  headerRightButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   settingsButton: {
     width: 44,

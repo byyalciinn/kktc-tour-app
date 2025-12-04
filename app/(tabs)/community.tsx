@@ -97,19 +97,22 @@ export default function CommunityScreen() {
     fetchPosts();
   }, []);
 
-  // Filter posts and apply premium restriction
+  // Filter posts by type
   const filteredPosts = useMemo(() => {
-    let filtered = activeFilter === 'all' 
+    return activeFilter === 'all' 
       ? posts 
       : posts.filter(post => post.type === activeFilter);
-    
-    // For non-premium users, only show first post
-    // Premium users see all posts
-    return filtered;
   }, [posts, activeFilter]);
-  
-  // Check if user should see premium paywall
-  const showPremiumPaywall = !isPremium && filteredPosts.length > 1;
+
+  // Visible posts for rendering (premium restriction applied)
+  const visiblePosts = useMemo(() => {
+    if (isPremium) return filteredPosts;
+    // Non-premium users see first 2 posts (1 normal + 1 with paywall overlay)
+    return filteredPosts.slice(0, 2);
+  }, [filteredPosts, isPremium]);
+
+  // Paywall index for non-premium users
+  const paywallIndex = !isPremium && filteredPosts.length > 1 ? 1 : -1;
 
   // Handlers
   const handleRefresh = useCallback(() => {
@@ -214,8 +217,8 @@ export default function CommunityScreen() {
 
   // Render post item with premium paywall for non-premium users
   const renderPostItem = useCallback(({ item, index }: { item: CommunityPost; index: number }) => {
-    // For non-premium users, show paywall on second post (index === 1)
-    if (!isPremium && index === 1) {
+    // Show paywall overlay on designated index
+    if (index === paywallIndex) {
       // Show blurred post with paywall overlay on top
       return (
         <View style={styles.premiumPostWrapper}>
@@ -280,12 +283,7 @@ export default function CommunityScreen() {
       );
     }
     
-    // For non-premium users, don't show posts after index 1
-    if (!isPremium && index > 1) {
-      return null;
-    }
-    
-    // Normal post for premium users or first post
+    // Normal post
     return (
       <CommunityPostCard
         post={item}
@@ -297,7 +295,7 @@ export default function CommunityScreen() {
         isLiked={item.isLiked}
       />
     );
-  }, [isPremium, isDark, colors, t, handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost, handleUpgradePress]);
+  }, [paywallIndex, isDark, colors, t, handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost, handleUpgradePress]);
 
   // Render header
   const renderHeader = useCallback(() => (
@@ -444,7 +442,7 @@ export default function CommunityScreen() {
 
       {/* Posts List */}
       <FlatList
-        data={filteredPosts}
+        data={visiblePosts}
         renderItem={renderPostItem}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         ListHeaderComponent={renderHeader}

@@ -43,10 +43,10 @@ const GROUP_SIZES = [
 
 // Budget ranges - minimalist
 const BUDGET_RANGES = [
-  { id: 'budget', label: 'Ekonomik', range: '0-50€' },
-  { id: 'mid', label: 'Orta', range: '50-150€' },
-  { id: 'premium', label: 'Premium', range: '150-300€' },
-  { id: 'luxury', label: 'Lüks', range: '300€+' },
+  { id: 'budget', label: 'Ekonomik', range: '0-2.000₺' },
+  { id: 'mid', label: 'Orta', range: '2.000-5.000₺' },
+  { id: 'premium', label: 'Premium', range: '5.000-10.000₺' },
+  { id: 'luxury', label: 'Lüks', range: '10.000₺+' },
 ] as const;
 
 export default function TourPreferencesScreen() {
@@ -279,8 +279,9 @@ export default function TourPreferencesScreen() {
                 <Switch
                   value={notifications[item.key as keyof typeof notifications]}
                   onValueChange={(value) => setNotifications(prev => ({ ...prev, [item.key]: value }))}
-                  trackColor={{ false: isDark ? '#333' : '#E5E7EB', true: colors.primary + '60' }}
-                  thumbColor={notifications[item.key as keyof typeof notifications] ? colors.primary : '#fff'}
+                  trackColor={{ false: isDark ? '#333' : '#E5E7EB', true: '#22C55E' }}
+                  thumbColor={notifications[item.key as keyof typeof notifications] ? '#fff' : '#fff'}
+                  ios_backgroundColor={isDark ? '#333' : '#E5E7EB'}
                 />
               </View>
             ))}

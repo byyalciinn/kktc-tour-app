@@ -41,9 +41,9 @@ import {
 } from '@/lib/notificationService';
 import { CommunityPost } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
-import { UsersTab, PostsTab, RoutesTab } from '@/components/admin';
+import { UsersTab, PostsTab, RoutesTab, ReportsTab, TicketsTab } from '@/components/admin';
 
-type TabType = 'tours' | 'categories' | 'notifications' | 'routes' | 'posts' | 'users';
+type TabType = 'tours' | 'categories' | 'notifications' | 'routes' | 'posts' | 'users' | 'reports' | 'tickets';
 
 const AVAILABLE_ICONS = [
   'apps-outline',
@@ -590,6 +590,42 @@ export default function AdminMenuScreen() {
             Kullanıcılar
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'reports' && [styles.activeTab, { backgroundColor: colors.card }],
+          ]}
+          onPress={() => setActiveTab('reports')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'reports' ? colors.primary : colors.textSecondary },
+              activeTab === 'reports' && styles.activeTabText,
+            ]}
+          >
+            Şikayetler
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'tickets' && [styles.activeTab, { backgroundColor: colors.card }],
+          ]}
+          onPress={() => setActiveTab('tickets')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'tickets' ? colors.primary : colors.textSecondary },
+              activeTab === 'tickets' && styles.activeTabText,
+            ]}
+          >
+            Biletler
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Tours Tab Content */}
@@ -837,6 +873,16 @@ export default function AdminMenuScreen() {
       {/* Users Tab Content */}
       {activeTab === 'users' && (
         <UsersTab colors={colors} isDark={isDark} insets={insets} />
+      )}
+
+      {/* Reports Tab Content */}
+      {activeTab === 'reports' && (
+        <ReportsTab colors={colors} isDark={isDark} insets={insets} />
+      )}
+
+      {/* Tickets Tab Content */}
+      {activeTab === 'tickets' && (
+        <TicketsTab colors={colors} isDark={isDark} insets={insets} />
       )}
 
       {/* Category Add/Edit Modal */}

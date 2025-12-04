@@ -16,11 +16,13 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
 import { useFavoritesStore, useAuthStore, useTourStore, useThemeStore } from '@/stores';
 import { PaywallSheet } from '@/components/ui';
+import { prefetchImages } from '@/components/ui/CachedImage';
 
 const { width, height } = Dimensions.get('window');
 const SHEET_MAX_HEIGHT = height * 0.92;
@@ -67,6 +69,14 @@ export default function TourDetailSheet({
   const relatedTours = currentTour
     ? tours.filter((t) => t.category === currentTour.category && t.id !== currentTour.id).slice(0, 4)
     : [];
+
+  // Prefetch related tour images for faster loading
+  useEffect(() => {
+    if (visible && relatedTours.length > 0) {
+      const imageUrls = relatedTours.map(t => t.image).filter(Boolean);
+      prefetchImages(imageUrls);
+    }
+  }, [visible, relatedTours]);
 
   // Handle related tour press
   const handleRelatedTourPress = (relatedTour: Tour) => {
@@ -174,6 +184,8 @@ export default function TourDetailSheet({
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          // Haptic feedback on sheet dismiss
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           handleClose();
         } else {
           Animated.spring(slideAnim, {

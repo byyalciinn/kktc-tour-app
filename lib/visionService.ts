@@ -2,9 +2,13 @@
  * Vision Analysis Service
  * Analyzes images using LLM vision capabilities to identify historical places,
  * landmarks, and tourist attractions in North Cyprus (KKTC).
+ * 
+ * SECURITY: API keys are now managed via Supabase Edge Functions
+ * to prevent exposure in client-side code.
  */
 
 import { logger } from './logger';
+import { supabase } from './supabase';
 
 export interface VisionAnalysisResult {
   success: boolean;
@@ -101,115 +105,9 @@ async function imageToBase64(imageUri: string): Promise<string> {
   }
 }
 
-/**
- * Analyzes an image using OpenAI Vision API
- */
-async function analyzeWithOpenAI(
-  imageBase64: string,
-  apiKey: string
-): Promise<VisionAnalysisResult> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this image and identify the historical place, landmark, or tourist attraction. Provide detailed information about it.',
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
-                detail: 'high',
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.3,
-    }),
-  });
-
-  const data: VisionAPIResponse = await response.json();
-
-  if (data.error) {
-    throw new Error(data.error.message || 'OpenAI API error');
-  }
-
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error('No response from OpenAI');
-  }
-
-  return parseVisionResponse(content);
-}
-
-/**
- * Analyzes an image using Anthropic Claude Vision API
- */
-async function analyzeWithClaude(
-  imageBase64: string,
-  apiKey: string
-): Promise<VisionAnalysisResult> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: imageBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: 'Analyze this image and identify the historical place, landmark, or tourist attraction. Provide detailed information about it.',
-            },
-          ],
-        },
-      ],
-    }),
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    throw new Error(data.error.message || 'Anthropic API error');
-  }
-
-  const content = data.content?.[0]?.text;
-  if (!content) {
-    throw new Error('No response from Claude');
-  }
-
-  return parseVisionResponse(content);
-}
+// NOTE: Direct API calls removed for security
+// API calls are now handled by Supabase Edge Function: analyze-image
+// This keeps API keys server-side and prevents exposure in client code
 
 /**
  * Parses the LLM response into a structured result
@@ -260,6 +158,7 @@ function parseVisionResponse(content: string): VisionAnalysisResult {
 
 /**
  * Main function to analyze an image
+ * SECURITY: Now uses Supabase Edge Function to keep API keys server-side
  * @param imageUri - URI of the image to analyze
  * @param provider - LLM provider to use ('openai' or 'anthropic')
  */
@@ -268,27 +167,39 @@ export async function analyzeImage(
   provider: 'openai' | 'anthropic' = 'openai'
 ): Promise<VisionAnalysisResult> {
   try {
-    logger.info('Starting image analysis', { provider });
-
-    // Get API key from environment
-    const apiKey = provider === 'openai'
-      ? process.env.EXPO_PUBLIC_OPENAI_API_KEY
-      : process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      // Return mock data for development if no API key
-      logger.warn('No API key configured, returning mock data');
-      return getMockAnalysisResult();
-    }
+    logger.info('Starting image analysis via Edge Function', { provider });
 
     // Convert image to base64
     const imageBase64 = await imageToBase64(imageUri);
 
-    // Analyze with selected provider
-    const result = provider === 'openai'
-      ? await analyzeWithOpenAI(imageBase64, apiKey)
-      : await analyzeWithClaude(imageBase64, apiKey);
+    // Call Edge Function instead of direct API (SECURITY: API keys stay server-side)
+    const { data, error } = await supabase.functions.invoke('analyze-image', {
+      body: { imageBase64, provider },
+    });
 
+    if (error) {
+      logger.error('Edge function error:', error);
+      // Fallback to mock data in development
+      if (__DEV__) {
+        logger.warn('Falling back to mock data in development');
+        return getMockAnalysisResult();
+      }
+      throw new Error(error.message);
+    }
+
+    // Parse response based on provider
+    let content: string;
+    if (provider === 'openai') {
+      content = data?.choices?.[0]?.message?.content;
+    } else {
+      content = data?.content?.[0]?.text;
+    }
+
+    if (!content) {
+      throw new Error('No response from AI provider');
+    }
+
+    const result = parseVisionResponse(content);
     logger.info('Image analysis completed', { placeName: result.placeName, confidence: result.confidence });
     return result;
   } catch (error) {

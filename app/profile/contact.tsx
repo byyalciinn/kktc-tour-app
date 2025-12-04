@@ -422,6 +422,29 @@ export default function ContactScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* Support Tickets Link */}
+              <TouchableOpacity
+                style={[
+                  styles.ticketsLink,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                  },
+                ]}
+                onPress={() => router.push('/profile/support-tickets')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.ticketsLinkContent}>
+                  <Text style={[styles.ticketsLinkTitle, { color: colors.text }]}>
+                    Destek Biletleri
+                  </Text>
+                  <Text style={[styles.ticketsLinkSubtitle, { color: colors.textSecondary }]}>
+                    Bilet oluşturun ve takip edin
+                  </Text>
+                </View>
+                <Text style={[styles.ticketsLinkArrow, { color: colors.textSecondary }]}>›</Text>
+              </TouchableOpacity>
+
               {/* Support Hours */}
               <View style={[styles.supportHoursCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
                 <View style={styles.supportHoursRow}>
@@ -738,6 +761,34 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
+  },
+
+  // Tickets Link
+  ticketsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 18,
+    marginBottom: 16,
+  },
+  ticketsLinkContent: {
+    flex: 1,
+  },
+  ticketsLinkTitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  ticketsLinkSubtitle: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  ticketsLinkArrow: {
+    fontSize: 24,
+    fontWeight: '300',
   },
 
   // Support Hours

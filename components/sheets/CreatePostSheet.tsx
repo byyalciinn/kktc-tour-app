@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
 
 import { Colors } from '@/constants/Colors';
 import { CommunityPostType, CreatePostInput } from '@/types';
@@ -69,6 +70,8 @@ export default function CreatePostSheet({
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  // Upload progress tracking for parallel uploads
+  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
 
   // Animation
   const slideAnim = useRef(new Animated.Value(height)).current;
@@ -130,6 +133,8 @@ export default function CreatePostSheet({
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          // Haptic feedback on sheet dismiss
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           handleClose();
         } else {
           Animated.spring(slideAnim, {
@@ -143,7 +148,7 @@ export default function CreatePostSheet({
     })
   ).current;
 
-  // Pick images with optimization
+  // Pick images with optimization - PARALLEL PROCESSING
   const handlePickImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -156,15 +161,26 @@ export default function CreatePostSheet({
 
       if (!result.canceled && result.assets) {
         setIsUploading(true);
-        const uploadedUrls: string[] = [];
+        
+        // Initialize progress state for all images
+        const initialProgress: Record<number, number> = {};
+        result.assets.forEach((_, index) => {
+          initialProgress[index] = 0;
+        });
+        setUploadProgress(initialProgress);
 
-        for (const asset of result.assets) {
+        // Process all images in parallel
+        const uploadPromises = result.assets.map(async (asset, index) => {
           try {
-            // Optimize image before upload (target ~250KB)
+            // Optimize started
+            setUploadProgress(prev => ({ ...prev, [index]: 25 }));
             const optimized = await optimizeCommunityImage(asset.uri);
             
             if (optimized && optimized.base64) {
-              const fileName = `${user?.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+              // Upload started
+              setUploadProgress(prev => ({ ...prev, [index]: 50 }));
+              
+              const fileName = `${user?.id}/${Date.now()}_${index}_${Math.random().toString(36).substring(7)}.jpg`;
               
               const { data, error } = await supabase.storage
                 .from('community')
@@ -172,29 +188,41 @@ export default function CreatePostSheet({
                   contentType: 'image/jpeg',
                 });
 
+              // Upload completed
+              setUploadProgress(prev => ({ ...prev, [index]: 100 }));
+
               if (!error && data) {
                 const { data: urlData } = supabase.storage
                   .from('community')
                   .getPublicUrl(data.path);
                 
-                uploadedUrls.push(urlData.publicUrl);
-                
                 // Log compression stats
                 if (optimized.compressionRatio) {
-                  console.log(`[Community] Image optimized: ${optimized.compressionRatio}% reduction`);
+                  console.log(`[Community] Image ${index} optimized: ${optimized.compressionRatio}% reduction`);
                 }
+                
+                return urlData.publicUrl;
               }
             }
+            return null;
           } catch (optimizeError) {
-            console.error('[Community] Image optimization failed:', optimizeError);
+            console.error(`[Community] Image ${index} failed:`, optimizeError);
+            setUploadProgress(prev => ({ ...prev, [index]: -1 })); // Error state
+            return null;
           }
-        }
+        });
 
-        setImages([...images, ...uploadedUrls]);
+        // Wait for all uploads to complete
+        const results = await Promise.all(uploadPromises);
+        const uploadedUrls = results.filter(Boolean) as string[];
+        
+        setImages(prev => [...prev, ...uploadedUrls]);
         setIsUploading(false);
+        setUploadProgress({});
       }
     } catch (error) {
       setIsUploading(false);
+      setUploadProgress({});
       Alert.alert(t('common.error'), t('community.imageUploadError'));
     }
   };

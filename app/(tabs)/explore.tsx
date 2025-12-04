@@ -375,6 +375,16 @@ export default function ExploreScreen() {
     }
   }, [fetchCategories, fetchTours, revalidateRoutes]);
 
+  // Memoized MapMarkers to prevent unnecessary re-renders
+  const memoizedMapMarkers = useMemo(() => (
+    <MapMarkers
+      tours={filteredTours}
+      categoryIconMap={categoryIconMap}
+      primaryColor={colors.primary}
+      onMarkerPress={handleTourPress}
+    />
+  ), [filteredTours, categoryIconMap, colors.primary, handleTourPress]);
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -391,12 +401,7 @@ export default function ExploreScreen() {
           showsCompass={false}
         >
           {/* Tour Markers - using memoized MapMarkers component */}
-          <MapMarkers
-            tours={filteredTours}
-            categoryIconMap={categoryIconMap}
-            primaryColor={colors.primary}
-            onMarkerPress={handleTourPress}
-          />
+          {memoizedMapMarkers}
         </MapView>
 
         {/* Refresh Button - Left Side */}

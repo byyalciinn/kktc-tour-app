@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
+  FlatList,
   Modal,
   PanResponder,
   Platform,
@@ -15,6 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore, useUIStore, useThemeStore } from '@/stores';
@@ -105,7 +107,8 @@ function NotificationItem({
       const threshold = width * 0.2;
 
       if (gestureState.dx < -threshold || gestureState.vx < -0.5) {
-        // Swipe left - Delete
+        // Swipe left - Delete with haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         Animated.timing(translateX, {
           toValue: -width,
           duration: 200,
@@ -127,7 +130,8 @@ function NotificationItem({
           });
         });
       } else if (gestureState.dx > threshold || gestureState.vx > 0.5) {
-        // Swipe right - Mark as read
+        // Swipe right - Mark as read with haptic feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         Animated.sequence([
           Animated.timing(translateX, {
             toValue: 80,
@@ -419,37 +423,45 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
           </View>
 
           {/* Notifications List */}
-          <View style={styles.notificationsList}>
-            {notifications.length === 0 ? (
-              <View style={styles.emptyState}>
-                <View
-                  style={[
-                    styles.emptyIcon,
-                    { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
-                  ]}
-                >
-                  <Ionicons name="notifications-off-outline" size={40} color={colors.textSecondary} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                  Bildirim Yok
-                </Text>
-                <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
-                  Yeni bildirimler burada görünecek
-                </Text>
+          {notifications.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View
+                style={[
+                  styles.emptyIcon,
+                  { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' },
+                ]}
+              >
+                <Ionicons name="notifications-off-outline" size={40} color={colors.textSecondary} />
               </View>
-            ) : (
-              notifications.map((notification) => (
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                Bildirim Yok
+              </Text>
+              <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
+                Yeni bildirimler burada görünecek
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={notifications}
+              renderItem={({ item }) => (
                 <NotificationItem
-                  key={notification.id}
-                  notification={notification}
+                  notification={item}
                   onDelete={handleDelete}
                   onMarkRead={handleMarkRead}
                   isDark={isDark}
                   colors={colors}
                 />
-              ))
-            )}
-          </View>
+              )}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.notificationsList}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={5}
+              initialNumToRender={5}
+              windowSize={7}
+              ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+            />
+          )}
         </BlurView>
       </Animated.View>
     </Modal>
@@ -498,10 +510,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   notificationsList: {
-    flex: 1,
     paddingHorizontal: 16,
     paddingBottom: 24,
-    gap: 12,
   },
   notificationItemWrapper: {
     position: 'relative',

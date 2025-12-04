@@ -26,6 +26,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore, useUIStore, useThemeStore, useTwoFactorStore } from '@/stores';
 import { checkTwoFactorEnabled } from '@/lib/twoFactorService';
+import { maskError } from '@/lib/errorHandler';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/Colors';
@@ -472,7 +473,8 @@ export default function WelcomeScreen() {
       console.log('[handleLogin] Login failed, clearing 2FA state');
       useTwoFactorStore.getState().setCheckingRequired(false);
       setLoginLoading(false);
-      Alert.alert(t('auth.loginErrorTitle'), error.message);
+      const maskedError = maskError(error, 'Login');
+      Alert.alert(t('auth.loginErrorTitle'), maskedError.message);
       return;
     }
 
@@ -553,7 +555,8 @@ export default function WelcomeScreen() {
     const { error } = await signUp(registerEmail.trim(), registerPassword, registerName.trim());
     setRegisterLoading(false);
     if (error) {
-      Alert.alert(t('auth.registerErrorTitle'), error.message);
+      const maskedError = maskError(error, 'Register');
+      Alert.alert(t('auth.registerErrorTitle'), maskedError.message);
     } else {
       setRegisterVisible(false);
       useUIStore.getState().showToast(t('auth.registerSuccess'), 'success');
@@ -590,7 +593,8 @@ export default function WelcomeScreen() {
     const { error } = await resetPassword(forgotEmail.trim());
     setForgotLoading(false);
     if (error) {
-      Alert.alert(t('common.error'), error.message);
+      const maskedError = maskError(error, 'Password Reset');
+      Alert.alert(t('common.error'), maskedError.message);
     } else {
       setForgotEmailSent(true);
     }
@@ -1458,7 +1462,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#F03A52',
     borderRadius: 16,
     height: 56,
     justifyContent: 'center',

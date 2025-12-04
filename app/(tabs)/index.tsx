@@ -37,6 +37,9 @@ export default function HomeScreen() {
   const refreshOpacity = useRef(new Animated.Value(0)).current;
   const refreshScale = useRef(new Animated.Value(0.8)).current;
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  // Debounce ref for category press
+  const lastCategoryPressTime = useRef(0);
   const { t } = useTranslation();
 
   // Zustand stores
@@ -173,6 +176,14 @@ export default function HomeScreen() {
 
   // Handle category change with smooth animation - only affects tour cards
   const handleCategoryPress = useCallback((categoryId: string) => {
+    // Debounce check (300ms) to prevent rapid taps causing crashes
+    const now = Date.now();
+    if (now - lastCategoryPressTime.current < 300) {
+      return; // Ignore rapid taps
+    }
+    lastCategoryPressTime.current = now;
+    
+    // Skip if same category or already transitioning
     if (categoryId === selectedCategoryId || isTransitioning) return;
     
     setIsTransitioning(true);
