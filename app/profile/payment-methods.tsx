@@ -58,7 +58,7 @@ export default function PaymentMethodsScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Ödeme Yöntemleri
+          {t('profile.paymentMethods')}
         </Text>
         <View style={{ width: 44 }} />
       </View>
@@ -72,7 +72,7 @@ export default function PaymentMethodsScreen() {
         <View style={[styles.infoBanner, { backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}>
           <Ionicons name="shield-checkmark" size={20} color="#3B82F6" />
           <Text style={[styles.infoBannerText, { color: isDark ? '#93C5FD' : '#1D4ED8' }]}>
-            Tüm kart bilgileriniz PCI DSS standartlarına uygun şekilde şifrelenmektedir.
+            {t('profileScreens.paymentMethods.infoBanner')}
           </Text>
         </View>
 
@@ -81,10 +81,10 @@ export default function PaymentMethodsScreen() {
           <View style={[styles.comingSoonCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
             <View style={[styles.comingSoonIndicator, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
             <Text style={[styles.comingSoonTitle, { color: colors.text }]}>
-              Yakında Sizlerle
+              {t('profileScreens.paymentMethods.comingSoonTitle')}
             </Text>
             <Text style={[styles.comingSoonSubtitle, { color: colors.textSecondary }]}>
-              Kart ekleme özelliği çok yakında aktif olacak
+              {t('profileScreens.paymentMethods.comingSoonSubtitle')}
             </Text>
           </View>
         </View>
@@ -92,7 +92,7 @@ export default function PaymentMethodsScreen() {
         {/* Other Payment Methods */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            DİĞER ÖDEME YÖNTEMLERİ
+            {t('profileScreens.paymentMethods.otherMethodsTitle')}
           </Text>
           <View style={[styles.otherMethods, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.95)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
             <TouchableOpacity style={[styles.methodRow, styles.methodRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
@@ -100,8 +100,8 @@ export default function PaymentMethodsScreen() {
                 <Ionicons name="cash-outline" size={22} color="#22C55E" />
               </View>
               <View style={styles.methodContent}>
-                <Text style={[styles.methodTitle, { color: colors.text }]}>Nakit Ödeme</Text>
-                <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>Tur sırasında nakit ödeyin</Text>
+                <Text style={[styles.methodTitle, { color: colors.text }]}>{t('profileScreens.paymentMethods.cashTitle')}</Text>
+                <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>{t('profileScreens.paymentMethods.cashSubtitle')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -110,8 +110,8 @@ export default function PaymentMethodsScreen() {
                 <Ionicons name="wallet-outline" size={22} color="#8B5CF6" />
               </View>
               <View style={styles.methodContent}>
-                <Text style={[styles.methodTitle, { color: colors.text }]}>Havale / EFT</Text>
-                <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>Banka havalesi ile ödeyin</Text>
+                <Text style={[styles.methodTitle, { color: colors.text }]}>{t('profileScreens.paymentMethods.transferTitle')}</Text>
+                <Text style={[styles.methodSubtitle, { color: colors.textSecondary }]}>{t('profileScreens.paymentMethods.transferSubtitle')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>

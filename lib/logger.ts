@@ -178,5 +178,8 @@ export const tourLogger = createLogger('Tour');
 export const communityLogger = createLogger('Community');
 export const storageLogger = createLogger('Storage');
 export const notificationLogger = createLogger('Notification');
+export const adaptyLogger = createLogger('Adapty');
+export const subscriptionLogger = createLogger('Subscription');
+export const paywallLogger = createLogger('Paywall');
 
 export default logger;

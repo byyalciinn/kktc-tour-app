@@ -25,6 +25,7 @@ import { Colors } from '@/constants/Colors';
 import { Tour, tourDataToTour } from '@/types';
 import { searchTours, TourData } from '@/lib/tourService';
 import { useDebounce } from '@/hooks';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 const RECENT_SEARCHES_KEY = '@recent_searches';
@@ -88,6 +89,7 @@ export default function DestinationSearch({
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   const [isOpen, setIsOpen] = useState(autoOpen);
   const [searchQuery, setSearchQuery] = useState('');
@@ -272,7 +274,7 @@ export default function DestinationSearch({
         >
           <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
           <Text style={[styles.searchTriggerText, { color: colors.textSecondary }]}>
-            Tur, destinasyon ara
+            {t('search.placeholder')}
           </Text>
         </TouchableOpacity>
       )}
@@ -333,7 +335,7 @@ export default function DestinationSearch({
               <TextInput
                 ref={inputRef}
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Tur, destinasyon ara"
+                placeholder={t('search.placeholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -368,7 +370,7 @@ export default function DestinationSearch({
               style={styles.cancelButton}
             >
               <Text style={[styles.cancelText, { color: colors.primary }]}>
-                İptal
+                {t('search.cancel')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -387,11 +389,11 @@ export default function DestinationSearch({
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                       <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                        Son Aramalar
+                        {t('search.recentSearches')}
                       </Text>
                       <TouchableOpacity onPress={clearRecentSearches}>
                         <Text style={[styles.clearAllText, { color: colors.primary }]}>
-                          Temizle
+                          {t('search.clear')}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -452,10 +454,10 @@ export default function DestinationSearch({
                       />
                     </View>
                     <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                      Tur veya destinasyon arayın
+                      {t('search.emptyTitle')}
                     </Text>
                     <Text style={[styles.emptySubtitle, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)' }]}>
-                      Aramalarınız burada görünecek
+                      {t('search.emptySubtitle')}
                     </Text>
                   </View>
                 )}
@@ -470,7 +472,7 @@ export default function DestinationSearch({
                 ) : filteredTours.length > 0 ? (
                   <>
                     <Text style={[styles.resultCount, { color: colors.textSecondary }]}>
-                      {filteredTours.length} sonuç bulundu
+                      {t('search.resultsCount', { count: filteredTours.length })}
                     </Text>
                     
                     {filteredTours.map((tour) => (
@@ -540,10 +542,10 @@ export default function DestinationSearch({
                       />
                     </View>
                     <Text style={[styles.noResultsText, { color: colors.text }]}>
-                      Sonuç bulunamadı
+                      {t('search.noResults')}
                     </Text>
                     <Text style={[styles.noResultsHint, { color: colors.textSecondary }]}>
-                      "{searchQuery}" için eşleşme yok
+                      {t('search.noResultsHint', { query: searchQuery })}
                     </Text>
                   </View>
                 )}

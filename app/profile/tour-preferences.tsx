@@ -22,6 +22,7 @@ import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
 import { useThemeStore } from '@/stores';
+import { useTranslation } from 'react-i18next';
 
 // Tour category preferences - minimalist
 const TOUR_CATEGORIES = [
@@ -54,6 +55,7 @@ export default function TourPreferencesScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   // Preferences state
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['history', 'nature']);
@@ -76,7 +78,7 @@ export default function TourPreferencesScreen() {
 
   const handleSave = () => {
     if (selectedCategories.length === 0) {
-      Alert.alert('Uyarı', 'En az bir kategori seçmelisiniz.');
+      Alert.alert(t('profileScreens.tourPreferences.selectWarningTitle'), t('profileScreens.tourPreferences.selectWarning'));
       return;
     }
 
@@ -84,9 +86,9 @@ export default function TourPreferencesScreen() {
     setTimeout(() => {
       setIsLoading(false);
       Alert.alert(
-        'Başarılı',
-        'Tercihleriniz kaydedildi.',
-        [{ text: 'Tamam', onPress: () => router.back() }]
+        t('profileScreens.tourPreferences.saveSuccessTitle'),
+        t('profileScreens.tourPreferences.saveSuccess'),
+        [{ text: t('common.done'), onPress: () => router.back() }]
       );
     }, 800);
   };
@@ -104,7 +106,7 @@ export default function TourPreferencesScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Tur Tercihleri
+          {t('profileScreens.tourPreferences.header')}
         </Text>
         <View style={{ width: 44 }} />
       </View>
@@ -116,17 +118,17 @@ export default function TourPreferencesScreen() {
       >
         {/* Intro Text */}
         <Text style={[styles.introText, { color: colors.textSecondary }]}>
-          Tercihlerinizi belirleyin, size özel tur önerileri alalım.
+          {t('profileScreens.tourPreferences.intro')}
         </Text>
 
         {/* Favorite Categories */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              KATEGORİLER
+              {t('profileScreens.tourPreferences.categoriesTitle')}
             </Text>
             <Text style={[styles.sectionCount, { color: colors.textSecondary }]}>
-              {selectedCategories.length} seçili
+              {t('profileScreens.tourPreferences.selectedCount', { count: selectedCategories.length })}
             </Text>
           </View>
           <View style={styles.categoriesGrid}>
@@ -153,7 +155,7 @@ export default function TourPreferencesScreen() {
                     styles.categoryChipText,
                     { color: isSelected ? '#FFFFFF' : colors.text }
                   ]}>
-                    {category.label}
+                    {t(`profileScreens.tourPreferences.categories.${category.id}`)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -164,7 +166,7 @@ export default function TourPreferencesScreen() {
         {/* Group Size */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            GRUP TERCİHİ
+            {t('profileScreens.tourPreferences.groupTitle')}
           </Text>
           <View style={styles.optionsRow}>
             {GROUP_SIZES.map((size) => {
@@ -190,7 +192,7 @@ export default function TourPreferencesScreen() {
                     styles.optionCardText,
                     { color: isSelected ? '#FFFFFF' : colors.text }
                   ]}>
-                    {size.label}
+                    {t(`profileScreens.tourPreferences.groupOptions.${size.id}`)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -201,7 +203,7 @@ export default function TourPreferencesScreen() {
         {/* Budget Range */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            BÜTÇE
+            {t('profileScreens.tourPreferences.budgetTitle')}
           </Text>
           <View style={[
             styles.budgetCard,
@@ -231,10 +233,10 @@ export default function TourPreferencesScreen() {
                 >
                   <View style={styles.budgetLeft}>
                     <Text style={[styles.budgetLabel, { color: colors.text }]}>
-                      {budget.label}
+                      {t(`profileScreens.tourPreferences.budgetOptions.${budget.id}.label`)}
                     </Text>
                     <Text style={[styles.budgetRange, { color: colors.textSecondary }]}>
-                      {budget.range}
+                      {t(`profileScreens.tourPreferences.budgetOptions.${budget.id}.range`)}
                     </Text>
                   </View>
                   {isSelected && (
@@ -249,7 +251,7 @@ export default function TourPreferencesScreen() {
         {/* Notifications */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            BİLDİRİMLER
+            {t('profileScreens.tourPreferences.notificationsTitle')}
           </Text>
           <View style={[
             styles.notificationsCard,
@@ -259,9 +261,9 @@ export default function TourPreferencesScreen() {
             }
           ]}>
             {[
-              { key: 'newTours', label: 'Yeni Turlar' },
-              { key: 'priceDrops', label: 'Fiyat Düşüşleri' },
-              { key: 'recommendations', label: 'Kişisel Öneriler' },
+              { key: 'newTours' },
+              { key: 'priceDrops' },
+              { key: 'recommendations' },
             ].map((item, index) => (
               <View
                 key={item.key}
@@ -274,7 +276,7 @@ export default function TourPreferencesScreen() {
                 ]}
               >
                 <Text style={[styles.notificationLabel, { color: colors.text }]}>
-                  {item.label}
+                  {t(`profileScreens.tourPreferences.notificationLabels.${item.key}`)}
                 </Text>
                 <Switch
                   value={notifications[item.key as keyof typeof notifications]}
@@ -298,7 +300,7 @@ export default function TourPreferencesScreen() {
           {isLoading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.saveButtonText}>Kaydet</Text>
+            <Text style={styles.saveButtonText}>{t('profileScreens.tourPreferences.saveButton')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

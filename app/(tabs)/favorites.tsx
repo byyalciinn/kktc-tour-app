@@ -139,9 +139,9 @@ export default function FavoritesScreen() {
           {/* Premium Badge or Remaining Slots */}
           {user && (
             isPremiumUser ? (
-              <View style={[styles.premiumBadge, { backgroundColor: 'rgba(255, 215, 0, 0.15)' }]}>
-                <Ionicons name="diamond" size={14} color="#FFD700" />
-                <Text style={styles.premiumBadgeText}>Premium</Text>
+              <View style={[styles.premiumBadge, { backgroundColor: colorScheme === 'dark' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(180, 140, 0, 0.12)' }]}>
+                <Ionicons name="diamond" size={14} color={colorScheme === 'dark' ? '#FFD700' : '#B8860B'} />
+                <Text style={[styles.premiumBadgeText, { color: colorScheme === 'dark' ? '#FFD700' : '#8B6914' }]}>Premium</Text>
               </View>
             ) : (
               <TouchableOpacity 
@@ -356,7 +356,6 @@ const styles = StyleSheet.create({
   premiumBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFD700',
   },
   slotIndicator: {
     flexDirection: 'row',

@@ -8,55 +8,32 @@ import {
   Text,
   TouchableOpacity,
   View,
-  useColorScheme,
   LayoutAnimation,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
+import { useTranslation } from 'react-i18next';
 
-// FAQ items
-const faqItems = [
-  {
-    question: 'Nasıl tur rezervasyonu yapabilirim?',
-    answer: 'Ana sayfadan veya keşfet bölümünden istediğiniz turu seçin, detay sayfasında "Yol Tarifi Al" butonuna tıklayarak tur lokasyonuna ulaşabilirsiniz. Rezervasyon için tur sağlayıcısı ile iletişime geçmeniz gerekmektedir.',
-  },
-  {
-    question: 'Üyelik seviyemi nasıl yükseltebilirim?',
-    answer: 'Profil sayfanızdan "Üyelik Kartı" bölümüne giderek Gold veya Business üyelik paketlerinden birini seçebilirsiniz. Ödeme işlemini tamamladıktan sonra üyeliğiniz otomatik olarak yükseltilecektir.',
-  },
-  {
-    question: 'Favorilerime nasıl tur ekleyebilirim?',
-    answer: 'Herhangi bir tur detay sayfasında sağ üst köşedeki kalp ikonuna tıklayarak turu favorilerinize ekleyebilirsiniz. Favorilerinize alt menüden "Favoriler" sekmesinden ulaşabilirsiniz.',
-  },
-  {
-    question: 'Uygulama bildirimleri nasıl yönetilir?',
-    answer: 'Telefon ayarlarınızdan KKTC Tour uygulamasının bildirim izinlerini yönetebilirsiniz. Özel kampanya ve indirimlerden haberdar olmak için bildirimleri açık tutmanızı öneririz.',
-  },
-  {
-    question: 'Hesabımı nasıl silebilirim?',
-    answer: 'Hesabınızı silmek için İletişim sayfasından destek ekibimize ulaşabilirsiniz. Hesap silme işlemi geri alınamaz ve tüm verileriniz kalıcı olarak silinir.',
-  },
-  {
-    question: 'Ödeme yöntemleri nelerdir?',
-    answer: 'Kredi kartı, banka kartı ve havale/EFT ile ödeme yapabilirsiniz. Tüm ödemeler güvenli altyapımız üzerinden gerçekleştirilmektedir.',
-  },
-];
+// FAQ item keys
+const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'] as const;
 
 // Help categories
-const helpCategories = [
-  { id: 'account', label: 'Hesap İşlemleri', icon: 'person-outline' },
-  { id: 'tours', label: 'Turlar & Rezervasyon', icon: 'map-outline' },
-  { id: 'payment', label: 'Ödeme & Faturalama', icon: 'card-outline' },
-  { id: 'membership', label: 'Üyelik & Avantajlar', icon: 'diamond-outline' },
-];
+const HELP_CATEGORIES = [
+  { id: 'account', icon: 'person-outline' },
+  { id: 'tours', icon: 'map-outline' },
+  { id: 'payment', icon: 'card-outline' },
+  { id: 'membership', icon: 'diamond-outline' },
+] as const;
 
 export default function HelpScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
@@ -67,7 +44,7 @@ export default function HelpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -77,7 +54,7 @@ export default function HelpScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Yardım</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profileScreens.help.header')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -89,10 +66,10 @@ export default function HelpScreen() {
         {/* Help Categories */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            YARDIM KATEGORİLERİ
+            {t('profileScreens.help.categoriesTitle')}
           </Text>
           <View style={styles.categoriesGrid}>
-            {helpCategories.map((category) => (
+            {HELP_CATEGORIES.map((category) => (
               <TouchableOpacity
                 key={category.id}
                 style={[
@@ -108,7 +85,7 @@ export default function HelpScreen() {
                   <Ionicons name={category.icon as any} size={22} color={colors.primary} />
                 </View>
                 <Text style={[styles.categoryLabel, { color: colors.text }]}>
-                  {category.label}
+                  {t(`profileScreens.help.categories.${category.id}`)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -118,7 +95,7 @@ export default function HelpScreen() {
         {/* FAQ Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            SIK SORULAN SORULAR
+            {t('profileScreens.help.faqTitle')}
           </Text>
           <View
             style={[
@@ -129,12 +106,12 @@ export default function HelpScreen() {
               },
             ]}
           >
-            {faqItems.map((item, index) => (
-              <View key={index}>
+            {FAQ_KEYS.map((key, index) => (
+              <View key={key}>
                 <TouchableOpacity
                   style={[
                     styles.faqItem,
-                    index < faqItems.length - 1 && expandedIndex !== index && [
+                    index < FAQ_KEYS.length - 1 && expandedIndex !== index && [
                       styles.faqItemBorder,
                       { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
                     ],
@@ -143,7 +120,7 @@ export default function HelpScreen() {
                   onPress={() => toggleExpand(index)}
                 >
                   <Text style={[styles.faqQuestion, { color: colors.text }]}>
-                    {item.question}
+                    {t(`profileScreens.help.faq.${key}`)}
                   </Text>
                   <Ionicons
                     name={expandedIndex === index ? 'chevron-up' : 'chevron-down'}
@@ -154,13 +131,13 @@ export default function HelpScreen() {
                 {expandedIndex === index && (
                   <View style={[
                     styles.faqAnswer,
-                    index < faqItems.length - 1 && [
+                    index < FAQ_KEYS.length - 1 && [
                       styles.faqItemBorder,
                       { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
                     ],
                   ]}>
                     <Text style={[styles.faqAnswerText, { color: colors.textSecondary }]}>
-                      {item.answer}
+                      {t(`profileScreens.help.faq.a${key.slice(1)}`)}
                     </Text>
                   </View>
                 )}
@@ -176,7 +153,7 @@ export default function HelpScreen() {
           onPress={() => router.push('/profile/contact')}
         >
           <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
-          <Text style={styles.contactButtonText}>Destek Ekibiyle İletişime Geç</Text>
+          <Text style={styles.contactButtonText}>{t('profileScreens.help.contactButton')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

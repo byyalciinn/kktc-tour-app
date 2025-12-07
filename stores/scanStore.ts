@@ -6,12 +6,19 @@ import { create } from 'zustand';
 import { analyzeImage, VisionAnalysisResult } from '@/lib/visionService';
 import { logger } from '@/lib/logger';
 
+// Free tier scan limit
+const FREE_SCAN_LIMIT = 1;
+
 interface ScanState {
   // Current scan state
   imageUri: string | null;
   isAnalyzing: boolean;
   analysisResult: VisionAnalysisResult | null;
   error: string | null;
+  
+  // Scan usage tracking
+  dailyScanCount: number;
+  lastScanDate: string | null;
   
   // Scan history
   scanHistory: Array<{
@@ -27,6 +34,8 @@ interface ScanState {
   clearAnalysis: () => void;
   clearHistory: () => void;
   removeScanFromHistory: (id: string) => void;
+  canScan: (isPremium: boolean) => boolean;
+  getRemainingScans: (isPremium: boolean) => number;
 }
 
 export const useScanStore = create<ScanState>((set, get) => ({
@@ -35,6 +44,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   isAnalyzing: false,
   analysisResult: null,
   error: null,
+  dailyScanCount: 0,
+  lastScanDate: null,
   scanHistory: [],
 
   // Set current image URI
@@ -44,11 +55,18 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   // Analyze the current image
   analyzeCurrentImage: async (provider = 'openai') => {
-    const { imageUri } = get();
+    const { imageUri, dailyScanCount, lastScanDate } = get();
     
     if (!imageUri) {
       set({ error: 'No image selected' });
       return;
+    }
+
+    // Reset daily count if new day
+    const today = new Date().toDateString();
+    let currentCount = dailyScanCount;
+    if (lastScanDate !== today) {
+      currentCount = 0;
     }
 
     set({ isAnalyzing: true, error: null });
@@ -76,9 +94,12 @@ export const useScanStore = create<ScanState>((set, get) => ({
           timestamp: new Date(),
         };
         
+        const today = new Date().toDateString();
         set((state) => ({
           analysisResult: result,
           isAnalyzing: false,
+          dailyScanCount: state.lastScanDate === today ? state.dailyScanCount + 1 : 1,
+          lastScanDate: today,
           scanHistory: [historyItem, ...state.scanHistory].slice(0, 20), // Keep last 20
         }));
       } else {
@@ -118,6 +139,32 @@ export const useScanStore = create<ScanState>((set, get) => ({
     set((state) => ({
       scanHistory: state.scanHistory.filter((item) => item.id !== id),
     }));
+  },
+
+  // Check if user can scan
+  canScan: (isPremium: boolean) => {
+    if (isPremium) return true;
+    
+    const { dailyScanCount, lastScanDate } = get();
+    const today = new Date().toDateString();
+    
+    // Reset count if new day
+    if (lastScanDate !== today) return true;
+    
+    return dailyScanCount < FREE_SCAN_LIMIT;
+  },
+
+  // Get remaining scans for free users
+  getRemainingScans: (isPremium: boolean) => {
+    if (isPremium) return Infinity;
+    
+    const { dailyScanCount, lastScanDate } = get();
+    const today = new Date().toDateString();
+    
+    // Reset count if new day
+    if (lastScanDate !== today) return FREE_SCAN_LIMIT;
+    
+    return Math.max(0, FREE_SCAN_LIMIT - dailyScanCount);
   },
 }));
 

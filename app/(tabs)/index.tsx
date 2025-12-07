@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -211,8 +212,13 @@ export default function HomeScreen() {
   // Get active category index
   const activeCategoryIndex = categories.findIndex(c => c.id === selectedCategoryId);
 
-  // Get category name by id
+  // Get category name by id - with i18n support
   const getCategoryName = (categoryId: string): string => {
+    // Try to get translated name first
+    const translatedName = t(`home.categories.${categoryId}`, { defaultValue: '' });
+    if (translatedName) return translatedName;
+    
+    // Fallback to category name from store
     const cat = categories.find(c => c.id === categoryId);
     return cat?.name || categoryId;
   };
@@ -254,7 +260,10 @@ export default function HomeScreen() {
       </View>
       
       {/* Arrow Button */}
-      <TouchableOpacity style={styles.tripArrowButton}>
+      <TouchableOpacity 
+        style={styles.tripArrowButton}
+        onPress={() => handleTourPress(tour)}
+      >
         <Ionicons name="arrow-forward" size={20} color="#212529" />
       </TouchableOpacity>
       
@@ -345,7 +354,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
+      {/* Search Bar with Explore Button */}
       <View style={styles.searchWrapper}>
         <TouchableOpacity 
           style={[styles.searchBar, { backgroundColor: colors.card }]}
@@ -356,6 +365,17 @@ export default function HomeScreen() {
           <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
             {t('home.searchPlaceholder')}
           </Text>
+        </TouchableOpacity>
+        
+        {/* Keşfet Butonu - Premium Minimalist */}
+        <TouchableOpacity
+          style={styles.exploreButton}
+          activeOpacity={0.8}
+          onPress={() => router.push('/tour-reels')}
+        >
+          <View style={[styles.exploreButtonInner, { backgroundColor: colors.primary }]}>
+            <Ionicons name="play" size={18} color="#FFFFFF" />
+          </View>
         </TouchableOpacity>
       </View>
       
@@ -394,7 +414,7 @@ export default function HomeScreen() {
                   fontWeight: isActive ? '600' : '400',
                 }
               ]}>
-                {category.name}
+                {t(`home.categories.${category.id}`, { defaultValue: category.name })}
               </Text>
             </TouchableOpacity>
           );
@@ -607,15 +627,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 24,
   },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 28,
     gap: 12,
+  },
+  exploreButton: {
+    padding: 2,
+  },
+  exploreButtonInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#F03A52',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   searchPlaceholder: {
     flex: 1,
@@ -645,7 +684,6 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
   },
-  
   // Trip Cards
   tripCardsContainer: {
     gap: 20,

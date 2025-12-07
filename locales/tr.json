@@ -29,7 +29,8 @@
     "allRightsReserved": "Tüm hakları saklıdır.",
     "and": "ve",
     "enable": "Etkinleştir",
-    "disable": "Devre Dışı Bırak"
+    "disable": "Devre Dışı Bırak",
+    "copied": "Kopyalandı"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -96,7 +97,19 @@
     "locationLabel": "Konum",
     "defaultLocation": "Kuzey Kıbrıs, KKTC",
     "fetchingLocation": "Konum alınıyor...",
-    "seeAll": "Tümünü Gör"
+    "seeAll": "Tümünü Gör",
+    "explore": "Keşfet",
+    "categories": {
+      "all": "Tümü",
+      "tarihi": "Tarihi",
+      "doga": "Doğa",
+      "kultur": "Kültür",
+      "macera": "Macera",
+      "yeme-icme": "Yeme-İçme",
+      "plaj": "Plaj",
+      "gece-hayati": "Gece Hayatı",
+      "alisveris": "Alışveriş"
+    }
   },
   "tours": {
     "title": "Turlar",
@@ -111,7 +124,8 @@
     "readMore": "Devamını Oku",
     "getDirections": "Yol Tarifi Al",
     "upcomingTours": "Yaklaşan Turlar",
-    "relatedTours": "Benzer Turlar"
+    "relatedTours": "Benzer Turlar",
+    "viewDetails": "Detayları Gör"
   },
   "favorites": {
     "title": "Favorilerim",
@@ -183,6 +197,7 @@
     "settings": "Ayarlar",
     "accountInfo": "Hesap Bilgileri",
     "memberNumber": "Üye No",
+    "memberNumberCopied": "Üye numarası panoya kopyalandı",
     "memberClass": "Üyelik Sınıfı",
     "memberCard": "Üyelik Kartı",
     "personalDetails": "Kişisel Detaylar",
@@ -228,6 +243,169 @@
     "active": "Aktif",
     "membershipDetails": "Üyelik Detayları"
   },
+  "profileScreens": {
+    "personalInfo": {
+      "header": "Kişisel Bilgiler",
+      "detailsTitle": "KİŞİSEL DETAYLAR",
+      "fullNameLabel": "Ad Soyad",
+      "fullNamePlaceholder": "Adınızı girin",
+      "emailLabel": "E-posta",
+      "emailPlaceholder": "E-posta adresinizi girin",
+      "phoneLabel": "Telefon",
+      "phonePlaceholder": "Telefon numaranızı girin",
+      "birthDateLabel": "Doğum Tarihi",
+      "birthDatePlaceholder": "GG/AA/YYYY",
+      "addressLabel": "Adres",
+      "addressPlaceholder": "Adresinizi girin",
+      "changePhoto": "Fotoğrafı Değiştir",
+      "saveButton": "Değişiklikleri Kaydet",
+      "saveSuccess": "Bilgileriniz güncellendi.",
+      "saveError": "Bilgiler güncellenirken bir hata oluştu.",
+      "nameRequired": "Ad Soyad alanı zorunludur.",
+      "galleryPermissionTitle": "İzin Gerekli",
+      "galleryPermissionMessage": "Galeri erişimi için izin vermeniz gerekiyor.",
+      "cameraPermissionTitle": "İzin Gerekli",
+      "cameraPermissionMessage": "Kamera erişimi için izin vermeniz gerekiyor.",
+      "imagePickError": "Görsel seçilemedi.",
+      "imageProcessError": "Görsel işlenirken bir hata oluştu.",
+      "gallery": "Galeri",
+      "camera": "Kamera"
+    },
+    "idInfo": {
+      "heroTitle": "Kimlik Bilgileriniz Güvende",
+      "heroSubtitle": "Verileriniz şifrelenir ve üçüncü taraflarla paylaşılmaz.",
+      "documentTypeTitle": "BELGE TİPİ",
+      "documentInfoTitle": "BELGE BİLGİLERİ",
+      "tcKimlik": "TC Kimlik No",
+      "passport": "Pasaport No",
+      "drivingLicense": "Ehliyet No",
+      "enterValue": "{{field}} girin",
+      "nationality": "Uyruk",
+      "nationalityPlaceholder": "Uyruğunuzu girin",
+      "securityNotice": "256-bit SSL şifreleme ile korunmaktadır",
+      "saveButton": "Bilgileri Kaydet",
+      "saved": "Kimlik bilgileriniz kaydedildi."
+    },
+    "paymentMethods": {
+      "infoBanner": "Tüm kart bilgileriniz PCI DSS standartlarına uygun şekilde şifrelenmektedir.",
+      "comingSoonTitle": "Yakında Sizlerle",
+      "comingSoonSubtitle": "Kart ekleme özelliği çok yakında aktif olacak.",
+      "otherMethodsTitle": "DİĞER ÖDEME YÖNTEMLERİ",
+      "cashTitle": "Nakit Ödeme",
+      "cashSubtitle": "Tur sırasında nakit ödeyin",
+      "transferTitle": "Havale / EFT",
+      "transferSubtitle": "Banka havalesi ile ödeyin"
+    },
+    "tourPreferences": {
+      "header": "Tur Tercihleri",
+      "intro": "Tercihlerinizi belirleyin, size özel tur önerileri alalım.",
+      "categoriesTitle": "KATEGORİLER",
+      "selectedCount": "{{count}} seçili",
+      "groupTitle": "GRUP TERCİHİ",
+      "budgetTitle": "BÜTÇE",
+      "notificationsTitle": "BİLDİRİMLER",
+      "notificationLabels": {
+        "newTours": "Yeni Turlar",
+        "priceDrops": "Fiyat Düşüşleri",
+        "recommendations": "Kişisel Öneriler"
+      },
+      "saveButton": "Tercihleri Kaydet",
+      "saveSuccess": "Tercihleriniz kaydedildi.",
+      "saveSuccessTitle": "Başarılı",
+      "selectWarningTitle": "Uyarı",
+      "selectWarning": "En az bir kategori seçmelisiniz.",
+      "categories": {
+        "history": "Tarihi",
+        "nature": "Doğa",
+        "beach": "Plaj",
+        "adventure": "Macera",
+        "food": "Gastronomi",
+        "culture": "Kültür"
+      },
+      "groupOptions": {
+        "solo": "Bireysel",
+        "couple": "Çift",
+        "family": "Aile",
+        "group": "Grup"
+      },
+      "budgetOptions": {
+        "budget": {
+          "label": "Ekonomik",
+          "range": "0-2.000₺"
+        },
+        "mid": {
+          "label": "Orta",
+          "range": "2.000-5.000₺"
+        },
+        "premium": {
+          "label": "Premium",
+          "range": "5.000-10.000₺"
+        },
+        "luxury": {
+          "label": "Lüks",
+          "range": "10.000₺+"
+        }
+      }
+    },
+    "contact": {
+      "header": "İletişim",
+      "questionBannerTitle": "Bir sorunuz mu var?",
+      "questionBannerSubtitle": "Destek biletlerinizi görüntüleyin ve yeni bilet oluşturun",
+      "quickContactTitle": "HIZLI İLETİŞİM",
+      "faqTitle": "SIK SORULAN SORULAR",
+      "channels": {
+        "phone": "Telefon",
+        "whatsapp": "WhatsApp",
+        "email": "E-posta"
+      },
+      "faq": {
+        "tours": {
+          "question": "Turları nasıl keşfedebilirim?",
+          "answer": "Ana sayfadaki kategorilerden veya arama özelliğini kullanarak KKTC'deki tüm turları keşfedebilirsiniz. Harita görünümünde yakınlarınızdaki turları da görebilirsiniz."
+        },
+        "favorites": {
+          "question": "Favorilere nasıl eklerim?",
+          "answer": "Beğendiğiniz turların detay sayfasında kalp ikonuna tıklayarak favorilerinize ekleyebilirsiniz. Favorilerinize alt menüden ulaşabilirsiniz."
+        },
+        "directions": {
+          "question": "Tur lokasyonuna nasıl ulaşırım?",
+          "answer": "Tur detay sayfasında \"Yol Tarifi Al\" butonuna tıklayarak harita uygulamanız üzerinden yol tarifi alabilirsiniz."
+        },
+        "membership": {
+          "question": "Üyelik avantajları nelerdir?",
+          "answer": "Gold ve Business üyelikler ile özel indirimler, erken erişim ve VIP turlar gibi ayrıcalıklardan yararlanabilirsiniz."
+        }
+      },
+      "errorUnsupported": "Bu işlem desteklenmiyor.",
+      "errorGeneric": "Bir sorun oluştu."
+    },
+    "help": {
+      "header": "Yardım",
+      "categoriesTitle": "YARDIM KATEGORİLERİ",
+      "faqTitle": "SIK SORULAN SORULAR",
+      "categories": {
+        "account": "Hesap İşlemleri",
+        "tours": "Turlar & Rezervasyon",
+        "payment": "Ödeme & Faturalama",
+        "membership": "Üyelik & Avantajlar"
+      },
+      "faq": {
+        "q1": "Nasıl tur rezervasyonu yapabilirim?",
+        "a1": "Ana sayfadan veya keşfet bölümünden tur seçip \"Yol Tarifi Al\" ile lokasyona ulaşın. Rezervasyon için sağlayıcı ile iletişime geçin.",
+        "q2": "Üyelik seviyemi nasıl yükseltebilirim?",
+        "a2": "Profilde \"Üyelik Kartı\" bölümünden Gold veya Business seçip ödemeyi tamamlayın.",
+        "q3": "Favorilere nasıl tur ekleyebilirim?",
+        "a3": "Tur detay sayfasındaki kalp ikonuna tıklayın. Favorilere alt menüden ulaşabilirsiniz.",
+        "q4": "Uygulama bildirimleri nasıl yönetilir?",
+        "a4": "KKTC Tour bildirim izinlerini telefon ayarlarından yöneterek kampanyaları kaçırmayın.",
+        "q5": "Hesabımı nasıl silebilirim?",
+        "a5": "İletişim sayfasından destek ekibimize ulaşın. Hesap silme tüm verileri kalıcı olarak kaldırır.",
+        "q6": "Hangi ödeme yöntemleri mevcut?",
+        "a6": "Şimdilik tur sırasında nakit ve banka havalesi mevcut. Kart ödemeleri yakında eklenecek."
+      },
+      "contactButton": "Destek Ekibiyle İletişime Geç"
+    }
+  },
   "settings": {
     "title": "Ayarlar",
     "preferences": "Tercihler",
@@ -263,11 +441,17 @@
   },
   "search": {
     "title": "Ara",
-    "placeholder": "Tur veya destinasyon ara...",
+    "placeholder": "Tur, destinasyon ara",
     "recentSearches": "Son Aramalar",
     "clearAll": "Tümünü Temizle",
+    "clear": "Temizle",
+    "cancel": "İptal",
     "noResults": "Sonuç bulunamadı",
-    "noResultsSubtitle": "Farklı anahtar kelimeler deneyin"
+    "noResultsSubtitle": "Farklı anahtar kelimeler deneyin",
+    "noResultsHint": "\"{{query}}\" için eşleşme yok",
+    "resultsCount": "{{count}} sonuç bulundu",
+    "emptyTitle": "Tur veya destinasyon arayın",
+    "emptySubtitle": "Aramalarınız burada görünecek"
   },
   "errors": {
     "generic": "Bir şeyler yanlış gitti",
@@ -353,7 +537,14 @@
       "activity": "Aktivite",
       "viewpoint": "Manzara Noktası",
       "beach": "Plaj"
-    }
+    },
+    "searchDestination": "Destinasyon Ara",
+    "tours": "Turlar",
+    "routes": "Rotalar",
+    "noResults": "Sonuç bulunamadı",
+    "viewDetails": "Detayları Gör",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır"
   },
   "notifications": {
     "title": "Bildirimler",
@@ -383,6 +574,7 @@
     "upgradeMembership": "Üyelik seviyemi nasıl yükseltebilirim?"
   },
   "membership": {
+    "title": "Üyelik",
     "basicPlan": "Temel Üyelik",
     "basicDescription": "Temel tur erişimi ile KKTC'yi keşfetmeye başlayın. Küçük gruplar için ideal.",
     "basicAccess": "Temel tur erişimi",
@@ -398,7 +590,13 @@
     "prioritySupport": "Öncelikli destek",
     "specialDiscounts": "Özel indirimler",
     "upgrade": "Üyeliği Yükselt",
-    "start": "Üyeliğini Başlat"
+    "start": "Üyeliğini Başlat",
+    "startMembership": "Üyeliğini Başlat",
+    "cancel": "İptal Et",
+    "restore": "Geri Yükle",
+    "purchaseSuccess": "Üyeliğiniz başarıyla aktifleştirildi!",
+    "purchaseError": "Satın alma sırasında bir hata oluştu. Lütfen tekrar deneyin.",
+    "restoreSuccess": "Satın almalarınız başarıyla geri yüklendi!"
   },
   "features": {
     "advancedSearchFilters": "Gelişmiş arama filtreleri",
@@ -540,7 +738,8 @@
   },
   "paywall": {
     "title": "Premium'a Yükselt",
-    "favoriteLimitReached": "Favori limitinize ulaştınız! Sınırsız favori eklemek için Premium'a geçin.",
+    "favoriteLimitReached": "Favori ekleme hakkınız dolmuştur! Sınırsız favori için Premium'a geçin.",
+    "scanLimitReached": "Mekan taratma hakkınız dolmuştur! Sınırsız tarama için Premium'a geçin.",
     "unlockPremium": "Premium özelliklerin kilidini açın ve KKTC'yi sınırsız keşfedin.",
     "bestValue": "EN AVANTAJLI",
     "savePercent": "%{{percent}} tasarruf",

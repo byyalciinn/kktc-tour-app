@@ -38,6 +38,8 @@ const SWR_CONFIG = {
 interface TourState {
   // State
   tours: Tour[];
+  allTours: Tour[];  // Tüm turlar (kategori filtresi olmadan) - Reels için
+  isLoadingAllTours: boolean;  // Reels için ayrı loading state
   categories: Category[];
   selectedCategoryId: string;
   isLoading: boolean;
@@ -67,6 +69,7 @@ interface TourState {
 
   // Async actions
   fetchTours: () => Promise<void>;
+  fetchAllTours: (forceRefresh?: boolean) => Promise<void>;  // Tüm turları çek (Reels için)
   fetchToursWithSWR: () => Promise<void>;
   revalidate: () => Promise<void>;
   fetchToursByCategory: (categoryId: string) => Promise<void>;
@@ -94,6 +97,8 @@ const CACHE_DURATION = 5 * 60 * 1000;
 export const useTourStore = create<TourState>((set, get) => ({
   // Initial state
   tours: [],
+  allTours: [],  // Tüm turlar (kategori filtresi olmadan)
+  isLoadingAllTours: false,
   categories: [{ id: 'all', name: 'Tümü', icon: 'apps-outline', sort_order: 0 }],
   selectedCategoryId: 'all',
   isLoading: false,
@@ -167,6 +172,49 @@ export const useTourStore = create<TourState>((set, get) => ({
       set({ 
         tours: featuredTours,
         isLoading: false,
+        error: null,
+      });
+    }
+  },
+
+  /**
+   * Fetch all tours without category filter (for Reels)
+   */
+  fetchAllTours: async (forceRefresh = false) => {
+    const { allTours, isLoadingAllTours } = get();
+    
+    // Skip if already loading
+    if (isLoadingAllTours) return;
+    
+    // Skip if have cached data and not forcing refresh
+    if (!forceRefresh && allTours.length > 0) return;
+
+    set({ isLoadingAllTours: true, error: null });
+
+    try {
+      const { data, error } = await getTours();
+
+      if (error) {
+        logger.warn('All tours fetch error, using fallback:', error);
+        set({ 
+          allTours: featuredTours, 
+          error: null,
+          isLoadingAllTours: false,
+        });
+        return;
+      }
+
+      const tours = data.map(tourDataToTour);
+      set({ 
+        allTours: tours.length > 0 ? tours : featuredTours,
+        isLoadingAllTours: false,
+        error: null,
+      });
+    } catch (err: any) {
+      logger.error('All tours fetch exception:', err);
+      set({ 
+        allTours: featuredTours,
+        isLoadingAllTours: false,
         error: null,
       });
     }

@@ -14,22 +14,9 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 
-// SwiftUI components for iOS 26+ Liquid Glass design
-let ContextMenu: any = null;
-let Host: any = null;
-let Button: any = null;
-
-if (Platform.OS === 'ios') {
-  try {
-    const SwiftUI = require('@expo/ui/swift-ui');
-    ContextMenu = SwiftUI.ContextMenu;
-    Host = SwiftUI.Host;
-    Button = SwiftUI.Button;
-  } catch (e) {
-    // @expo/ui not installed, fallback to regular UI
-  }
-}
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -83,9 +70,24 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
   // Get member class color
   const memberClassColor = memberClassColors[profile?.member_class || 'Normal'] || '#6B7280';
 
+  // Format member number with # prefix
+  const formatMemberNumber = (num: string | null | undefined) => {
+    if (!num) return '-';
+    return `#${num}`;
+  };
+
+  // Copy member number to clipboard
+  const copyMemberNumber = async () => {
+    if (profile?.member_number) {
+      await Clipboard.setStringAsync(profile.member_number);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(t('common.copied'), t('profile.memberNumberCopied'));
+    }
+  };
+
   // Dynamic account info based on profile
   const accountInfoItems = [
-    { label: t('profile.memberNumber'), value: profile?.member_number || '-', route: '' },
+    { label: t('profile.memberNumber'), value: formatMemberNumber(profile?.member_number), route: '', copyable: true },
     { label: t('profile.memberClass'), value: profile?.member_class || 'Normal', route: '' },
     { label: t('profile.memberCard'), value: '', hasArrow: true, route: '/profile/membership-card' },
     { label: t('profile.myPanel'), value: '', hasArrow: true, route: '/profile/my-panel' },
@@ -235,60 +237,15 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
               <Text style={[styles.doneText, { color: colors.primary }]}>{t('common.close')}</Text>
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
-            <View style={styles.headerRightButtons}>
-              <TouchableOpacity 
-                style={[
-                  styles.settingsButton,
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
-                ]}
-                onPress={() => handleNavigate('/profile/settings')}
-              >
-                <Ionicons name="settings-outline" size={22} color={colors.text} />
-              </TouchableOpacity>
-              {Platform.OS === 'ios' && ContextMenu && Host && Button && (
-                <Host style={{ width: 44, height: 44 }}>
-                  <ContextMenu>
-                    <ContextMenu.Items>
-                      <Button 
-                        systemImage="paintbrush" 
-                        onPress={() => Alert.alert('Tema', 'Tema değiştirme özelliği')}
-                      >
-                        Tema Değiştir
-                      </Button>
-                      <Button 
-                        systemImage="trash" 
-                        onPress={() => Alert.alert('Cache', 'Cache temizlendi')}
-                      >
-                        Cache Temizle
-                      </Button>
-                      <Button 
-                        systemImage="bell.badge" 
-                        onPress={() => Alert.alert('Bildirim', 'Test bildirimi gönderildi')}
-                      >
-                        Bildirimleri Test Et
-                      </Button>
-                      <Button 
-                        systemImage="doc.text" 
-                        onPress={() => Alert.alert('Loglar', 'Hata logları gösteriliyor')}
-                      >
-                        Hata Logları
-                      </Button>
-                      <Button 
-                        systemImage="wifi" 
-                        onPress={() => Alert.alert('Ağ', 'Ağ bağlantısı aktif')}
-                      >
-                        Ağ Durumu
-                      </Button>
-                    </ContextMenu.Items>
-                    <ContextMenu.Trigger>
-                      <Button variant="bordered" systemImage="flask">
-                        Test
-                      </Button>
-                    </ContextMenu.Trigger>
-                  </ContextMenu>
-                </Host>
-              )}
-            </View>
+            <TouchableOpacity 
+              style={[
+                styles.settingsButton,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }
+              ]}
+              onPress={() => handleNavigate('/profile/settings')}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
           </View>
 
           <ScrollView
@@ -336,16 +293,25 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                         { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
                       ],
                     ]}
-                    activeOpacity={item.hasArrow ? 0.7 : 1}
-                    onPress={() => handleNavigate(item.route)}
+                    activeOpacity={item.hasArrow || item.copyable ? 0.7 : 1}
+                    onPress={() => item.hasArrow ? handleNavigate(item.route) : null}
+                    onLongPress={item.copyable ? copyMemberNumber : undefined}
+                    delayLongPress={300}
                   >
                     <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
                     <View style={styles.infoValueContainer}>
                       {item.value ? (
-                        <Text style={[styles.infoValue, { color: colors.textSecondary }]}>
+                        <Text style={[
+                          styles.infoValue, 
+                          { color: colors.textSecondary },
+                          item.copyable && styles.memberNumberValue
+                        ]}>
                           {item.value}
                         </Text>
                       ) : null}
+                      {item.copyable && (
+                        <Ionicons name="copy-outline" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                      )}
                       {item.hasArrow && (
                         <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                       )}
@@ -632,6 +598,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '400',
+  },
+  memberNumberValue: {
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 1,
   },
   logoutButton: {
     flexDirection: 'row',

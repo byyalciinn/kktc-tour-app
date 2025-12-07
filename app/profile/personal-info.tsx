@@ -23,12 +23,14 @@ import { Colors } from '@/constants/Colors';
 import { useAuthStore, useThemeStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { optimizeAvatar } from '@/lib/imageOptimizer';
+import { useTranslation } from 'react-i18next';
 
 export default function PersonalInfoScreen() {
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   // Auth store
   const user = useAuthStore((state) => state.user);
@@ -72,22 +74,22 @@ export default function PersonalInfoScreen() {
         const { success, error } = await uploadUserAvatar(optimized.uri);
         
         if (success) {
-          Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
+          Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
         } else {
-          Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+          Alert.alert(t('common.error'), error?.message || t('profile.avatarUploadError'));
         }
       } else {
         // Fallback to original if optimization fails
         const { success, error } = await uploadUserAvatar(imageUri);
         if (success) {
-          Alert.alert('Başarılı', 'Profil fotoğrafınız güncellendi.');
+          Alert.alert(t('common.success'), t('profile.avatarUpdateSuccess'));
         } else {
-          Alert.alert('Hata', error?.message || 'Fotoğraf yüklenirken bir hata oluştu.');
+          Alert.alert(t('common.error'), error?.message || t('profile.avatarUploadError'));
         }
       }
     } catch (err) {
       console.error('[Avatar] Optimization error:', err);
-      Alert.alert('Hata', 'Fotoğraf işlenirken bir hata oluştu.');
+      Alert.alert(t('common.error'), t('profileScreens.personalInfo.imageProcessError'));
     }
     
     setIsUploading(false);
@@ -98,7 +100,7 @@ export default function PersonalInfoScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('İzin Gerekli', 'Galeri erişimi için izin vermeniz gerekiyor.');
+        Alert.alert(t('profileScreens.personalInfo.galleryPermissionTitle'), t('profileScreens.personalInfo.galleryPermissionMessage'));
         return;
       }
 
@@ -117,14 +119,14 @@ export default function PersonalInfoScreen() {
 
       const asset = result.assets[0];
       if (!asset.uri) {
-        Alert.alert('Hata', 'Görsel seçilemedi');
+        Alert.alert(t('common.error'), t('profileScreens.personalInfo.imagePickError'));
         return;
       }
 
       await handleUploadImage(asset.uri);
     } catch (error) {
       console.error('Pick from gallery error:', error);
-      Alert.alert('Hata', 'Görsel seçilirken bir hata oluştu');
+      Alert.alert(t('common.error'), t('profileScreens.personalInfo.imagePickError'));
     }
   };
 
@@ -133,7 +135,7 @@ export default function PersonalInfoScreen() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('İzin Gerekli', 'Kamera erişimi için izin vermeniz gerekiyor.');
+        Alert.alert(t('profileScreens.personalInfo.cameraPermissionTitle'), t('profileScreens.personalInfo.cameraPermissionMessage'));
         return;
       }
 
@@ -150,26 +152,26 @@ export default function PersonalInfoScreen() {
 
       const asset = result.assets[0];
       if (!asset.uri) {
-        Alert.alert('Hata', 'Fotoğraf çekilemedi');
+        Alert.alert(t('common.error'), t('profile.cameraError'));
         return;
       }
 
       await handleUploadImage(asset.uri);
     } catch (error) {
       console.error('Take photo error:', error);
-      Alert.alert('Hata', 'Fotoğraf çekilirken bir hata oluştu');
+      Alert.alert(t('common.error'), t('profile.cameraError'));
     }
   };
 
   // Delete avatar
   const handleDeleteAvatar = async () => {
     Alert.alert(
-      'Fotoğrafı Sil',
-      'Profil fotoğrafınızı silmek istediğinizden emin misiniz?',
+      t('profile.deletePhoto'),
+      t('profile.avatarDeleteConfirm'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setIsUploading(true);
@@ -177,9 +179,9 @@ export default function PersonalInfoScreen() {
             setIsUploading(false);
             
             if (success) {
-              Alert.alert('Başarılı', 'Profil fotoğrafınız silindi.');
+              Alert.alert(t('common.success'), t('profile.avatarDeleteSuccess'));
             } else {
-              Alert.alert('Hata', error?.message || 'Fotoğraf silinirken bir hata oluştu.');
+              Alert.alert(t('common.error'), error?.message || t('profile.avatarDeleteError'));
             }
           },
         },
@@ -192,7 +194,7 @@ export default function PersonalInfoScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['İptal', 'Galeri', 'Kamera', 'Fotoğrafı Sil'],
+          options: [t('common.cancel'), t('profileScreens.personalInfo.gallery'), t('profileScreens.personalInfo.camera'), t('profile.deletePhoto')],
           destructiveButtonIndex: 3,
           cancelButtonIndex: 0,
         },
@@ -204,13 +206,13 @@ export default function PersonalInfoScreen() {
       );
     } else {
       Alert.alert(
-        'Profil Fotoğrafı',
-        'Bir seçenek belirleyin',
+        t('profile.avatarTitle'),
+        t('profile.chooseImageSource'),
         [
-          { text: 'İptal', style: 'cancel' },
-          { text: 'Galeri', onPress: pickFromGallery },
-          { text: 'Kamera', onPress: takePhoto },
-          { text: 'Fotoğrafı Sil', style: 'destructive', onPress: handleDeleteAvatar },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('profileScreens.personalInfo.gallery'), onPress: pickFromGallery },
+          { text: t('profileScreens.personalInfo.camera'), onPress: takePhoto },
+          { text: t('profile.deletePhoto'), style: 'destructive', onPress: handleDeleteAvatar },
         ]
       );
     }
@@ -219,7 +221,7 @@ export default function PersonalInfoScreen() {
   // Save changes
   const handleSave = async () => {
     if (!fullName.trim()) {
-      Alert.alert('Hata', 'Ad Soyad alanı zorunludur.');
+      Alert.alert(t('common.error'), t('profileScreens.personalInfo.nameRequired'));
       return;
     }
 
@@ -235,11 +237,11 @@ export default function PersonalInfoScreen() {
     setIsLoading(false);
     
     if (success) {
-      Alert.alert('Başarılı', 'Bilgileriniz güncellendi.', [
-        { text: 'Tamam', onPress: () => router.back() }
+      Alert.alert(t('common.success'), t('profileScreens.personalInfo.saveSuccess'), [
+        { text: t('common.done'), onPress: () => router.back() }
       ]);
     } else {
-      Alert.alert('Hata', error?.message || 'Bilgiler güncellenirken bir hata oluştu.');
+      Alert.alert(t('common.error'), error?.message || t('profileScreens.personalInfo.saveError'));
     }
   };
 
@@ -255,7 +257,7 @@ export default function PersonalInfoScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Kişisel Bilgiler</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profileScreens.personalInfo.header')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -301,7 +303,7 @@ export default function PersonalInfoScreen() {
               </View>
             </TouchableOpacity>
             <Text style={[styles.changePhotoText, { color: colors.primary }]}>
-              Fotoğrafı Değiştir
+              {t('profileScreens.personalInfo.changePhoto')}
             </Text>
           </View>
         </View>
@@ -309,7 +311,7 @@ export default function PersonalInfoScreen() {
         {/* Personal Details Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            KİŞİSEL DETAYLAR
+            {t('profileScreens.personalInfo.detailsTitle')}
           </Text>
           <View
             style={[
@@ -322,12 +324,12 @@ export default function PersonalInfoScreen() {
           >
             {/* Full Name */}
             <View style={[styles.inputRow, styles.inputRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Ad Soyad</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('profileScreens.personalInfo.fullNameLabel')}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="Adınızı girin"
+                placeholder={t('profileScreens.personalInfo.fullNamePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -339,11 +341,11 @@ export default function PersonalInfoScreen() {
 
             {/* Email */}
             <View style={[styles.inputRow, styles.inputRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>E-posta</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('profileScreens.personalInfo.emailLabel')}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text, opacity: 0.6 }]}
                 value={email}
-                placeholder="E-posta adresinizi girin"
+                placeholder={t('profileScreens.personalInfo.emailPlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -355,12 +357,12 @@ export default function PersonalInfoScreen() {
 
             {/* Phone */}
             <View style={[styles.inputRow, styles.inputRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Telefon</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('profileScreens.personalInfo.phoneLabel')}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="Telefon numaranızı girin"
+                placeholder={t('profileScreens.personalInfo.phonePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="phone-pad"
                 textContentType="telephoneNumber"
@@ -371,12 +373,12 @@ export default function PersonalInfoScreen() {
 
             {/* Birth Date */}
             <View style={[styles.inputRow, styles.inputRowBorder, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Doğum Tarihi</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('profileScreens.personalInfo.birthDateLabel')}</Text>
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 value={birthDate}
                 onChangeText={setBirthDate}
-                placeholder="GG/AA/YYYY"
+                placeholder={t('profileScreens.personalInfo.birthDatePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numbers-and-punctuation"
                 returnKeyType="next"
@@ -386,12 +388,12 @@ export default function PersonalInfoScreen() {
 
             {/* Address */}
             <View style={styles.inputRow}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Adres</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('profileScreens.personalInfo.addressLabel')}</Text>
               <TextInput
                 style={[styles.input, styles.multilineInput, { color: colors.text }]}
                 value={address}
                 onChangeText={setAddress}
-                placeholder="Adresinizi girin"
+                placeholder={t('profileScreens.personalInfo.addressPlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={3}
@@ -414,7 +416,7 @@ export default function PersonalInfoScreen() {
           {isLoading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
+            <Text style={styles.saveButtonText}>{t('profileScreens.personalInfo.saveButton')}</Text>
           )}
         </TouchableOpacity>
         </ScrollView>

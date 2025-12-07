@@ -27,13 +27,14 @@ import {
   PLANS, 
   FREE_TIER_LIMITS 
 } from '@/stores/subscriptionStore';
+import { usePaywall } from '@/hooks';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface PaywallSheetProps {
   visible: boolean;
   onClose: () => void;
-  trigger?: 'favorites' | 'feature';
+  trigger?: 'favorites' | 'scan' | 'feature';
 }
 
 type SelectablePlan = 'monthly' | 'yearly';
@@ -48,7 +49,8 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
-  const { subscribe, isLoading } = useSubscriptionStore();
+  const { subscribe, restorePurchases, isLoading } = useSubscriptionStore();
+  const { showPaywall: showAdaptyPaywall, isLoading: isAdaptyLoading } = usePaywall();
 
   const [selectedPlan, setSelectedPlan] = useState<SelectablePlan>('yearly');
   
@@ -95,11 +97,32 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   }, [visible]);
 
   const handleSubscribe = useCallback(async () => {
+    // Try Adapty native paywall first
+    try {
+      const result = await showAdaptyPaywall();
+      if (result.success) {
+        if (result.purchased) {
+          onClose();
+        }
+        return;
+      }
+    } catch (error) {
+      console.log('[PaywallSheet] Adapty paywall not available, using fallback');
+    }
+    
+    // Fallback to local subscription flow
     const { success } = await subscribe(selectedPlan);
     if (success) {
       onClose();
     }
-  }, [selectedPlan, subscribe, onClose]);
+  }, [selectedPlan, subscribe, onClose, showAdaptyPaywall]);
+
+  const handleRestorePurchases = useCallback(async () => {
+    const { success } = await restorePurchases();
+    if (success) {
+      onClose();
+    }
+  }, [restorePurchases, onClose]);
 
   // Calculate savings for yearly plan
   const monthlyCost = PLANS.monthly.price;
@@ -191,10 +214,12 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
             {t('paywall.title')}
           </Text>
 
-          {/* Subtitle */}
+          {/* Subtitle - Dynamic based on trigger */}
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {trigger === 'favorites' 
               ? t('paywall.favoriteLimitReached', { limit: FREE_TIER_LIMITS.maxFavorites })
+              : trigger === 'scan'
+              ? t('paywall.scanLimitReached')
               : t('paywall.unlockPremium')
             }
           </Text>
@@ -345,7 +370,7 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.legalDot, { color: colors.textSecondary }]}>•</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={handleRestorePurchases} disabled={isLoading || isAdaptyLoading}>
                 <Text style={[styles.legalLink, { color: colors.primary }]}>
                   {t('paywall.restorePurchases')}
                 </Text>
@@ -359,7 +384,7 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={handleSubscribe}
-            disabled={isLoading}
+            disabled={isLoading || isAdaptyLoading}
             style={styles.ctaButton}
           >
             <LinearGradient

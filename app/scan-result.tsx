@@ -116,13 +116,10 @@ export default function ScanResultScreen() {
           >
             <Image source={{ uri: imageUri }} style={styles.heroImage} />
             
-            {/* Confidence pill */}
-            <View style={[styles.confidencePill, { backgroundColor: cardBg }]}>
-              <Text style={[styles.confidenceValue, { color: colors.primary }]}>
+            {/* Confidence badge - minimalist, top right */}
+            <View style={[styles.confidenceBadge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.confidenceBadgeText}>
                 {confidencePercent}%
-              </Text>
-              <Text style={[styles.confidenceLabel, { color: textMuted }]}>
-                {t('scan.confidence')}
               </Text>
             </View>
           </Animated.View>
@@ -345,31 +342,18 @@ const styles = StyleSheet.create({
     aspectRatio: 4 / 3,
     borderRadius: 20,
   },
-  confidencePill: {
+  confidenceBadge: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    top: 12,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  confidenceValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-  },
-  confidenceLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  confidenceBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
   titleBlock: {

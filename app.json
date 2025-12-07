@@ -26,7 +26,6 @@
         "backgroundColor": "#F3F2EE"
       },
       "package": "com.kktc.gezi",
-      "googleServicesFile": "./google-services.json",
       "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
     "web": {

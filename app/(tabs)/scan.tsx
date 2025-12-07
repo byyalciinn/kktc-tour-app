@@ -26,8 +26,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useThemeStore } from '@/stores';
+import { useThemeStore, useAuthStore } from '@/stores';
 import { useScanStore } from '@/stores/scanStore';
+import { PaywallSheet } from '@/components/ui';
 
 const { width, height } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.72;
@@ -53,7 +54,16 @@ export default function ScanScreen() {
     setImageUri,
     analyzeCurrentImage,
     clearAnalysis,
+    canScan,
+    getRemainingScans,
   } = useScanStore();
+
+  // Auth for premium check
+  const { profile } = useAuthStore();
+  const isPremium = profile?.member_class !== 'Normal';
+  
+  // Paywall state
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Animations
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -186,6 +196,12 @@ export default function ScanScreen() {
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
 
+    // Check scan limit for free users
+    if (!canScan(isPremium)) {
+      setShowPaywall(true);
+      return;
+    }
+
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
@@ -199,10 +215,16 @@ export default function ScanScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), t('permissions.cameraError'));
     }
-  }, [setImageUri, analyzeCurrentImage, t]);
+  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium]);
 
   // Gallery
   const handleGallery = useCallback(async () => {
+    // Check scan limit for free users
+    if (!canScan(isPremium)) {
+      setShowPaywall(true);
+      return;
+    }
+
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -224,7 +246,7 @@ export default function ScanScreen() {
     } catch (error) {
       Alert.alert(t('common.error'), t('permissions.galleryRequired'));
     }
-  }, [setImageUri, analyzeCurrentImage, t]);
+  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium]);
 
   const toggleFlash = useCallback(() => setFlash((prev) => !prev), []);
   const handleClose = useCallback(() => clearAnalysis(), [clearAnalysis]);
@@ -267,7 +289,7 @@ export default function ScanScreen() {
   }
 
   // ============================================
-  // PREMIUM ANALYZING SCREEN - White, Elegant
+  // PREMIUM ANALYZING SCREEN - Modern, Minimal
   // ============================================
   if (isAnalyzing && imageUri) {
     return (
@@ -275,67 +297,43 @@ export default function ScanScreen() {
         <StatusBar style="dark" />
         
         <Animated.View style={[styles.analyzingContent, { opacity: fadeAnim }]}>
-          {/* Close button */}
-          <View style={[styles.analyzingHeader, { paddingTop: insets.top + 10 }]}>
-            <TouchableOpacity 
-              style={styles.analyzingCloseBtn} 
-              onPress={handleClose}
-              disabled
-            >
-              <Ionicons name="close" size={24} color="transparent" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Image with scanner */}
-          <View style={styles.analyzingImageSection}>
-            <View style={styles.analyzingImageWrapper}>
-              {/* Shadow */}
-              <View style={styles.analyzingImageShadow} />
+          {/* Image with scanner - positioned higher */}
+          <View style={[styles.analyzingImageSection, { paddingTop: insets.top + 40 }]}>
+            <View style={styles.analyzingImageContainer}>
+              <Image 
+                source={{ uri: imageUri }} 
+                style={styles.analyzingImage}
+                resizeMode="cover"
+              />
               
-              {/* Image container */}
-              <View style={styles.analyzingImageContainer}>
-                <Image 
-                  source={{ uri: imageUri }} 
-                  style={styles.analyzingImage}
-                  resizeMode="cover"
-                />
-                
-                {/* Corner brackets - dark for white bg */}
-                <View style={styles.analyzingCorners}>
-                  <View style={[styles.analyzeCorner, styles.analyzeCornerTL]} />
-                  <View style={[styles.analyzeCorner, styles.analyzeCornerTR]} />
-                  <View style={[styles.analyzeCorner, styles.analyzeCornerBL]} />
-                  <View style={[styles.analyzeCorner, styles.analyzeCornerBR]} />
-                </View>
-
-                {/* Scanner line - moves up and down */}
-                <Animated.View
-                  style={[
-                    styles.scannerLine,
-                    {
-                      transform: [
-                        {
-                          translateY: scanLineAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0, ANALYZING_IMAGE_SIZE - 4],
-                          }),
-                        },
-                      ],
-                    },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={['transparent', colors.primary, 'transparent']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.scannerLineGradient}
-                  />
-                </Animated.View>
+              {/* Minimal corner brackets */}
+              <View style={styles.analyzingCorners}>
+                <View style={[styles.analyzeCorner, styles.analyzeCornerTL]} />
+                <View style={[styles.analyzeCorner, styles.analyzeCornerTR]} />
+                <View style={[styles.analyzeCorner, styles.analyzeCornerBL]} />
+                <View style={[styles.analyzeCorner, styles.analyzeCornerBR]} />
               </View>
+
+              {/* Scanner line - simple white line spanning full width */}
+              <Animated.View
+                style={[
+                  styles.scannerLine,
+                  {
+                    transform: [
+                      {
+                        translateY: scanLineAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, ANALYZING_IMAGE_SIZE - 2],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
             </View>
           </View>
 
-          {/* Status text */}
+          {/* Status text - closer to image */}
           <View style={styles.analyzingTextSection}>
             <Text style={styles.analyzingTitle}>
               {t(`scan.steps.${analysisSteps[analysisStep].key}`)}
@@ -362,7 +360,7 @@ export default function ScanScreen() {
           </View>
 
           {/* Footer */}
-          <View style={[styles.analyzingFooter, { paddingBottom: insets.bottom + 40 }]}>
+          <View style={[styles.analyzingFooter, { paddingBottom: insets.bottom + 30 }]}>
             <Text style={styles.analyzingFooterText}>
               {t('scan.discoveredWith')}
             </Text>
@@ -464,6 +462,13 @@ export default function ScanScreen() {
           </View>
         </View>
       </View>
+
+      {/* Paywall Sheet */}
+      <PaywallSheet
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="scan"
+      />
     </View>
   );
 }
@@ -595,48 +600,25 @@ const styles = StyleSheet.create({
   },
 
   // ============================================
-  // ANALYZING SCREEN STYLES - Premium White
+  // ANALYZING SCREEN STYLES - Modern Minimal
   // ============================================
   analyzingScreen: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
   },
   analyzingContent: {
     flex: 1,
-  },
-  analyzingHeader: {
-    paddingHorizontal: 20,
-    alignItems: 'flex-start',
-  },
-  analyzingCloseBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   analyzingImageSection: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  analyzingImageWrapper: {
-    position: 'relative',
-  },
-  analyzingImageShadow: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    right: -20,
-    bottom: -20,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    borderRadius: 20,
   },
   analyzingImageContainer: {
     width: ANALYZING_IMAGE_SIZE,
     height: ANALYZING_IMAGE_SIZE,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#E5E5E5',
+    backgroundColor: '#000',
   },
   analyzingImage: {
     width: '100%',
@@ -647,85 +629,89 @@ const styles = StyleSheet.create({
   },
   analyzeCorner: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: '#333',
+    width: 28,
+    height: 28,
+    borderColor: 'rgba(255,255,255,0.8)',
   },
   analyzeCornerTL: {
-    top: 12,
-    left: 12,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 4,
+    top: 16,
+    left: 16,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderTopLeftRadius: 6,
   },
   analyzeCornerTR: {
-    top: 12,
-    right: 12,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 4,
+    top: 16,
+    right: 16,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+    borderTopRightRadius: 6,
   },
   analyzeCornerBL: {
-    bottom: 12,
-    left: 12,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 4,
+    bottom: 16,
+    left: 16,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomLeftRadius: 6,
   },
   analyzeCornerBR: {
-    bottom: 12,
-    right: 12,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 4,
+    bottom: 16,
+    right: 16,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderBottomRightRadius: 6,
   },
   scannerLine: {
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 3,
-  },
-  scannerLineGradient: {
-    flex: 1,
+    height: 2,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 4,
   },
   analyzingTextSection: {
     alignItems: 'center',
     paddingHorizontal: 40,
-    paddingTop: 40,
+    paddingTop: 32,
   },
   analyzingTitle: {
     color: '#111',
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 8,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    letterSpacing: -0.3,
   },
   analyzingSubtitle: {
-    color: '#666',
-    fontSize: 15,
-    marginBottom: 30,
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 24,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
   progressBarContainer: {
     width: '100%',
-    height: 4,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 2,
+    height: 3,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 1.5,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 1.5,
   },
   analyzingFooter: {
     alignItems: 'center',
-    paddingTop: 30,
+    paddingTop: 20,
   },
   analyzingFooterText: {
-    color: '#999',
-    fontSize: 13,
+    color: '#BBB',
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
 

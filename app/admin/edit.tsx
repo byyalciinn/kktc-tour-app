@@ -39,6 +39,8 @@ export default function EditTourScreen() {
   const [highlights, setHighlights] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string>('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +81,8 @@ export default function EditTourScreen() {
       setCategory(data.category);
       setHighlights(data.highlights?.join(', ') || '');
       setOriginalImageUrl(data.image || '');
+      setLatitude(data.latitude ? String(data.latitude) : '');
+      setLongitude(data.longitude ? String(data.longitude) : '');
       setIsLoading(false);
     };
 
@@ -145,6 +149,22 @@ export default function EditTourScreen() {
       .map(h => h.trim())
       .filter(h => h.length > 0);
 
+    // Parse coordinates if provided
+    const parsedLatitude = latitude.trim() ? parseFloat(latitude.trim()) : undefined;
+    const parsedLongitude = longitude.trim() ? parseFloat(longitude.trim()) : undefined;
+    
+    // Validate coordinates if provided
+    if (latitude.trim() && (isNaN(parsedLatitude!) || parsedLatitude! < -90 || parsedLatitude! > 90)) {
+      Alert.alert('Hata', 'Geçerli bir enlem girin (-90 ile 90 arası)');
+      setIsSaving(false);
+      return;
+    }
+    if (longitude.trim() && (isNaN(parsedLongitude!) || parsedLongitude! < -180 || parsedLongitude! > 180)) {
+      Alert.alert('Hata', 'Geçerli bir boylam girin (-180 ile 180 arası)');
+      setIsSaving(false);
+      return;
+    }
+
     const { data, error } = await updateTour(
       id,
       {
@@ -156,6 +176,8 @@ export default function EditTourScreen() {
         duration: duration.trim(),
         category,
         highlights: highlightsArray,
+        latitude: parsedLatitude,
+        longitude: parsedLongitude,
       },
       imageUri || undefined,
       originalImageUrl
@@ -410,6 +432,48 @@ export default function EditTourScreen() {
               onChangeText={setHighlights}
             />
           </View>
+
+          {/* Coordinates Section */}
+          <View style={styles.formSection}>
+            <Text style={[styles.label, { color: colors.text }]}>Harita Koordinatları (Opsiyonel)</Text>
+            <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+              Haritada pin göstermek için koordinat girin
+            </Text>
+            <View style={styles.rowFields}>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
+                      color: colors.text,
+                    },
+                  ]}
+                  placeholder="Enlem (örn: 35.3387)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={latitude}
+                  onChangeText={setLatitude}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
+                      color: colors.text,
+                    },
+                  ]}
+                  placeholder="Boylam (örn: 33.3183)"
+                  placeholderTextColor={colors.textSecondary}
+                  value={longitude}
+                  onChangeText={setLongitude}
+                  keyboardType="decimal-pad"
+                />
+              </View>
+            </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -535,5 +599,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    marginBottom: 12,
   },
 });

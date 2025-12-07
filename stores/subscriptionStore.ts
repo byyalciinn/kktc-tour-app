@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './authStore';
+import { 
+  adapty, 
+  getAdaptyProfile, 
+  hasActiveSubscription, 
+  restoreAdaptyPurchases 
+} from '@/lib/adaptyService';
+import { createLogger } from '@/lib/logger';
+
+const subscriptionLogger = createLogger('Subscription');
 
 /**
  * Subscription plan types
@@ -50,6 +59,7 @@ interface SubscriptionState {
   subscribe: (plan: SubscriptionPlan) => Promise<{ success: boolean; error: string | null }>;
   cancelSubscription: () => Promise<{ success: boolean; error: string | null }>;
   restorePurchases: () => Promise<{ success: boolean; error: string | null }>;
+  syncWithAdapty: () => Promise<void>;
   reset: () => void;
 }
 
@@ -195,64 +205,133 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         });
       },
 
-      // Subscribe to a plan (placeholder for IAP integration)
+      // Subscribe to a plan
+      // Note: Actual subscription is handled by Adapty paywall UI
+      // This method is kept for programmatic subscription if needed
       subscribe: async (plan) => {
         set({ isLoading: true });
         
         try {
-          // TODO: Integrate with RevenueCat or native IAP
-          // For now, simulate subscription
-          const expiresAt = new Date();
-          if (plan === 'monthly') {
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
-          } else {
-            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-          }
-
-          set({
-            currentPlan: plan,
-            status: 'active',
-            expiresAt: expiresAt.toISOString(),
-            trialEndsAt: null,
-            isLoading: false,
-          });
+          // Adapty handles the actual purchase via paywall UI
+          // This method just syncs state after purchase
+          subscriptionLogger.info('Subscription requested for plan:', plan);
+          
+          // After purchase, sync with Adapty to get actual subscription status
+          await get().syncWithAdapty();
 
           return { success: true, error: null };
         } catch (error: any) {
+          subscriptionLogger.error('Subscription error:', error);
           set({ isLoading: false });
           return { success: false, error: error.message };
         }
       },
 
       // Cancel subscription
+      // Note: Cancellation is handled by App Store/Play Store
+      // This method updates local state
       cancelSubscription: async () => {
         set({ isLoading: true });
         
         try {
-          // TODO: Integrate with RevenueCat or native IAP
-          set({
-            status: 'cancelled',
-            isLoading: false,
-          });
-
+          // User must cancel through App Store/Play Store
+          // We just update local state and sync with Adapty
+          subscriptionLogger.info('Subscription cancellation requested');
+          
+          await get().syncWithAdapty();
+          
+          set({ isLoading: false });
           return { success: true, error: null };
         } catch (error: any) {
+          subscriptionLogger.error('Cancel subscription error:', error);
           set({ isLoading: false });
           return { success: false, error: error.message };
         }
       },
 
-      // Restore purchases
+      // Restore purchases via Adapty
       restorePurchases: async () => {
         set({ isLoading: true });
         
         try {
-          // TODO: Integrate with RevenueCat or native IAP
+          const profile = await restoreAdaptyPurchases();
+          
+          if (profile) {
+            // Check premium access level
+            const premiumAccess = profile.accessLevels?.['premium'];
+            
+            if (premiumAccess?.isActive) {
+              // Determine plan type from subscription
+              const vendorProductId = premiumAccess.vendorProductId;
+              const plan: SubscriptionPlan = 
+                vendorProductId?.includes('yearly') ? 'yearly' : 
+                vendorProductId?.includes('monthly') ? 'monthly' : 'yearly';
+              
+              set({
+                currentPlan: plan,
+                status: 'active',
+                expiresAt: premiumAccess.expiresAt ?? null,
+                trialEndsAt: null,
+                isLoading: false,
+              });
+              
+              subscriptionLogger.info('Purchases restored:', { plan, expiresAt: premiumAccess.expiresAt });
+              return { success: true, error: null };
+            }
+          }
+          
+          // No active subscription found
           set({ isLoading: false });
+          subscriptionLogger.info('No active purchases to restore');
           return { success: true, error: null };
         } catch (error: any) {
+          subscriptionLogger.error('Restore purchases error:', error);
           set({ isLoading: false });
           return { success: false, error: error.message };
+        }
+      },
+
+      // Sync subscription state with Adapty
+      syncWithAdapty: async () => {
+        try {
+          const profile = await getAdaptyProfile();
+          
+          if (!profile) {
+            subscriptionLogger.warn('Could not get Adapty profile');
+            return;
+          }
+          
+          const premiumAccess = profile.accessLevels?.['premium'];
+          
+          if (premiumAccess?.isActive) {
+            const vendorProductId = premiumAccess.vendorProductId;
+            const plan: SubscriptionPlan = 
+              vendorProductId?.includes('yearly') ? 'yearly' : 
+              vendorProductId?.includes('monthly') ? 'monthly' : 'yearly';
+            
+            set({
+              currentPlan: plan,
+              status: 'active',
+              expiresAt: premiumAccess.expiresAt ?? null,
+              trialEndsAt: premiumAccess.activatedAt && !premiumAccess.isLifetime 
+                ? premiumAccess.activatedAt 
+                : null,
+            });
+            
+            subscriptionLogger.info('Synced with Adapty:', { plan, isActive: true });
+          } else {
+            // No active subscription
+            set({
+              currentPlan: 'free',
+              status: 'active',
+              expiresAt: null,
+              trialEndsAt: null,
+            });
+            
+            subscriptionLogger.info('Synced with Adapty: free plan');
+          }
+        } catch (error) {
+          subscriptionLogger.error('Failed to sync with Adapty:', error);
         }
       },
 

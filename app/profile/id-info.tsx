@@ -59,16 +59,19 @@ export default function IdInfoScreen() {
       setIsLoading(false);
       Alert.alert(
         t('common.success'),
-        t('profile.idInfoSaved'),
+        t('profileScreens.idInfo.saved'),
         [{ text: t('common.done'), onPress: () => router.back() }]
       );
     }, 1000);
   };
 
-  const documentLabels: Record<string, string> = {
-    tc_kimlik: 'TC Kimlik No',
-    passport: 'Pasaport No',
-    driving_license: 'Ehliyet No',
+  const getDocumentLabel = (docId: string) => {
+    const labels: Record<string, string> = {
+      tc_kimlik: t('profileScreens.idInfo.tcKimlik'),
+      passport: t('profileScreens.idInfo.passport'),
+      driving_license: t('profileScreens.idInfo.drivingLicense'),
+    };
+    return labels[docId] || docId;
   };
 
   return (
@@ -113,10 +116,10 @@ export default function IdInfoScreen() {
                 <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
               </View>
               <Text style={[styles.heroTitle, { color: colors.text }]}>
-                Kimlik Bilgileriniz Güvende
+                {t('profileScreens.idInfo.heroTitle')}
               </Text>
               <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
-                Verileriniz şifrelenerek saklanır ve üçüncü taraflarla paylaşılmaz.
+                {t('profileScreens.idInfo.heroSubtitle')}
               </Text>
             </LinearGradient>
           </View>
@@ -124,7 +127,7 @@ export default function IdInfoScreen() {
           {/* Document Type Selector */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              BELGE TİPİ
+              {t('profileScreens.idInfo.documentTypeTitle')}
             </Text>
             <View style={styles.documentTypesContainer}>
               {DOCUMENT_TYPES.map((doc) => {
@@ -157,7 +160,7 @@ export default function IdInfoScreen() {
                         { color: isActive ? '#fff' : colors.text },
                       ]}
                     >
-                      {documentLabels[doc.id]}
+                      {getDocumentLabel(doc.id)}
                     </Text>
                     {isActive && (
                       <View style={styles.activeIndicator}>
@@ -173,7 +176,7 @@ export default function IdInfoScreen() {
           {/* Document Details Card */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-              BELGE BİLGİLERİ
+              {t('profileScreens.idInfo.documentInfoTitle')}
             </Text>
             <View
               style={[
@@ -191,13 +194,13 @@ export default function IdInfoScreen() {
                 </View>
                 <View style={styles.inputContent}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    {documentLabels[activeDocument]}
+                    {getDocumentLabel(activeDocument)}
                   </Text>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     value={activeDocument === 'tc_kimlik' ? tcKimlik : activeDocument === 'passport' ? passport : drivingLicense}
                     onChangeText={activeDocument === 'tc_kimlik' ? setTcKimlik : activeDocument === 'passport' ? setPassport : setDrivingLicense}
-                    placeholder={`${documentLabels[activeDocument]} girin`}
+                    placeholder={t('profileScreens.idInfo.enterValue', { field: getDocumentLabel(activeDocument) })}
                     placeholderTextColor={colors.textSecondary + '80'}
                     keyboardType={activeDocument === 'tc_kimlik' ? 'numeric' : 'default'}
                     maxLength={activeDocument === 'tc_kimlik' ? 11 : 20}
@@ -213,13 +216,13 @@ export default function IdInfoScreen() {
                 </View>
                 <View style={styles.inputContent}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                    Uyruk
+                    {t('profileScreens.idInfo.nationality')}
                   </Text>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     value={nationality}
                     onChangeText={setNationality}
-                    placeholder="Uyruğunuzu girin"
+                    placeholder={t('profileScreens.idInfo.nationalityPlaceholder')}
                     placeholderTextColor={colors.textSecondary + '80'}
                   />
                 </View>
@@ -236,7 +239,7 @@ export default function IdInfoScreen() {
           >
             <Ionicons name="lock-closed" size={18} color="#22C55E" />
             <Text style={[styles.securityNoticeText, { color: isDark ? '#86EFAC' : '#15803D' }]}>
-              256-bit SSL şifreleme ile korunmaktadır
+              {t('profileScreens.idInfo.securityNotice')}
             </Text>
           </View>
 
@@ -252,7 +255,7 @@ export default function IdInfoScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
-                <Text style={styles.saveButtonText}>Bilgileri Kaydet</Text>
+                <Text style={styles.saveButtonText}>{t('profileScreens.idInfo.saveButton')}</Text>
               </>
             )}
           </TouchableOpacity>

@@ -1,9 +1,10 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore } from '@/stores';
+import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore, useSubscriptionStore } from '@/stores';
 import { Toast, ErrorBoundary, LoadingScreen } from '@/components/ui';
 import { usePushNotifications } from '@/hooks';
+import { initializeAdapty, identifyAdaptyUser } from '@/lib/adaptyService';
 
 // Initialize i18n
 import '@/lib/i18n';
@@ -24,11 +25,51 @@ export default function RootLayout() {
   // Initialize push notifications
   usePushNotifications();
 
-  // Initialize auth and check intro status on mount
+  // Subscription store for Adapty sync
+  const { syncWithAdapty } = useSubscriptionStore();
+
+  // Initialize auth, intro status, and Adapty on mount
   useEffect(() => {
-    initialize();
-    checkIntroStatus();
+    const setup = async () => {
+      // Initialize auth
+      initialize();
+      checkIntroStatus();
+      
+      // Initialize Adapty SDK
+      const adaptyPublicKey = process.env.EXPO_PUBLIC_ADAPTY_PUBLIC_KEY;
+      if (adaptyPublicKey) {
+        try {
+          await initializeAdapty(adaptyPublicKey);
+          console.log('[_layout] Adapty SDK initialized');
+        } catch (error) {
+          console.error('[_layout] Failed to initialize Adapty:', error);
+        }
+      } else {
+        console.warn('[_layout] EXPO_PUBLIC_ADAPTY_PUBLIC_KEY not set');
+      }
+    };
+    
+    setup();
   }, []);
+
+  // Sync subscription status when user changes
+  useEffect(() => {
+    const syncSubscription = async () => {
+      if (user && initialized && !loading) {
+        try {
+          // Identify user with Adapty
+          await identifyAdaptyUser(user.id);
+          // Sync subscription state
+          await syncWithAdapty();
+          console.log('[_layout] Subscription synced with Adapty');
+        } catch (error) {
+          console.error('[_layout] Failed to sync with Adapty:', error);
+        }
+      }
+    };
+    
+    syncSubscription();
+  }, [user, initialized, loading]);
 
   // Handle navigation based on auth state and intro status
   useEffect(() => {
@@ -149,6 +190,14 @@ export default function RootLayout() {
             gestureEnabled: false,
             animation: 'fade_from_bottom',
             animationDuration: 400,
+          }} 
+        />
+        <Stack.Screen 
+          name="tour-reels" 
+          options={{ 
+            headerShown: false, 
+            presentation: 'fullScreenModal',
+            animation: 'fade',
           }} 
         />
       </Stack>

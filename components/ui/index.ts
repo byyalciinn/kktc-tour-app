@@ -32,3 +32,5 @@ export { CachedAvatar, CachedTourImage, CachedThumbnail } from './CachedImage';
 export { LocationPermissionModal } from './LocationPermissionModal';
 
 export { PaywallSheet } from './PaywallSheet';
+
+export { default as ReelsProgressBar } from './ReelsProgressBar';

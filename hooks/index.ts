@@ -14,3 +14,6 @@ export { useBiometricAuth } from './useBiometricAuth';
 export { useDeviceSecurity } from './useDeviceSecurity';
 export { useScreenProtection } from './useScreenProtection';
 export type { ScreenProtectionOptions } from './useScreenProtection';
+
+// Payment hooks
+export { usePaywall } from './usePaywall';

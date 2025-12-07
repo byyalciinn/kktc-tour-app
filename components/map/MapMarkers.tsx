@@ -1,15 +1,15 @@
 /**
  * MapMarkers Component
  * 
- * Memoized map markers for tour locations with:
+ * Premium, minimal map markers for tour locations with:
  * - Performance optimization via React.memo
  * - tracksViewChanges=false for better performance
- * - Category-based icons
- * - Consistent styling
+ * - Clean white aesthetic design
+ * - Small footprint to avoid overlap
  */
 
 import React, { memo, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { Tour } from '@/types';
@@ -22,7 +22,7 @@ interface MapMarkersProps {
 }
 
 /**
- * Single tour marker - memoized for performance
+ * Single tour marker - Premium minimal white design
  */
 const TourMarkerItem = memo<{
   tour: Tour;
@@ -40,16 +40,14 @@ const TourMarkerItem = memo<{
       }}
       onPress={onPress}
       tracksViewChanges={false}
+      anchor={{ x: 0.5, y: 1 }}
     >
       <View style={styles.markerContainer}>
-        <View style={[styles.marker, { backgroundColor: primaryColor }]}>
-          <Ionicons
-            name={(icon || 'location') as any}
-            size={16}
-            color="#FFF"
-          />
+        <View style={styles.marker}>
+          <View style={[styles.markerDot, { backgroundColor: primaryColor }]} />
         </View>
-        <View style={[styles.markerArrow, { borderTopColor: primaryColor }]} />
+        <View style={styles.markerStem} />
+        <View style={[styles.markerShadow, { backgroundColor: primaryColor }]} />
       </View>
     </Marker>
   );
@@ -59,7 +57,7 @@ TourMarkerItem.displayName = 'TourMarkerItem';
 
 /**
  * Map markers container - renders all tour markers
- * Limited to first 20 markers for performance
+ * Limited to first 30 markers for performance
  */
 export const MapMarkers = memo<MapMarkersProps>(({
   tours,
@@ -68,7 +66,7 @@ export const MapMarkers = memo<MapMarkersProps>(({
   onMarkerPress,
 }) => {
   // Limit markers for performance
-  const visibleTours = useMemo(() => tours.slice(0, 20), [tours]);
+  const visibleTours = useMemo(() => tours.slice(0, 30), [tours]);
 
   return (
     <>
@@ -90,30 +88,46 @@ MapMarkers.displayName = 'MapMarkers';
 const styles = StyleSheet.create({
   markerContainer: {
     alignItems: 'center',
+    width: 24,
+    height: 32,
   },
   marker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.08)',
   },
-  markerArrow: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    marginTop: -3,
+  markerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  markerStem: {
+    width: 2,
+    height: 6,
+    backgroundColor: '#FFFFFF',
+    marginTop: -1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  markerShadow: {
+    width: 6,
+    height: 3,
+    borderRadius: 3,
+    opacity: 0.3,
+    marginTop: 1,
   },
 });
 

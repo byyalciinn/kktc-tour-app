@@ -22,12 +22,148 @@ import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/Colors';
 import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, selectCategories, selectHighlightedRoutes, selectRoutes } from '@/stores';
 import { Tour, Category, ThematicRoute } from '@/types';
-import { TourDetailSheet, RouteDetailSheet } from '@/components/sheets';
+import { TourDetailSheet, RouteDetailSheet, DestinationSearchSheet } from '@/components/sheets';
 import { RouteCard } from '@/components/cards';
 import { MapMarkers } from '@/components/map';
 import { useLocation } from '@/hooks';
 import { LocationPermissionModal } from '@/components/ui';
 import CachedImage, { prefetchImages } from '@/components/ui/CachedImage';
+
+// Map Control Button Component - Premium Design
+interface MapControlButtonProps {
+  icon: string;
+  onPress: () => void;
+  isActive?: boolean;
+  isLoading?: boolean;
+  size?: 'small' | 'medium';
+  colors: typeof Colors.light | typeof Colors.dark;
+  isDark: boolean;
+}
+
+const MapControlButton = memo(function MapControlButton({
+  icon,
+  onPress,
+  isActive = false,
+  isLoading = false,
+  size = 'medium',
+  colors,
+  isDark,
+}: MapControlButtonProps) {
+  const buttonSize = size === 'small' ? 36 : 44;
+  const iconSize = size === 'small' ? 18 : 20;
+  
+  return (
+    <TouchableOpacity
+      style={[
+        styles.mapControlButton,
+        { 
+          width: buttonSize, 
+          height: buttonSize,
+          borderRadius: buttonSize / 2,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      disabled={isLoading}
+    >
+      {Platform.OS === 'ios' ? (
+        <BlurView
+          intensity={isDark ? 60 : 80}
+          tint={isDark ? 'dark' : 'light'}
+          style={[StyleSheet.absoluteFill, { borderRadius: buttonSize / 2 }]}
+        />
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            { 
+              backgroundColor: isDark ? 'rgba(28,28,30,0.92)' : 'rgba(255,255,255,0.95)',
+              borderRadius: buttonSize / 2,
+            },
+          ]}
+        />
+      )}
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : (
+        <Ionicons
+          name={icon as any}
+          size={iconSize}
+          color={isActive ? colors.primary : isDark ? '#FFF' : colors.text}
+        />
+      )}
+    </TouchableOpacity>
+  );
+});
+
+// Tour Preview Card - Shows when pin is tapped
+interface TourPreviewCardProps {
+  tour: Tour;
+  onPress: () => void;
+  onClose: () => void;
+  colors: typeof Colors.light | typeof Colors.dark;
+  isDark: boolean;
+}
+
+const TourPreviewCard = memo(function TourPreviewCard({
+  tour,
+  onPress,
+  onClose,
+  colors,
+  isDark,
+}: TourPreviewCardProps) {
+  return (
+    <Animated.View
+      style={[
+        styles.tourPreviewCard,
+        {
+          backgroundColor: isDark ? 'rgba(28,28,30,0.98)' : 'rgba(255,255,255,0.98)',
+          borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.tourPreviewClose}
+        onPress={onClose}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="close" size={18} color={colors.textSecondary} />
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.tourPreviewContent}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <CachedImage
+          uri={tour.image}
+          style={styles.tourPreviewImage}
+          fallbackIcon="map-outline"
+          skeletonColor={isDark ? '#374151' : '#E5E7EB'}
+        />
+        <View style={styles.tourPreviewInfo}>
+          <Text style={[styles.tourPreviewTitle, { color: colors.text }]} numberOfLines={1}>
+            {tour.title}
+          </Text>
+          <View style={styles.tourPreviewMeta}>
+            <Ionicons name="location" size={12} color={colors.textSecondary} />
+            <Text style={[styles.tourPreviewLocation, { color: colors.textSecondary }]} numberOfLines={1}>
+              {tour.location}
+            </Text>
+          </View>
+          <View style={styles.tourPreviewBottom}>
+            <Text style={[styles.tourPreviewPrice, { color: colors.primary }]}>
+              {tour.currency}{tour.price}
+            </Text>
+            <View style={[styles.tourPreviewButton, { backgroundColor: colors.primary }]}>
+              <Ionicons name="arrow-forward" size={14} color="#FFF" />
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 // View All Modal Types
 type ViewAllType = 'routes' | 'tours' | null;
@@ -162,6 +298,8 @@ export default function ExploreScreen() {
   const [isLocationEnabled, setIsLocationEnabled] = useState(true);
   const [selectedMapTour, setSelectedMapTour] = useState<Tour | null>(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showSearchSheet, setShowSearchSheet] = useState(false);
+  const [previewTour, setPreviewTour] = useState<Tour | null>(null);
 
   // Bottom sheet animation - improved gesture handling
   const sheetHeight = useRef(new Animated.Value(SHEET_MIN_HEIGHT)).current;
@@ -330,11 +468,82 @@ export default function ExploreScreen() {
       : t('explore.nearbyTitleDefault');
   }, [activeCategory, categories, t]);
 
-  // Handle tour marker press (memoized to prevent re-renders)
+  // Current zoom level ref for zoom controls
+  const currentZoomRef = useRef(0.08); // latitudeDelta as zoom proxy
+
+  // Handle tour marker press - show preview card and zoom to location
+  const handleMarkerPress = useCallback((tour: Tour) => {
+    setPreviewTour(tour);
+    
+    // Zoom to the marker location
+    if (tour.latitude && tour.longitude) {
+      mapRef.current?.animateToRegion({
+        latitude: tour.latitude,
+        longitude: tour.longitude,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
+      }, 400);
+      currentZoomRef.current = 0.015;
+    }
+  }, []);
+
+  // Handle tour press from list - open detail sheet
   const handleTourPress = useCallback((tour: Tour) => {
     setSelectedMapTour(tour);
+    setPreviewTour(null);
     openTourDetail(tour);
   }, [openTourDetail]);
+
+  // Close preview card
+  const closePreview = useCallback(() => {
+    setPreviewTour(null);
+  }, []);
+
+  // Open tour detail from preview
+  const openTourFromPreview = useCallback(() => {
+    if (previewTour) {
+      setSelectedMapTour(previewTour);
+      openTourDetail(previewTour);
+      setPreviewTour(null);
+    }
+  }, [previewTour, openTourDetail]);
+
+  // Zoom controls - using region-based zoom (latitudeDelta)
+  const handleZoomIn = useCallback(() => {
+    mapRef.current?.getMapBoundaries().then(() => {
+      // Decrease delta = zoom in
+      const newDelta = Math.max(currentZoomRef.current * 0.5, 0.002);
+      currentZoomRef.current = newDelta;
+      
+      mapRef.current?.animateToRegion({
+        ...region,
+        latitudeDelta: newDelta,
+        longitudeDelta: newDelta,
+      }, 300);
+    }).catch(() => {
+      // Fallback if getMapBoundaries fails
+      const newDelta = Math.max(currentZoomRef.current * 0.5, 0.002);
+      currentZoomRef.current = newDelta;
+      
+      mapRef.current?.animateToRegion({
+        ...region,
+        latitudeDelta: newDelta,
+        longitudeDelta: newDelta,
+      }, 300);
+    });
+  }, [region]);
+
+  const handleZoomOut = useCallback(() => {
+    // Increase delta = zoom out
+    const newDelta = Math.min(currentZoomRef.current * 2, 1);
+    currentZoomRef.current = newDelta;
+    
+    mapRef.current?.animateToRegion({
+      ...region,
+      latitudeDelta: newDelta,
+      longitudeDelta: newDelta,
+    }, 300);
+  }, [region]);
 
   // Handle route card press (memoized)
   const handleRoutePress = useCallback((route: ThematicRoute) => {
@@ -381,9 +590,9 @@ export default function ExploreScreen() {
       tours={filteredTours}
       categoryIconMap={categoryIconMap}
       primaryColor={colors.primary}
-      onMarkerPress={handleTourPress}
+      onMarkerPress={handleMarkerPress}
     />
-  ), [filteredTours, categoryIconMap, colors.primary, handleTourPress]);
+  ), [filteredTours, categoryIconMap, colors.primary, handleMarkerPress]);
 
   return (
     <View style={styles.container}>
@@ -399,94 +608,85 @@ export default function ExploreScreen() {
           showsUserLocation={isLocationEnabled}
           showsMyLocationButton={false}
           showsCompass={false}
+          onRegionChangeComplete={(newRegion) => {
+            setRegion(newRegion);
+            currentZoomRef.current = newRegion.latitudeDelta;
+          }}
         >
           {/* Tour Markers - using memoized MapMarkers component */}
           {memoizedMapMarkers}
         </MapView>
 
-        {/* Refresh Button - Left Side */}
-        <View style={[styles.refreshButtonContainer, { top: insets.top + 10 }]}>
-          {Platform.OS === 'ios' ? (
-            <BlurView
-              intensity={80}
-              tint={isDark ? 'dark' : 'light'}
-              style={styles.liquidGlassBlur}
-            />
-          ) : (
-            <View 
-              style={[
-                styles.liquidGlassBlur, 
-                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
-              ]} 
-            />
-          )}
-          <TouchableOpacity
-            style={styles.refreshButton}
+        {/* Premium Map Controls - Left Side */}
+        <View style={[styles.mapControlsLeft, { top: insets.top + 12 }]}>
+          <MapControlButton
+            icon="refresh-outline"
             onPress={handleRefresh}
-            activeOpacity={0.8}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+            isLoading={isRefreshing}
+            colors={colors}
+            isDark={isDark}
+          />
+        </View>
+
+        {/* Premium Map Controls - Right Side (Grouped) */}
+        <View style={[styles.mapControlsRight, { top: insets.top + 12 }]}>
+          <View style={[styles.mapControlGroup, { backgroundColor: isDark ? 'rgba(28,28,30,0.92)' : 'rgba(255,255,255,0.95)' }]}>
+            {Platform.OS === 'ios' && (
+              <BlurView
+                intensity={isDark ? 60 : 80}
+                tint={isDark ? 'dark' : 'light'}
+                style={[StyleSheet.absoluteFill, { borderRadius: 24 }]}
+              />
             )}
-          </TouchableOpacity>
+            <MapControlButton
+              icon={isLocationEnabled ? "location" : "location-outline"}
+              onPress={toggleLocationTracking}
+              isActive={isLocationEnabled}
+              size="small"
+              colors={colors}
+              isDark={isDark}
+            />
+            <View style={[styles.mapControlDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
+            <MapControlButton
+              icon="add"
+              onPress={handleZoomIn}
+              size="small"
+              colors={colors}
+              isDark={isDark}
+            />
+            <View style={[styles.mapControlDivider, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]} />
+            <MapControlButton
+              icon="remove"
+              onPress={handleZoomOut}
+              size="small"
+              colors={colors}
+              isDark={isDark}
+            />
+          </View>
         </View>
 
-        {/* Liquid Glass Location Toggle Button */}
-        <View style={[styles.locationToggleContainer, { top: insets.top + 10 }]}>
-          {Platform.OS === 'ios' ? (
-            <BlurView
-              intensity={80}
-              tint={isDark ? 'dark' : 'light'}
-              style={styles.liquidGlassBlur}
-            />
-          ) : (
-            <View 
-              style={[
-                styles.liquidGlassBlur, 
-                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
-              ]} 
-            />
-          )}
-          <TouchableOpacity
-            style={styles.locationToggleButton}
-            onPress={toggleLocationTracking}
-            activeOpacity={0.8}
-          >
-            <Ionicons 
-              name={isLocationEnabled ? "location" : "location-outline"} 
-              size={22} 
-              color={isLocationEnabled ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* My Location Button */}
-        <View style={[styles.myLocationContainer, { bottom: SHEET_MIN_HEIGHT + 20 }]}>
-          {Platform.OS === 'ios' ? (
-            <BlurView
-              intensity={80}
-              tint={isDark ? 'dark' : 'light'}
-              style={styles.liquidGlassBlur}
-            />
-          ) : (
-            <View 
-              style={[
-                styles.liquidGlassBlur, 
-                { backgroundColor: isDark ? 'rgba(30,30,30,0.85)' : 'rgba(255,255,255,0.85)' }
-              ]} 
-            />
-          )}
-          <TouchableOpacity
-            style={styles.myLocationButton}
+        {/* My Location Button - Bottom Right */}
+        <View style={[styles.myLocationFloating, { bottom: SHEET_MIN_HEIGHT + 20 }]}>
+          <MapControlButton
+            icon="navigate"
             onPress={handleMyLocation}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="navigate" size={22} color={colors.primary} />
-          </TouchableOpacity>
+            colors={colors}
+            isDark={isDark}
+          />
         </View>
+
+        {/* Tour Preview Card - Shows when pin is tapped */}
+        {previewTour && (
+          <View style={[styles.tourPreviewContainer, { bottom: SHEET_MIN_HEIGHT + 80 }]}>
+            <TourPreviewCard
+              tour={previewTour}
+              onPress={openTourFromPreview}
+              onClose={closePreview}
+              colors={colors}
+              isDark={isDark}
+            />
+          </View>
+        )}
       </View>
 
       {/* Bottom Sheet */}
@@ -567,7 +767,7 @@ export default function ExploreScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Search Bar */}
+          {/* Search Bar - Opens Search Sheet */}
           <TouchableOpacity
             style={[
               styles.searchBar,
@@ -577,6 +777,7 @@ export default function ExploreScreen() {
               },
             ]}
             activeOpacity={0.7}
+            onPress={() => setShowSearchSheet(true)}
           >
             <Ionicons name="search-outline" size={20} color={colors.textSecondary} />
             <Text
@@ -585,6 +786,7 @@ export default function ExploreScreen() {
             >
               {t('explore.searchPlaceholder')}
             </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
 
           {/* Suggested Routes Section */}
@@ -851,6 +1053,14 @@ export default function ExploreScreen() {
           setShowLocationModal(false);
           requestLocation();
         }}
+      />
+
+      {/* Destination Search Sheet */}
+      <DestinationSearchSheet
+        visible={showSearchSheet}
+        onClose={() => setShowSearchSheet(false)}
+        onSelectTour={handleTourPress}
+        onSelectRoute={handleRoutePress}
       />
     </View>
   );
@@ -1270,5 +1480,123 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '700',
     marginTop: 2,
+  },
+  // Premium Map Control Styles
+  mapControlButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mapControlsLeft: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+  },
+  mapControlsRight: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 10,
+  },
+  mapControlGroup: {
+    borderRadius: 24,
+    padding: 6,
+    gap: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  mapControlDivider: {
+    height: 1,
+    marginHorizontal: 8,
+    marginVertical: 2,
+  },
+  myLocationFloating: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 10,
+  },
+  // Tour Preview Card Styles
+  tourPreviewContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 20,
+  },
+  tourPreviewCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  tourPreviewClose: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  tourPreviewContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  tourPreviewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 14,
+  },
+  tourPreviewInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 4,
+  },
+  tourPreviewTitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    paddingRight: 24,
+  },
+  tourPreviewMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tourPreviewLocation: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  tourPreviewBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  tourPreviewPrice: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+  },
+  tourPreviewButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

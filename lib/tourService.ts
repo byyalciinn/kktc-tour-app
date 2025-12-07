@@ -47,6 +47,8 @@ export interface TourInput {
   category: string;
   highlights: string[];
   image?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Category {
@@ -62,6 +64,8 @@ export interface TourData extends TourInput {
   review_count: number;
   created_at: string;
   updated_at: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Pick image from gallery with validation
@@ -246,21 +250,32 @@ export const createTour = async (tour: TourInput, imageUri?: string): Promise<{ 
       }
     }
 
+    // Build insert data with optional coordinates
+    const insertData: Record<string, any> = {
+      title: tour.title,
+      location: tour.location,
+      description: tour.description,
+      price: tour.price,
+      currency: tour.currency,
+      duration: tour.duration,
+      category: tour.category,
+      highlights: tour.highlights,
+      image: imageUrl,
+      rating: 0,
+      review_count: 0,
+    };
+    
+    // Add coordinates if provided
+    if (tour.latitude !== undefined && tour.latitude !== null) {
+      insertData.latitude = tour.latitude;
+    }
+    if (tour.longitude !== undefined && tour.longitude !== null) {
+      insertData.longitude = tour.longitude;
+    }
+
     const { data, error } = await supabase
       .from('tours')
-      .insert({
-        title: tour.title,
-        location: tour.location,
-        description: tour.description,
-        price: tour.price,
-        currency: tour.currency,
-        duration: tour.duration,
-        category: tour.category,
-        highlights: tour.highlights,
-        image: imageUrl,
-        rating: 0,
-        review_count: 0,
-      })
+      .insert(insertData)
       .select();
 
     if (error) {
@@ -321,6 +336,8 @@ export const updateTour = async (
     if (tour.category !== undefined) updateData.category = tour.category;
     if (tour.highlights !== undefined) updateData.highlights = tour.highlights;
     if (imageUrl) updateData.image = imageUrl;
+    if (tour.latitude !== undefined) updateData.latitude = tour.latitude;
+    if (tour.longitude !== undefined) updateData.longitude = tour.longitude;
     
     // Add updated_at timestamp
     updateData.updated_at = new Date().toISOString();

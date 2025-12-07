@@ -29,7 +29,8 @@
     "allRightsReserved": "All rights reserved.",
     "and": "and",
     "enable": "Enable",
-    "disable": "Disable"
+    "disable": "Disable",
+    "copied": "Copied"
   },
   "auth": {
     "login": "Login",
@@ -96,7 +97,19 @@
     "locationLabel": "Location",
     "defaultLocation": "Kyrenia, Northern Cyprus",
     "fetchingLocation": "Fetching location...",
-    "seeAll": "See All"
+    "seeAll": "See All",
+    "explore": "Explore",
+    "categories": {
+      "all": "All",
+      "tarihi": "Historical",
+      "doga": "Nature",
+      "kultur": "Culture",
+      "macera": "Adventure",
+      "yeme-icme": "Food & Drink",
+      "plaj": "Beach",
+      "gece-hayati": "Nightlife",
+      "alisveris": "Shopping"
+    }
   },
   "tours": {
     "title": "Tours",
@@ -111,7 +124,8 @@
     "readMore": "Read More",
     "getDirections": "Get Directions",
     "upcomingTours": "Upcoming Tours",
-    "relatedTours": "Related Tours"
+    "relatedTours": "Related Tours",
+    "viewDetails": "View Details"
   },
   "favorites": {
     "title": "Favorites",
@@ -183,6 +197,7 @@
     "settings": "Settings",
     "accountInfo": "Account Information",
     "memberNumber": "Member No",
+    "memberNumberCopied": "Member number copied to clipboard",
     "memberClass": "Membership Class",
     "memberCard": "Membership Card",
     "personalDetails": "Personal Details",
@@ -228,6 +243,169 @@
     "active": "Active",
     "membershipDetails": "Membership Details"
   },
+  "profileScreens": {
+    "personalInfo": {
+      "header": "Personal Information",
+      "detailsTitle": "PERSONAL DETAILS",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Enter your full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email address",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "Enter your phone number",
+      "birthDateLabel": "Birth Date",
+      "birthDatePlaceholder": "DD/MM/YYYY",
+      "addressLabel": "Address",
+      "addressPlaceholder": "Enter your address",
+      "changePhoto": "Change Photo",
+      "saveButton": "Save Changes",
+      "saveSuccess": "Your information has been updated.",
+      "saveError": "An error occurred while updating your information.",
+      "nameRequired": "Full name is required.",
+      "galleryPermissionTitle": "Permission Required",
+      "galleryPermissionMessage": "You need to allow gallery access.",
+      "cameraPermissionTitle": "Permission Required",
+      "cameraPermissionMessage": "You need to allow camera access.",
+      "imagePickError": "Image could not be selected.",
+      "imageProcessError": "An error occurred while processing the image.",
+      "gallery": "Gallery",
+      "camera": "Camera"
+    },
+    "idInfo": {
+      "heroTitle": "Your ID Information is Safe",
+      "heroSubtitle": "Your data is encrypted and never shared with third parties.",
+      "documentTypeTitle": "DOCUMENT TYPE",
+      "documentInfoTitle": "DOCUMENT DETAILS",
+      "tcKimlik": "National ID",
+      "passport": "Passport No",
+      "drivingLicense": "Driver's License No",
+      "enterValue": "Enter {{field}}",
+      "nationality": "Nationality",
+      "nationalityPlaceholder": "Enter your nationality",
+      "securityNotice": "Protected with 256-bit SSL encryption",
+      "saveButton": "Save Information",
+      "saved": "Your ID information has been saved."
+    },
+    "paymentMethods": {
+      "infoBanner": "All card information is encrypted in accordance with PCI DSS standards.",
+      "comingSoonTitle": "Coming Soon",
+      "comingSoonSubtitle": "Card adding will be available very soon.",
+      "otherMethodsTitle": "OTHER PAYMENT METHODS",
+      "cashTitle": "Cash Payment",
+      "cashSubtitle": "Pay cash during the tour",
+      "transferTitle": "Wire / EFT",
+      "transferSubtitle": "Pay via bank transfer"
+    },
+    "tourPreferences": {
+      "header": "Tour Preferences",
+      "intro": "Set your preferences to receive tailored tour recommendations.",
+      "categoriesTitle": "CATEGORIES",
+      "selectedCount": "{{count}} selected",
+      "groupTitle": "GROUP PREFERENCE",
+      "budgetTitle": "BUDGET",
+      "notificationsTitle": "NOTIFICATIONS",
+      "notificationLabels": {
+        "newTours": "New Tours",
+        "priceDrops": "Price Drops",
+        "recommendations": "Personal Recommendations"
+      },
+      "saveButton": "Save Preferences",
+      "saveSuccess": "Your preferences have been saved.",
+      "saveSuccessTitle": "Success",
+      "selectWarningTitle": "Warning",
+      "selectWarning": "Select at least one category.",
+      "categories": {
+        "history": "History",
+        "nature": "Nature",
+        "beach": "Beach",
+        "adventure": "Adventure",
+        "food": "Gastronomy",
+        "culture": "Culture"
+      },
+      "groupOptions": {
+        "solo": "Solo",
+        "couple": "Couple",
+        "family": "Family",
+        "group": "Group"
+      },
+      "budgetOptions": {
+        "budget": {
+          "label": "Budget",
+          "range": "0-2,000₺"
+        },
+        "mid": {
+          "label": "Mid",
+          "range": "2,000-5,000₺"
+        },
+        "premium": {
+          "label": "Premium",
+          "range": "5,000-10,000₺"
+        },
+        "luxury": {
+          "label": "Luxury",
+          "range": "10,000₺+"
+        }
+      }
+    },
+    "contact": {
+      "header": "Contact",
+      "questionBannerTitle": "Have a question?",
+      "questionBannerSubtitle": "View your support tickets and create new ones",
+      "quickContactTitle": "QUICK CONTACT",
+      "faqTitle": "FREQUENTLY ASKED QUESTIONS",
+      "channels": {
+        "phone": "Phone",
+        "whatsapp": "WhatsApp",
+        "email": "Email"
+      },
+      "faq": {
+        "tours": {
+          "question": "How can I discover tours?",
+          "answer": "You can discover all tours in North Cyprus using the categories on the home page or the search feature. You can also see nearby tours on the map view."
+        },
+        "favorites": {
+          "question": "How do I add to favorites?",
+          "answer": "Tap the heart icon on a tour detail page to add it to your favorites. You can access your favorites from the bottom menu."
+        },
+        "directions": {
+          "question": "How do I get to a tour location?",
+          "answer": "Tap the \"Get Directions\" button on the tour detail page to get directions via your map app."
+        },
+        "membership": {
+          "question": "What are the membership benefits?",
+          "answer": "With Gold and Business memberships, you can enjoy exclusive discounts, early access, and VIP tours."
+        }
+      },
+      "errorUnsupported": "This action is not supported.",
+      "errorGeneric": "Something went wrong."
+    },
+    "help": {
+      "header": "Help",
+      "categoriesTitle": "HELP CATEGORIES",
+      "faqTitle": "FREQUENTLY ASKED QUESTIONS",
+      "categories": {
+        "account": "Account Actions",
+        "tours": "Tours & Reservations",
+        "payment": "Payment & Billing",
+        "membership": "Membership & Benefits"
+      },
+      "faq": {
+        "q1": "How can I book a tour?",
+        "a1": "Select a tour from home or explore, tap \"Get Directions\" to reach the location. Contact the provider to finalize booking.",
+        "q2": "How can I upgrade my membership?",
+        "a2": "Go to your profile and open the \"Membership Card\" section. Choose Gold or Business and complete the payment.",
+        "q3": "How do I add tours to favorites?",
+        "a3": "Tap the heart icon on a tour detail page to add it to favorites. Access favorites from the bottom tab.",
+        "q4": "How are app notifications managed?",
+        "a4": "Manage KKTC Tour notification permissions from your phone settings to stay informed about campaigns.",
+        "q5": "How can I delete my account?",
+        "a5": "Reach our support team from the Contact page. Account deletion removes all data permanently.",
+        "q6": "What payment methods are available?",
+        "a6": "Cash during tour and bank transfer are available for now. Card payments will be added soon."
+      },
+      "contactButton": "Contact Support Team"
+    }
+  },
   "settings": {
     "title": "Settings",
     "preferences": "Preferences",
@@ -263,11 +441,17 @@
   },
   "search": {
     "title": "Search",
-    "placeholder": "Search tours or destinations...",
+    "placeholder": "Search tour, destination",
     "recentSearches": "Recent Searches",
     "clearAll": "Clear All",
+    "clear": "Clear",
+    "cancel": "Cancel",
     "noResults": "No results found",
-    "noResultsSubtitle": "Try different keywords"
+    "noResultsSubtitle": "Try different keywords",
+    "noResultsHint": "No match for \"{{query}}\"",
+    "resultsCount": "{{count}} results found",
+    "emptyTitle": "Search for a tour or destination",
+    "emptySubtitle": "Your searches will appear here"
   },
   "errors": {
     "generic": "Something went wrong",
@@ -353,7 +537,14 @@
       "activity": "Activity",
       "viewpoint": "Viewpoint",
       "beach": "Beach"
-    }
+    },
+    "searchDestination": "Search Destination",
+    "tours": "Tours",
+    "routes": "Routes",
+    "noResults": "No results found",
+    "viewDetails": "View Details",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out"
   },
   "notifications": {
     "title": "Notifications",
@@ -383,6 +574,7 @@
     "upgradeMembership": "How can I upgrade my membership?"
   },
   "membership": {
+    "title": "Membership",
     "basicPlan": "Basic Membership",
     "basicDescription": "Start exploring Northern Cyprus with essential tour access. Perfect for small groups.",
     "basicAccess": "Basic tour access",
@@ -398,7 +590,13 @@
     "prioritySupport": "Priority support",
     "specialDiscounts": "Special discounts",
     "upgrade": "Upgrade Membership",
-    "start": "Start Membership"
+    "start": "Start Membership",
+    "startMembership": "Start Membership",
+    "cancel": "Cancel",
+    "restore": "Restore",
+    "purchaseSuccess": "Your membership has been activated successfully!",
+    "purchaseError": "An error occurred during purchase. Please try again.",
+    "restoreSuccess": "Your purchases have been restored successfully!"
   },
   "features": {
     "advancedSearchFilters": "Advanced search filters",
@@ -541,6 +739,7 @@
   "paywall": {
     "title": "Upgrade to Premium",
     "favoriteLimitReached": "You've reached your favorite limit! Go Premium for unlimited favorites.",
+    "scanLimitReached": "You've used your daily scan! Go Premium for unlimited scans.",
     "unlockPremium": "Unlock premium features and explore North Cyprus without limits.",
     "bestValue": "BEST VALUE",
     "savePercent": "Save {{percent}}%",

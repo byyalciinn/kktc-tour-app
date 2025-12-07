@@ -16,7 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore, useThemeStore } from '@/stores';
+import { useAuthStore, useThemeStore, useSubscriptionStore } from '@/stores';
+import { usePaywall } from '@/hooks';
+import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 40;
@@ -100,6 +102,10 @@ export default function MembershipCardScreen() {
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const profile = useAuthStore((state) => state.profile);
+  const { t } = useTranslation();
+  const { showPaywall, isLoading: isPaywallLoading } = usePaywall();
+  const { restorePurchases, isLoading: isRestoreLoading } = useSubscriptionStore();
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Billing period toggle
   const [isAnnual, setIsAnnual] = useState(true);
@@ -121,22 +127,55 @@ export default function MembershipCardScreen() {
   const currentClass = mapMemberClass(profile?.member_class);
   const currentIndex = membershipLevels.indexOf(currentClass);
 
-  const handlePurchase = (level: MembershipLevel) => {
+  const handlePurchase = async (level: MembershipLevel) => {
     if (level === 'Normal') return;
-    const config = planConfigs[level];
-    Alert.alert(
-      'Üyeliği Yükselt',
-      `${config.name} için ${config.price}₺/${isAnnual ? 'yıl' : 'ay'} ödemeniz gerekmektedir.`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Üyeliğini Başlat',
-          onPress: () => {
-            Alert.alert('Başarılı', 'Deneme süresi başlatılıyor...');
-          },
-        },
-      ]
-    );
+    
+    setIsPurchasing(true);
+    try {
+      // Show Adapty native paywall
+      const result = await showPaywall();
+      
+      if (result.success && result.purchased) {
+        Alert.alert(
+          t('common.success'),
+          t('membership.purchaseSuccess'),
+          [{ text: t('common.done') }]
+        );
+      } else if (!result.success && result.error) {
+        // Only show error if it's not a user cancellation
+        console.log('[MembershipCard] Paywall error:', result.error);
+      }
+    } catch (error) {
+      console.error('[MembershipCard] Purchase error:', error);
+      Alert.alert(
+        t('common.error'),
+        t('membership.purchaseError'),
+        [{ text: t('common.done') }]
+      );
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const { success, error } = await restorePurchases();
+      if (success) {
+        Alert.alert(
+          t('common.success'),
+          t('membership.restoreSuccess'),
+          [{ text: t('common.done') }]
+        );
+      } else if (error) {
+        Alert.alert(
+          t('common.error'),
+          error,
+          [{ text: t('common.done') }]
+        );
+      }
+    } catch (error) {
+      console.error('[MembershipCard] Restore error:', error);
+    }
   };
 
   // Page indicator dots
@@ -366,13 +405,15 @@ export default function MembershipCardScreen() {
                 styles.ctaButton,
                 {
                   backgroundColor: cardIsDark ? '#F59E0B' : '#1F2937',
+                  opacity: isPurchasing || isPaywallLoading ? 0.7 : 1,
                 },
               ]}
               activeOpacity={0.9}
               onPress={() => handlePurchase(level)}
+              disabled={isPurchasing || isPaywallLoading}
             >
               <Text style={[styles.ctaButtonText, { color: '#fff' }]}>
-                Üyeliğini Başlat
+                {isPurchasing ? t('common.loading') : t('membership.startMembership')}
               </Text>
             </TouchableOpacity>
           )}
@@ -395,7 +436,7 @@ export default function MembershipCardScreen() {
                   { color: cardIsDark ? 'rgba(255,255,255,0.7)' : colors.textSecondary },
                 ]}
               >
-                İptal Et
+                {t('membership.cancel')}
               </Text>
             </TouchableOpacity>
           )}
@@ -480,7 +521,18 @@ export default function MembershipCardScreen() {
 
       {/* Title */}
       <View style={styles.titleContainer}>
-        <Text style={[styles.title, { color: colors.text }]}>Üyelik</Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('membership.title')}</Text>
+          <TouchableOpacity
+            style={[styles.restoreButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={handleRestorePurchases}
+            disabled={isRestoreLoading}
+          >
+            <Text style={[styles.restoreButtonText, { color: colors.textSecondary }]}>
+              {isRestoreLoading ? t('common.loading') : t('membership.restore')}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {renderDots()}
       </View>
 
@@ -547,17 +599,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   titleContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   title: {
     fontSize: 34,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
     fontWeight: '700',
     letterSpacing: -0.5,
+  },
+  restoreButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  restoreButtonText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
   },
   dotsContainer: {
     flexDirection: 'row',
