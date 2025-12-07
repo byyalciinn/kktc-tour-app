@@ -1,4 +1,4 @@
-# Tour App - KKTC Tur Uygulaması
+# Cyprigo - KKTC Tur Uygulaması
 
 Kuzey Kıbrıs Türk Cumhuriyeti'ndeki turları keşfetmek, favorilere eklemek ve rezervasyon yapmak için geliştirilmiş modern bir mobil uygulama.
 
@@ -36,7 +36,7 @@ Kuzey Kıbrıs Türk Cumhuriyeti'ndeki turları keşfetmek, favorilere eklemek v
 1. **Repo'yu klonlayın**
    ```bash
    git clone <repo-url>
-   cd tour-app
+   cd cyprigo
    ```
 
 2. **Bağımlılıkları yükleyin**
@@ -58,7 +58,7 @@ Kuzey Kıbrıs Türk Cumhuriyeti'ndeki turları keşfetmek, favorilere eklemek v
 ## Proje Yapısı
 
 ```
-tour-app/
+cyprigo/
 ├── app/                    # Expo Router sayfaları
 │   ├── (auth)/            # Auth ekranları
 │   ├── (tabs)/            # Tab navigasyonu

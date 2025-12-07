@@ -1,7 +1,7 @@
 {
-  "name": "tour-app",
-  "version": "1.0.0",
-  "description": "KKTC Tour App - Discover tours in North Cyprus",
+  "name": "cyprigo",
+  "version": "0.1.0",
+  "description": "Cyprigo - Discover tours in North Cyprus",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

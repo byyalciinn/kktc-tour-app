@@ -1,5 +1,5 @@
 -- =============================================
--- KKTC Tour App - Supabase Database Schema
+-- Cyprigo - Supabase Database Schema
 -- =============================================
 
 -- Enable UUID extension

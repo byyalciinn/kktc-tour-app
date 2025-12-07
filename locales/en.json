@@ -180,7 +180,7 @@
     "viewOnMap": "View on Map",
     "scanAgain": "New Scan",
     "sharePlace": "Share",
-    "discoveredWith": "Discovered with KKTC Tour App",
+    "discoveredWith": "Discovered with Cyprigo",
     "categories": {
       "historical": "Historical Site",
       "natural": "Natural Area",
@@ -384,24 +384,23 @@
       "categoriesTitle": "HELP CATEGORIES",
       "faqTitle": "FREQUENTLY ASKED QUESTIONS",
       "categories": {
-        "account": "Account Actions",
-        "tours": "Tours & Reservations",
-        "payment": "Payment & Billing",
-        "membership": "Membership & Benefits"
+        "account": "Account",
+        "tours": "Tours",
+        "membership": "Membership"
       },
       "faq": {
-        "q1": "How can I book a tour?",
-        "a1": "Select a tour from home or explore, tap \"Get Directions\" to reach the location. Contact the provider to finalize booking.",
+        "q1": "How can I discover tours?",
+        "a1": "You can discover all tours in North Cyprus using the categories on the home page or the search feature. You can also see nearby tours on the map view.",
         "q2": "How can I upgrade my membership?",
-        "a2": "Go to your profile and open the \"Membership Card\" section. Choose Gold or Business and complete the payment.",
+        "a2": "Go to your profile and open the \"Membership Card\" section to explore Gold or Business membership options.",
         "q3": "How do I add tours to favorites?",
         "a3": "Tap the heart icon on a tour detail page to add it to favorites. Access favorites from the bottom tab.",
         "q4": "How are app notifications managed?",
-        "a4": "Manage KKTC Tour notification permissions from your phone settings to stay informed about campaigns.",
+        "a4": "You can manage your notification preferences from the Settings page. Stay informed about new tours and recommendations.",
         "q5": "How can I delete my account?",
         "a5": "Reach our support team from the Contact page. Account deletion removes all data permanently.",
-        "q6": "What payment methods are available?",
-        "a6": "Cash during tour and bank transfer are available for now. Card payments will be added soon."
+        "q6": "How do I get to a tour location?",
+        "a6": "Tap the \"Get Directions\" button on the tour detail page to get directions via your map app."
       },
       "contactButton": "Contact Support Team"
     }

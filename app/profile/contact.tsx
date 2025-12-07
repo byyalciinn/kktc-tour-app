@@ -45,12 +45,12 @@ const CONTACT_CHANNELS = [
   },
 ] as const;
 
-// FAQ item keys
+// FAQ item keys - without icons for minimal design
 const FAQ_ITEMS = [
-  { id: 'tours', icon: 'map-outline' },
-  { id: 'favorites', icon: 'heart-outline' },
-  { id: 'directions', icon: 'navigate-outline' },
-  { id: 'membership', icon: 'diamond-outline' },
+  { id: 'tours' },
+  { id: 'favorites' },
+  { id: 'directions' },
+  { id: 'membership' },
 ] as const;
 
 export default function ContactScreen() {
@@ -124,40 +124,41 @@ export default function ContactScreen() {
           <Ionicons name="chevron-forward" size={22} color={colors.primary} />
         </TouchableOpacity>
 
-        {/* Quick Contact Section */}
+        {/* Quick Contact Section - Minimal design */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             {t('profileScreens.contact.quickContactTitle')}
           </Text>
-          <View style={styles.contactGrid}>
-            {CONTACT_CHANNELS.map((channel) => (
+          <View style={styles.contactList}>
+            {CONTACT_CHANNELS.map((channel, index) => (
               <TouchableOpacity
                 key={channel.id}
                 style={[
-                  styles.contactCard,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
-                    borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                  },
+                  styles.contactRow,
+                  index < CONTACT_CHANNELS.length - 1 && [
+                    styles.contactRowBorder,
+                    { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
+                  ],
                 ]}
                 activeOpacity={0.7}
                 onPress={() => handleContactChannel(channel.action)}
               >
-                <View style={[styles.contactIconContainer, { backgroundColor: colors.primary + '12' }]}>
-                  <Ionicons name={channel.icon as any} size={22} color={colors.primary} />
+                <Ionicons name={channel.icon as any} size={20} color={colors.textSecondary} />
+                <View style={styles.contactInfo}>
+                  <Text style={[styles.contactLabel, { color: colors.textSecondary }]}>
+                    {t(`profileScreens.contact.channels.${channel.id}`)}
+                  </Text>
+                  <Text style={[styles.contactValue, { color: colors.text }]}>
+                    {channel.value}
+                  </Text>
                 </View>
-                <Text style={[styles.contactLabel, { color: colors.textSecondary }]}>
-                  {t(`profileScreens.contact.channels.${channel.id}`)}
-                </Text>
-                <Text style={[styles.contactValue, { color: colors.text }]} numberOfLines={1}>
-                  {channel.value}
-                </Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ opacity: 0.5 }} />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* FAQ Section */}
+        {/* FAQ Section - Minimal without icons */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             {t('profileScreens.contact.faqTitle')}
@@ -166,8 +167,7 @@ export default function ContactScreen() {
             style={[
               styles.faqCard,
               {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fff',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
               },
             ]}
           >
@@ -184,9 +184,6 @@ export default function ContactScreen() {
                   activeOpacity={0.7}
                   onPress={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
                 >
-                  <View style={[styles.faqIcon, { backgroundColor: colors.primary + '12' }]}>
-                    <Ionicons name={faq.icon as any} size={18} color={colors.primary} />
-                  </View>
                   <Text style={[styles.faqQuestion, { color: colors.text }]}>
                     {t(`profileScreens.contact.faq.${faq.id}.question`)}
                   </Text>
@@ -295,74 +292,61 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // Contact Grid
-  contactGrid: {
+  // Contact List - Minimal rows
+  contactList: {
+    backgroundColor: 'transparent',
+  },
+  contactRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 14,
   },
-  contactCard: {
+  contactRowBorder: {
+    borderBottomWidth: 1,
+  },
+  contactInfo: {
     flex: 1,
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
-  },
-  contactIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   contactLabel: {
     fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
+    marginBottom: 2,
   },
   contactValue: {
-    fontSize: 11,
+    fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: '500',
   },
 
-  // FAQ Card
+  // FAQ Card - Minimal without icons
   faqCard: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   faqItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     gap: 12,
   },
   faqItemBorder: {
     borderBottomWidth: 1,
   },
-  faqIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   faqQuestion: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
   },
   faqAnswer: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    paddingLeft: 62,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   faqAnswerText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });

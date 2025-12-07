@@ -1,5 +1,5 @@
 /**
- * KKTC Tour App Color Palette
+ * Cyprigo Color Palette
  * Primary: #F03A52 (Accent/Hover)
  * Background: #F3F2EE
  * Cards/Buttons: #FFFFFF

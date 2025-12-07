@@ -389,39 +389,41 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
               </View>
             </View>
 
-            {/* Admin Section */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                {t('profile.admin').toUpperCase()}
-              </Text>
-              <View
-                style={[
-                  styles.sectionCard,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                  },
-                ]}
-              >
-                {adminMenuItems.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.infoRow,
-                      index < adminMenuItems.length - 1 && [
-                        styles.infoRowBorder,
-                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
-                      ],
-                    ]}
-                    activeOpacity={0.7}
-                    onPress={() => handleNavigate(item.route)}
-                  >
-                    <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
+            {/* Admin Section - Only visible for admin role */}
+            {profile?.role === 'admin' && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  {t('profile.admin').toUpperCase()}
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                >
+                  {adminMenuItems.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.infoRow,
+                        index < adminMenuItems.length - 1 && [
+                          styles.infoRowBorder,
+                          { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                        ],
+                      ]}
+                      activeOpacity={0.7}
+                      onPress={() => handleNavigate(item.route)}
+                    >
+                      <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Logout Button */}
             <TouchableOpacity
@@ -440,7 +442,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
 
             {/* App Version */}
             <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-              {t('profile.version')} 1.0.0
+              Cyprigo 0.1.1
             </Text>
           </ScrollView>
         </View>

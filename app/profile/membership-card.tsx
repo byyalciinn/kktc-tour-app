@@ -35,10 +35,12 @@ const planConfigs: Record<
     name: string;
     price: number | null;
     originalPrice?: number;
+    contactText?: string;
     description: string;
     benefits: { text: string; included: boolean }[];
     badge?: string;
     isDark?: boolean;
+    isBusiness?: boolean;
   }
 > = {
   Normal: {
@@ -51,7 +53,7 @@ const planConfigs: Record<
       { text: 'E-posta desteği', included: true },
       { text: 'Standart arama', included: true },
       { text: 'Sınırlı favoriler (5 tur)', included: true },
-      { text: 'Reklamsız deneyim', included: false },
+      { text: 'AI Gelişmiş Tarama (1 Hak)', included: false },
       { text: 'Öncelikli destek', included: false },
       { text: 'Özel indirimler', included: false },
       { text: 'VIP etkinlik erişimi', included: false },
@@ -60,8 +62,8 @@ const planConfigs: Record<
   },
   Gold: {
     name: 'Gold Üyelik',
-    price: 299,
-    originalPrice: 399,
+    price: 199,
+    originalPrice: 299,
     description:
       'Gelişmiş özellikler ve öncelikli destek ile tur deneyiminizi üst seviyeye taşıyın.',
     benefits: [
@@ -69,17 +71,18 @@ const planConfigs: Record<
       { text: 'E-posta desteği', included: true },
       { text: 'Gelişmiş arama filtreleri', included: true },
       { text: 'Sınırsız favoriler', included: true },
-      { text: 'Reklamsız deneyim', included: true },
+      { text: 'Sınırsız AI Gelişmiş Tarama Deneyimi', included: true },
       { text: 'Öncelikli destek', included: true },
       { text: '%10 indirim', included: false },
       { text: 'VIP etkinlik erişimi', included: false },
     ],
-    badge: '%25 Tasarruf',
+    badge: 'Premium Deneyim',
     isDark: true,
   },
   Business: {
     name: 'Business Üyelik',
-    price: 599,
+    price: null,
+    contactText: 'Bizimle İletişime Geçin',
     description:
       'Tüm premium özellikler ve işletme avantajları ile maksimum fayda sağlayın.',
     benefits: [
@@ -87,12 +90,13 @@ const planConfigs: Record<
       { text: 'E-posta desteği', included: true },
       { text: 'Gelişmiş arama filtreleri', included: true },
       { text: 'Sınırsız favoriler', included: true },
-      { text: 'Reklamsız deneyim', included: true },
+      { text: 'Sınırsız AI Gelişmiş Tarama Deneyimi', included: true },
       { text: 'VIP destek hattı', included: true },
       { text: '%20 indirim', included: true },
       { text: 'VIP etkinlik erişimi', included: true },
     ],
-    badge: 'Popüler',
+    badge: 'İşletmelere Özel',
+    isBusiness: true,
   },
 };
 
@@ -107,8 +111,8 @@ export default function MembershipCardScreen() {
   const { restorePurchases, isLoading: isRestoreLoading } = useSubscriptionStore();
   const [isPurchasing, setIsPurchasing] = useState(false);
 
-  // Billing period toggle
-  const [isAnnual, setIsAnnual] = useState(true);
+  // Billing period toggle - default to monthly
+  const [isAnnual, setIsAnnual] = useState(false);
 
   // Current plan index for horizontal scroll
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -286,19 +290,26 @@ export default function MembershipCardScreen() {
             {config.badge && (
               <View
                 style={[
-                  styles.badge,
-                  {
+                  config.isBusiness ? styles.businessBadge : styles.badge,
+                  !config.isBusiness && {
                     backgroundColor: cardIsDark ? '#F59E0B' : '#22C55E',
                   },
                 ]}
               >
-                <Text style={styles.badgeText}>{config.badge}</Text>
-                <View
-                  style={[
-                    styles.badgeDot,
-                    { backgroundColor: cardIsDark ? '#FCD34D' : '#86EFAC' },
-                  ]}
-                />
+                {config.isBusiness && (
+                  <Ionicons name="diamond-outline" size={11} color="#6B7280" style={{ marginRight: 4 }} />
+                )}
+                <Text style={config.isBusiness ? styles.businessBadgeText : styles.badgeText}>
+                  {config.badge}
+                </Text>
+                {!config.isBusiness && (
+                  <View
+                    style={[
+                      styles.badgeDot,
+                      { backgroundColor: cardIsDark ? '#FCD34D' : '#86EFAC' },
+                    ]}
+                  />
+                )}
               </View>
             )}
             {isActive && (
@@ -325,6 +336,10 @@ export default function MembershipCardScreen() {
                   / {isAnnual ? 'yıl' : 'ay'} (TRY)
                 </Text>
               </>
+            ) : config.contactText ? (
+              <Text style={[styles.contactText, { color: textColor }]}>
+                {config.contactText}
+              </Text>
             ) : (
               <Text style={[styles.price, { color: textColor }]}>Ücretsiz</Text>
             )}
@@ -418,6 +433,25 @@ export default function MembershipCardScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Business Contact Button */}
+          {!isActive && config.isBusiness && (
+            <TouchableOpacity
+              style={[
+                styles.businessCtaButton,
+                {
+                  borderColor: isDark ? 'rgba(107, 114, 128, 0.4)' : 'rgba(107, 114, 128, 0.3)',
+                },
+              ]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/profile/support-tickets')}
+            >
+              <Text style={[styles.businessCtaText, { color: isDark ? '#E5E7EB' : '#374151' }]}>
+                İletişime Geç
+              </Text>
+              <Ionicons name="arrow-forward" size={16} color={isDark ? '#9CA3AF' : '#6B7280'} style={{ marginLeft: 8 }} />
+            </TouchableOpacity>
+          )}
+
           {isActive && level !== 'Normal' && (
             <TouchableOpacity
               style={[
@@ -479,25 +513,6 @@ export default function MembershipCardScreen() {
           <TouchableOpacity
             style={[
               styles.toggleOption,
-              isAnnual && [
-                styles.toggleOptionActive,
-                { backgroundColor: isDark ? '#374151' : '#1F2937' },
-              ],
-            ]}
-            onPress={() => setIsAnnual(true)}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                { color: isAnnual ? '#fff' : colors.textSecondary },
-              ]}
-            >
-              Yıllık
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.toggleOption,
               !isAnnual && [
                 styles.toggleOptionActive,
                 { backgroundColor: isDark ? '#374151' : '#1F2937' },
@@ -512,6 +527,25 @@ export default function MembershipCardScreen() {
               ]}
             >
               Aylık
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleOption,
+              isAnnual && [
+                styles.toggleOptionActive,
+                { backgroundColor: isDark ? '#374151' : '#1F2937' },
+              ],
+            ]}
+            onPress={() => setIsAnnual(true)}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                { color: isAnnual ? '#fff' : colors.textSecondary },
+              ]}
+            >
+              Yıllık
             </Text>
           </TouchableOpacity>
         </View>
@@ -711,6 +745,12 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '400',
   },
+  contactText: {
+    fontSize: 24,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   billingNote: {
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
@@ -759,10 +799,44 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
   },
   ctaButtonText: {
     fontSize: 17,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
+  },
+  businessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 114, 128, 0.25)',
+    backgroundColor: 'transparent',
+  },
+  businessBadgeText: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
+    color: '#6B7280',
+    letterSpacing: 0.3,
+  },
+  businessCtaButton: {
+    marginTop: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
+  businessCtaText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '500',
   },
 });

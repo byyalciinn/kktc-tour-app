@@ -484,10 +484,10 @@ export default function SettingsScreen() {
         {/* App Info */}
         <View style={styles.appInfo}>
           <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-            Tour App v1.0.0
+            Cyprigo v0.1.0
           </Text>
           <Text style={[styles.appCopyright, { color: colors.textSecondary }]}>
-            © 2024 Tour App. {t('common.allRightsReserved') || 'Tüm hakları saklıdır.'}
+            © 2025 Cyprigo. {t('common.allRightsReserved') || 'Tüm hakları saklıdır.'}
           </Text>
         </View>
       </ScrollView>

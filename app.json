@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "KKTC Gezi",
-    "slug": "kktc-gezi",
-    "version": "1.0.0",
+    "name": "Cyprigo",
+    "slug": "cyprigo",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "scheme": "tour-app",
+    "scheme": "cyprigo",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kktc.gezi",
+      "bundleIdentifier": "com.cyprigo.app",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
@@ -25,7 +25,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F3F2EE"
       },
-      "package": "com.kktc.gezi",
+      "package": "com.cyprigo.app",
       "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
     "web": {

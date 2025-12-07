@@ -98,7 +98,7 @@ export default function WelcomeScreen() {
       >
         {/* Welcome Badge */}
         <View style={[styles.badge, { backgroundColor: isDark ? 'rgba(240, 58, 82, 0.15)' : 'rgba(240, 58, 82, 0.08)' }]}>
-          <Text style={[styles.badgeText, { color: colors.primary }]}>KKTC Tour</Text>
+          <Text style={[styles.badgeText, { color: colors.primary }]}>Cyprigo</Text>
         </View>
 
         {/* Main Title */}

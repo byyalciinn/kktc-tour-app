@@ -8,7 +8,7 @@ import {
 import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-// KKTC Tour App - Primary color: #F03A52
+// Cyprigo - Primary color: #F03A52
 const PRIMARY_COLOR = '#F03A52';
 
 export default function TabLayout() {

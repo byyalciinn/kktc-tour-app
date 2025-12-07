@@ -180,7 +180,7 @@
     "viewOnMap": "Haritada Gör",
     "scanAgain": "Yeni Tarama",
     "sharePlace": "Paylaş",
-    "discoveredWith": "KKTC Tour App ile keşfedildi",
+    "discoveredWith": "Cyprigo ile keşfedildi",
     "categories": {
       "historical": "Tarihi Yapı",
       "natural": "Doğal Alan",
@@ -384,24 +384,23 @@
       "categoriesTitle": "YARDIM KATEGORİLERİ",
       "faqTitle": "SIK SORULAN SORULAR",
       "categories": {
-        "account": "Hesap İşlemleri",
-        "tours": "Turlar & Rezervasyon",
-        "payment": "Ödeme & Faturalama",
-        "membership": "Üyelik & Avantajlar"
+        "account": "Hesap",
+        "tours": "Turlar",
+        "membership": "Üyelik"
       },
       "faq": {
-        "q1": "Nasıl tur rezervasyonu yapabilirim?",
-        "a1": "Ana sayfadan veya keşfet bölümünden tur seçip \"Yol Tarifi Al\" ile lokasyona ulaşın. Rezervasyon için sağlayıcı ile iletişime geçin.",
+        "q1": "Turları nasıl keşfedebilirim?",
+        "a1": "Ana sayfadaki kategorilerden veya arama özelliğini kullanarak KKTC'deki tüm turları keşfedebilirsiniz. Harita görünümünde yakınlarınızdaki turları da görebilirsiniz.",
         "q2": "Üyelik seviyemi nasıl yükseltebilirim?",
-        "a2": "Profilde \"Üyelik Kartı\" bölümünden Gold veya Business seçip ödemeyi tamamlayın.",
+        "a2": "Profilde \"Üyelik Kartı\" bölümünden Gold veya Business üyelik seçeneklerini inceleyebilirsiniz.",
         "q3": "Favorilere nasıl tur ekleyebilirim?",
         "a3": "Tur detay sayfasındaki kalp ikonuna tıklayın. Favorilere alt menüden ulaşabilirsiniz.",
         "q4": "Uygulama bildirimleri nasıl yönetilir?",
-        "a4": "KKTC Tour bildirim izinlerini telefon ayarlarından yöneterek kampanyaları kaçırmayın.",
+        "a4": "Ayarlar sayfasından bildirim tercihlerinizi yönetebilirsiniz. Yeni turlar ve öneriler hakkında bilgi alabilirsiniz.",
         "q5": "Hesabımı nasıl silebilirim?",
         "a5": "İletişim sayfasından destek ekibimize ulaşın. Hesap silme tüm verileri kalıcı olarak kaldırır.",
-        "q6": "Hangi ödeme yöntemleri mevcut?",
-        "a6": "Şimdilik tur sırasında nakit ve banka havalesi mevcut. Kart ödemeleri yakında eklenecek."
+        "q6": "Tur lokasyonuna nasıl ulaşırım?",
+        "a6": "Tur detay sayfasında \"Yol Tarifi Al\" butonuna tıklayarak harita uygulamanız üzerinden yol tarifi alabilirsiniz."
       },
       "contactButton": "Destek Ekibiyle İletişime Geç"
     }

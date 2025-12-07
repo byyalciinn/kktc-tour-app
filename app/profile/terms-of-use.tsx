@@ -16,103 +16,141 @@ import { useThemeStore } from '@/stores';
 
 const termsSections = [
   {
-    title: 'Kabul ve Onay',
-    content: `Tour App uygulamasını kullanarak bu kullanım koşullarını kabul etmiş sayılırsınız. Bu koşulları kabul etmiyorsanız, lütfen uygulamayı kullanmayınız.
+    title: '1. Kabul ve Onay',
+    content: `Cyprigo mobil uygulamasını ("Uygulama") indirerek, yükleyerek veya kullanarak bu Kullanım Koşulları'nı ("Koşullar") kabul etmiş olursunuz. Bu Koşulları kabul etmiyorsanız, lütfen Uygulamayı kullanmayınız.
 
-Uygulamayı kullanmak için 18 yaşından büyük olmanız veya yasal vasinizin onayını almış olmanız gerekmektedir.`,
+Uygulamayı kullanmak için 13 yaşından büyük olmanız gerekmektedir. 18 yaşından küçükseniz, ebeveyn veya yasal vasinizin onayı ile kullanabilirsiniz.`,
   },
   {
-    title: 'Hizmet Tanımı',
-    content: `Tour App, Kuzey Kıbrıs Türk Cumhuriyeti'ndeki turistik turları keşfetmenizi, rezervasyon yapmanızı ve yönetmenizi sağlayan bir mobil uygulamadır.
+    title: '2. Hizmet Tanımı',
+    content: `Cyprigo, Kuzey Kıbrıs'taki turistik yerleri ve turları keşfetmenizi sağlayan bir mobil uygulamadır.
 
 Sunduğumuz hizmetler:
-Tur arama ve filtreleme
-Online rezervasyon
-Dijital bilet yönetimi
-Tur rehberi iletişimi
-Değerlendirme ve yorumlar`,
+• Tur bilgileri ve detayları
+• Konum bazlı tur önerileri
+• Favori turları kaydetme
+• Harita ve yol tarifi
+• Kişiselleştirilmiş öneriler
+
+Önemli Not: Cyprigo bir bilgilendirme ve öneri platformudur. Doğrudan tur rezervasyonu veya ödeme işlemi yapmamaktayız. Rezervasyon için ilgili tur sağlayıcısıyla iletişime geçmeniz gerekmektedir.`,
   },
   {
-    title: 'Kullanıcı Yükümlülükleri',
-    content: `Uygulamamızı kullanırken aşağıdaki kurallara uymanız gerekmektedir:
+    title: '3. Kullanıcı Hesabı',
+    content: `Hesap Oluşturma:
+• Doğru ve güncel bilgi sağlamalısınız
+• Hesap bilgilerinizi gizli tutmalısınız
+• Hesabınızdaki tüm aktivitelerden siz sorumlusunuz
 
-Doğru ve güncel bilgi sağlamak
-Hesap güvenliğinizi korumak
-Yasalara ve düzenlemelere uymak
-Diğer kullanıcılara saygılı davranmak
-Uygulamayı kötüye kullanmamak
-Fikri mülkiyet haklarına saygı göstermek`,
+Hesap Güvenliği:
+• Şifrenizi kimseyle paylaşmayın
+• Yetkisiz erişim şüphesinde bizi bilgilendirin
+• Güçlü şifre kullanmanızı öneririz
+
+Hesabınızı istediğiniz zaman Ayarlar bölümünden silebilirsiniz.`,
   },
   {
-    title: 'Rezervasyon ve İptal',
-    content: `Rezervasyon Koşulları:
-Rezervasyonlar onay e-postası ile kesinleşir
-Ödeme, rezervasyon sırasında veya tur öncesi alınır
-Fiyatlar KDV dahil olarak gösterilir
+    title: '4. Uygulama İçi Satın Almalar',
+    content: `Cyprigo, Gold ve Business üyelik seçenekleri sunmaktadır.
 
-İptal Politikası:
-48 saat öncesine kadar ücretsiz iptal
-24-48 saat arası %50 kesinti
-24 saatten az sürede iptal yapılamaz
-Mücbir sebep halleri ayrıca değerlendirilir`,
+Ödeme Koşulları:
+• Tüm satın almalar Apple App Store üzerinden işlenir
+• Fiyatlar yerel para biriminizde gösterilir
+• Ödeme, satın alma onayında Apple hesabınızdan alınır
+
+Abonelik Koşulları:
+• Abonelikler otomatik olarak yenilenir
+• İptal, mevcut dönemin sonunda geçerli olur
+• İptal için App Store ayarlarını kullanın
+
+İade Politikası:
+• İadeler Apple'ın politikalarına tabidir
+• İade talepleri için Apple Destek ile iletişime geçin`,
   },
   {
-    title: 'Ödeme Koşulları',
-    content: `Kabul edilen ödeme yöntemleri:
-Kredi kartı / Banka kartı
-Apple Pay / Google Pay
-Uygulama içi bakiye
+    title: '5. Kullanıcı Yükümlülükleri',
+    content: `Uygulamayı kullanırken aşağıdaki kurallara uymalısınız:
 
-Güvenlik:
-Tüm ödemeler SSL ile şifrelenir
-Kart bilgileriniz saklanmaz
-3D Secure doğrulama kullanılır`,
+Yapmanız Gerekenler:
+• Doğru ve güncel bilgi sağlamak
+• Yasalara ve düzenlemelere uymak
+• Diğer kullanıcılara saygılı davranmak
+
+Yapmamanız Gerekenler:
+• Uygulamayı yasadışı amaçlarla kullanmak
+• Zararlı yazılım yaymak veya güvenliği tehlikeye atmak
+• Başkalarının hesaplarına yetkisiz erişim sağlamak
+• Uygulamayı tersine mühendislik yapmak
+• Spam veya istenmeyen içerik paylaşmak`,
   },
   {
-    title: 'Sorumluluk Sınırları',
-    content: `Tour App olarak:
+    title: '6. Fikri Mülkiyet',
+    content: `Cyprigo'nun tüm içeriği, tasarımı, logosu, grafikleri ve yazılımı telif hakkı ve fikri mülkiyet yasaları ile korunmaktadır.
 
-Tur operatörlerinin hizmet kalitesinden doğrudan sorumlu değiliz
-Doğal afetler ve mücbir sebeplerden kaynaklanan aksaklıklardan sorumlu tutulamayız
-Kullanıcı hatalarından doğan zararlardan sorumlu değiliz
-Üçüncü taraf bağlantılarının içeriğinden sorumlu değiliz
+Kullanım Lisansı:
+Size Uygulamayı kişisel, ticari olmayan amaçlarla kullanmak için sınırlı, geri alınabilir, münhasır olmayan bir lisans veriyoruz.
 
-Ancak, platformumuzda listelenen tüm operatörleri dikkatle seçiyor ve denetliyoruz.`,
+İzin Verilmeyen Kullanımlar:
+• İçeriğin kopyalanması veya çoğaltılması
+• Ticari amaçlı kullanım
+• Tersine mühendislik veya kaynak kodu çıkarma
+• Marka ve logoların izinsiz kullanımı`,
   },
   {
-    title: 'Fikri Mülkiyet',
-    content: `Tour App'in tüm içeriği, tasarımı, logosu ve yazılımı telif hakkı ile korunmaktadır.
+    title: '7. Sorumluluk Sınırları',
+    content: `Uygulama "olduğu gibi" sunulmaktadır. Yasaların izin verdiği azami ölçüde:
 
-İzin verilmeyen kullanımlar:
-İçeriğin kopyalanması veya çoğaltılması
-Ticari amaçlı kullanım
-Tersine mühendislik
-Marka ve logoların izinsiz kullanımı`,
+• Uygulamanın kesintisiz veya hatasız çalışacağını garanti etmiyoruz
+• Tur bilgilerinin doğruluğundan tur sağlayıcıları sorumludur
+• Üçüncü taraf hizmetlerinin içeriğinden sorumlu değiliz
+• Dolaylı, arızi veya sonuç olarak ortaya çıkan zararlardan sorumlu değiliz
+
+Uygulamayı kullanımınız kendi riskiniz dahilindedir.`,
   },
   {
-    title: 'Değişiklikler',
-    content: `Bu kullanım koşullarını önceden haber vermeksizin değiştirme hakkını saklı tutarız.
+    title: '8. Hesap Feshi',
+    content: `Hesap Silme:
+Hesabınızı istediğiniz zaman Ayarlar > Hesabımı Sil seçeneğinden silebilirsiniz.
 
-Önemli değişiklikler:
-Uygulama içi bildirim ile duyurulur
-E-posta ile bilgilendirilirsiniz
-Değişiklik tarihi belirtilir
+Fesih Hakları:
+Aşağıdaki durumlarda hesabınızı askıya alabilir veya feshedebiliriz:
+• Bu Koşulları ihlal etmeniz
+• Yasadışı faaliyetlerde bulunmanız
+• Diğer kullanıcılara zarar vermeniz
+• Uygulamayı kötüye kullanmanız
 
-Değişikliklerden sonra uygulamayı kullanmaya devam etmeniz, yeni koşulları kabul ettiğiniz anlamına gelir.`,
+Fesih durumunda, aktif abonelikleriniz dönem sonuna kadar geçerli kalır.`,
   },
   {
-    title: 'Uyuşmazlık Çözümü',
-    content: `Bu koşullardan doğan uyuşmazlıklarda:
+    title: '9. Değişiklikler',
+    content: `Bu Kullanım Koşulları'nı zaman zaman güncelleyebiliriz.
 
-Öncelikle dostane çözüm aranır
-Arabuluculuk yoluna başvurulabilir
-KKTC mahkemeleri yetkilidir
-KKTC hukuku uygulanır
+Değişiklik Bildirimi:
+• Önemli değişiklikler uygulama içi bildirim ile duyurulur
+• Güncellenmiş koşullar uygulamada yayınlanır
+• "Son güncelleme" tarihi değiştirilir
 
-İletişim:
-legal@tourapp.com
+Değişikliklerden sonra Uygulamayı kullanmaya devam etmeniz, güncellenmiş Koşulları kabul ettiğiniz anlamına gelir.`,
+  },
+  {
+    title: '10. Geçerli Hukuk',
+    content: `Bu Koşullar, Kuzey Kıbrıs Türk Cumhuriyeti yasalarına tabidir.
 
-Son güncelleme: Kasım 2024`,
+Uyuşmazlık Çözümü:
+• Öncelikle dostane çözüm aranır
+• Arabuluculuk yoluna başvurulabilir
+• KKTC mahkemeleri münhasır yetkiye sahiptir`,
+  },
+  {
+    title: '11. İletişim',
+    content: `Bu Kullanım Koşulları hakkında sorularınız için:
+
+E-posta: destek@cyprigo.com
+Web: www.cyprigo.com
+
+Cyprigo
+Lefkoşa, Kuzey Kıbrıs
+
+Son güncelleme: Aralık 2024`,
   },
 ];
 
@@ -151,7 +189,7 @@ export default function TermsOfUseScreen() {
       >
         {/* Intro Text */}
         <Text style={[styles.introText, { color: colors.textSecondary }]}>
-          Tour App'i kullanmadan önce lütfen bu koşulları dikkatlice okuyunuz.
+          Cyprigo'yu kullanmadan önce lütfen bu koşulları dikkatlice okuyunuz.
         </Text>
 
         {/* Content Sections */}
@@ -177,7 +215,7 @@ export default function TermsOfUseScreen() {
 
         {/* Accept Note */}
         <Text style={[styles.noteText, { color: colors.textSecondary }]}>
-          Uygulamayı kullanmaya devam ederek bu koşulları kabul etmiş sayılırsınız.
+          Cyprigo'yu kullanmaya devam ederek bu koşulları kabul etmiş sayılırsınız.
         </Text>
       </ScrollView>
     </View>

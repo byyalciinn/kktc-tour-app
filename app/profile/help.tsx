@@ -20,12 +20,11 @@ import { useTranslation } from 'react-i18next';
 // FAQ item keys
 const FAQ_KEYS = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'] as const;
 
-// Help categories
+// Help categories - minimal design without icons
 const HELP_CATEGORIES = [
-  { id: 'account', icon: 'person-outline' },
-  { id: 'tours', icon: 'map-outline' },
-  { id: 'payment', icon: 'card-outline' },
-  { id: 'membership', icon: 'diamond-outline' },
+  { id: 'account' },
+  { id: 'tours' },
+  { id: 'membership' },
 ] as const;
 
 export default function HelpScreen() {
@@ -63,28 +62,24 @@ export default function HelpScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Help Categories */}
+        {/* Help Categories - Minimal horizontal list */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
             {t('profileScreens.help.categoriesTitle')}
           </Text>
-          <View style={styles.categoriesGrid}>
-            {HELP_CATEGORIES.map((category) => (
+          <View style={styles.categoriesRow}>
+            {HELP_CATEGORIES.map((category, index) => (
               <TouchableOpacity
                 key={category.id}
                 style={[
-                  styles.categoryCard,
+                  styles.categoryChip,
                   {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                   },
                 ]}
                 activeOpacity={0.7}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name={category.icon as any} size={22} color={colors.primary} />
-                </View>
-                <Text style={[styles.categoryLabel, { color: colors.text }]}>
+                <Text style={[styles.categoryChipText, { color: colors.text }]}>
                   {t(`profileScreens.help.categories.${category.id}`)}
                 </Text>
               </TouchableOpacity>
@@ -146,14 +141,21 @@ export default function HelpScreen() {
           </View>
         </View>
 
-        {/* Contact Support */}
+        {/* Contact Support - Minimal bordered button */}
         <TouchableOpacity
-          style={[styles.contactButton, { backgroundColor: colors.primary }]}
-          activeOpacity={0.9}
+          style={[
+            styles.contactButton,
+            {
+              borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
+            },
+          ]}
+          activeOpacity={0.8}
           onPress={() => router.push('/profile/contact')}
         >
-          <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
-          <Text style={styles.contactButtonText}>{t('profileScreens.help.contactButton')}</Text>
+          <Text style={[styles.contactButtonText, { color: colors.text }]}>
+            {t('profileScreens.help.contactButton')}
+          </Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -201,32 +203,21 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
-  // Categories
-  categoriesGrid: {
+  // Categories - Minimal chips
+  categoriesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-  },
-  categoryCard: {
-    width: '47%',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
     gap: 10,
   },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
-  categoryLabel: {
+  categoryChipText: {
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
-    textAlign: 'center',
   },
 
   // FAQ
@@ -261,20 +252,20 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Contact Button
+  // Contact Button - Minimal bordered
   contactButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
     marginBottom: 20,
   },
   contactButtonText: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: '500',
   },
 });
