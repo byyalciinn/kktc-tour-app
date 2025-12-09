@@ -213,6 +213,45 @@ CREATE POLICY "Authenticated users can upload images"
   WITH CHECK (bucket_id = 'image-bucket');
 ```
 
+### Edge Functions
+
+#### 2FA E-posta Doğrulama (send-verification-email)
+
+Bu Edge Function, 2FA doğrulama kodlarını kullanıcılara e-posta ile gönderir.
+
+**Gereksinimler:**
+- [Resend](https://resend.com) hesabı ve API key
+- Doğrulanmış domain (FROM_EMAIL için)
+
+**Kurulum:**
+
+1. **Supabase CLI kurulumu** (eğer yoksa):
+   ```bash
+   npm install -g supabase
+   supabase login
+   ```
+
+2. **Edge Function'ı deploy edin**:
+   ```bash
+   supabase functions deploy send-verification-email --no-verify-jwt
+   ```
+
+3. **Secrets'ları ayarlayın**:
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_xxxxx
+   supabase secrets set FROM_EMAIL=noreply@yourdomain.com
+   ```
+
+**Not:** `FROM_EMAIL` Resend'de doğrulanmış bir domain'den olmalıdır. Test için `onboarding@resend.dev` kullanabilirsiniz.
+
+#### AI Görsel Analizi (analyze-image)
+
+```bash
+supabase functions deploy analyze-image
+supabase secrets set OPENAI_API_KEY=sk-your-key
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-your-key
+```
+
 ## Güvenlik Notları
 
 1. **Environment Variables**

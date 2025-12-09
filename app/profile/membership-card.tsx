@@ -17,7 +17,6 @@ import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore, useThemeStore, useSubscriptionStore } from '@/stores';
-import { usePaywall } from '@/hooks';
 import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -107,8 +106,7 @@ export default function MembershipCardScreen() {
   const isDark = colorScheme === 'dark';
   const profile = useAuthStore((state) => state.profile);
   const { t } = useTranslation();
-  const { showPaywall, isLoading: isPaywallLoading } = usePaywall();
-  const { restorePurchases, isLoading: isRestoreLoading } = useSubscriptionStore();
+  const { subscribe, restorePurchases, isLoading: isRestoreLoading } = useSubscriptionStore();
   const [isPurchasing, setIsPurchasing] = useState(false);
 
   // Billing period toggle - default to monthly
@@ -136,18 +134,23 @@ export default function MembershipCardScreen() {
     
     setIsPurchasing(true);
     try {
-      // Show Adapty native paywall
-      const result = await showPaywall();
+      // Subscribe to the selected plan
+      const plan = isAnnual ? 'yearly' : 'monthly';
+      const result = await subscribe(plan);
       
-      if (result.success && result.purchased) {
+      if (result.success) {
         Alert.alert(
           t('common.success'),
           t('membership.purchaseSuccess'),
           [{ text: t('common.done') }]
         );
-      } else if (!result.success && result.error) {
-        // Only show error if it's not a user cancellation
-        console.log('[MembershipCard] Paywall error:', result.error);
+      } else if (result.error) {
+        console.log('[MembershipCard] Subscription error:', result.error);
+        Alert.alert(
+          t('common.error'),
+          result.error,
+          [{ text: t('common.done') }]
+        );
       }
     } catch (error) {
       console.error('[MembershipCard] Purchase error:', error);
@@ -420,12 +423,12 @@ export default function MembershipCardScreen() {
                 styles.ctaButton,
                 {
                   backgroundColor: cardIsDark ? '#F59E0B' : '#1F2937',
-                  opacity: isPurchasing || isPaywallLoading ? 0.7 : 1,
+                  opacity: isPurchasing || isRestoreLoading ? 0.7 : 1,
                 },
               ]}
               activeOpacity={0.9}
               onPress={() => handlePurchase(level)}
-              disabled={isPurchasing || isPaywallLoading}
+              disabled={isPurchasing || isRestoreLoading}
             >
               <Text style={[styles.ctaButtonText, { color: '#fff' }]}>
                 {isPurchasing ? t('common.loading') : t('membership.startMembership')}

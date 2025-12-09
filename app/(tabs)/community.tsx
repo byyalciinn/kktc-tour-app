@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useCommunityStore, useAuthStore, useThemeStore, useSubscriptionStore } from '@/stores';
+import { useCommunityStore, useAuthStore, useThemeStore } from '@/stores';
 import { CommunityPost, CommunityPostType } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
@@ -49,8 +49,6 @@ export default function CommunityScreen() {
   // Auth
   const { user, profile } = useAuthStore();
   
-  // Subscription - check if user has premium (Gold membership)
-  const isPremium = useSubscriptionStore(state => state.isPremium());
 
   // Community store
   const {
@@ -104,15 +102,8 @@ export default function CommunityScreen() {
       : posts.filter(post => post.type === activeFilter);
   }, [posts, activeFilter]);
 
-  // Visible posts for rendering (premium restriction applied)
-  const visiblePosts = useMemo(() => {
-    if (isPremium) return filteredPosts;
-    // Non-premium users see first 2 posts (1 normal + 1 with paywall overlay)
-    return filteredPosts.slice(0, 2);
-  }, [filteredPosts, isPremium]);
-
-  // Paywall index for non-premium users
-  const paywallIndex = !isPremium && filteredPosts.length > 1 ? 1 : -1;
+  // All posts visible to all users (no premium restriction)
+  const visiblePosts = filteredPosts;
 
   // Handlers
   const handleRefresh = useCallback(() => {
@@ -210,80 +201,9 @@ export default function CommunityScreen() {
     }
   }, [t]);
 
-  // Navigate to membership card for premium upgrade
-  const handleUpgradePress = useCallback(() => {
-    router.push('/profile/membership-card');
-  }, []);
 
-  // Render post item with premium paywall for non-premium users
+  // Render post item
   const renderPostItem = useCallback(({ item, index }: { item: CommunityPost; index: number }) => {
-    // Show paywall overlay on designated index
-    if (index === paywallIndex) {
-      // Show blurred post with paywall overlay on top
-      return (
-        <View style={styles.premiumPostWrapper}>
-          {/* Blurred post preview */}
-          <View style={styles.blurredPostContainer}>
-            <CommunityPostCard
-              post={item}
-              onPress={() => {}}
-              onLikePress={() => {}}
-              isLiked={item.isLiked}
-            />
-            {/* Blur overlay - light blur so post is still partially visible */}
-            <View style={[
-              styles.blurOverlay,
-              { backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.5)' }
-            ]}>
-              {Platform.OS === 'ios' && (
-                <BlurView
-                  intensity={isDark ? 15 : 20}
-                  tint={isDark ? 'dark' : 'light'}
-                  style={StyleSheet.absoluteFill}
-                />
-              )}
-            </View>
-          </View>
-          
-          {/* Premium CTA - centered on the blurred post */}
-          <View style={styles.premiumCTAOverlay}>
-            <View
-              style={[
-                styles.premiumCTAGradient,
-                { 
-                  backgroundColor: isDark ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)',
-                  borderColor: isDark ? 'rgba(240,58,82,0.3)' : 'rgba(240,58,82,0.2)',
-                }
-              ]}
-            >
-              <View style={styles.premiumCTAContent}>
-                <View style={[styles.premiumIconContainer, { backgroundColor: isDark ? 'rgba(240,58,82,0.2)' : 'rgba(240,58,82,0.15)' }]}>
-                  <Ionicons name="diamond" size={28} color={colors.primary} />
-                </View>
-                <Text style={[styles.premiumCTATitle, { color: colors.text }]}>
-                  {t('community.premium.title')}
-                </Text>
-                <Text style={[styles.premiumCTASubtitle, { color: colors.textSecondary }]}>
-                  {t('community.premium.subtitle')}
-                </Text>
-                <TouchableOpacity
-                  style={[styles.premiumCTAButton, { backgroundColor: colors.primary }]}
-                  onPress={handleUpgradePress}
-                  activeOpacity={0.9}
-                >
-                  <Ionicons name="star" size={18} color="#FFF" />
-                  <Text style={styles.premiumCTAButtonText}>
-                    {t('community.premium.button')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      );
-    }
-    
-    // Normal post
     return (
       <CommunityPostCard
         post={item}
@@ -295,7 +215,7 @@ export default function CommunityScreen() {
         isLiked={item.isLiked}
       />
     );
-  }, [paywallIndex, isDark, colors, t, handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost, handleUpgradePress]);
+  }, [handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost]);
 
   // Render header
   const renderHeader = useCallback(() => (

@@ -112,3 +112,11 @@ export {
   selectIsLoadingSettings,
   selectIsCheckingRequired,
 } from './twoFactorStore';
+
+// Password Reset store
+export {
+  usePasswordResetStore,
+  selectIsPasswordResetPending,
+  selectIsPasswordResetVerified,
+  selectPasswordResetEmail,
+} from './passwordResetStore';

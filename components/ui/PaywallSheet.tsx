@@ -27,7 +27,6 @@ import {
   PLANS, 
   FREE_TIER_LIMITS 
 } from '@/stores/subscriptionStore';
-import { usePaywall } from '@/hooks';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -50,7 +49,6 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const { subscribe, restorePurchases, isLoading } = useSubscriptionStore();
-  const { showPaywall: showAdaptyPaywall, isLoading: isAdaptyLoading } = usePaywall();
 
   const [selectedPlan, setSelectedPlan] = useState<SelectablePlan>('yearly');
   
@@ -97,25 +95,11 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   }, [visible]);
 
   const handleSubscribe = useCallback(async () => {
-    // Try Adapty native paywall first
-    try {
-      const result = await showAdaptyPaywall();
-      if (result.success) {
-        if (result.purchased) {
-          onClose();
-        }
-        return;
-      }
-    } catch (error) {
-      console.log('[PaywallSheet] Adapty paywall not available, using fallback');
-    }
-    
-    // Fallback to local subscription flow
     const { success } = await subscribe(selectedPlan);
     if (success) {
       onClose();
     }
-  }, [selectedPlan, subscribe, onClose, showAdaptyPaywall]);
+  }, [selectedPlan, subscribe, onClose]);
 
   const handleRestorePurchases = useCallback(async () => {
     const { success } = await restorePurchases();
@@ -370,7 +354,7 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.legalDot, { color: colors.textSecondary }]}>•</Text>
-              <TouchableOpacity onPress={handleRestorePurchases} disabled={isLoading || isAdaptyLoading}>
+              <TouchableOpacity onPress={handleRestorePurchases} disabled={isLoading}>
                 <Text style={[styles.legalLink, { color: colors.primary }]}>
                   {t('paywall.restorePurchases')}
                 </Text>
@@ -384,7 +368,7 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={handleSubscribe}
-            disabled={isLoading || isAdaptyLoading}
+            disabled={isLoading}
             style={styles.ctaButton}
           >
             <LinearGradient

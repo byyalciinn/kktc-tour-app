@@ -23,9 +23,8 @@ const { width } = Dimensions.get('window');
 
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
-import { useFavoritesStore, useAuthStore, useUIStore, useThemeStore, useSubscriptionStore, FREE_TIER_LIMITS } from '@/stores';
+import { useFavoritesStore, useAuthStore, useUIStore, useThemeStore } from '@/stores';
 import { TourDetailSheet } from '@/components/sheets';
-import { FavoritesEmptyState, LoginRequiredEmptyState, FavoritesScreenSkeleton, PaywallSheet } from '@/components/ui';
 import { useTranslation } from 'react-i18next';
 import { FavoriteCard } from '@/components/cards';
 
@@ -50,14 +49,7 @@ export default function FavoritesScreen() {
     closeTourDetail 
   } = useUIStore();
   
-  const { isPremium, getRemainingFavorites } = useSubscriptionStore();
-
   const [refreshing, setRefreshing] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
-  
-  // Computed values
-  const isPremiumUser = isPremium();
-  const remainingSlots = getRemainingFavorites(favorites.length);
 
   // Load favorites when user changes
   useEffect(() => {
@@ -136,26 +128,6 @@ export default function FavoritesScreen() {
             )}
           </View>
           
-          {/* Premium Badge or Remaining Slots */}
-          {user && (
-            isPremiumUser ? (
-              <View style={[styles.premiumBadge, { backgroundColor: colorScheme === 'dark' ? 'rgba(255, 215, 0, 0.2)' : 'rgba(180, 140, 0, 0.12)' }]}>
-                <Ionicons name="diamond" size={14} color={colorScheme === 'dark' ? '#FFD700' : '#B8860B'} />
-                <Text style={[styles.premiumBadgeText, { color: colorScheme === 'dark' ? '#FFD700' : '#8B6914' }]}>Premium</Text>
-              </View>
-            ) : (
-              <TouchableOpacity 
-                style={[styles.slotIndicator, { backgroundColor: colors.card }]}
-                onPress={() => setShowPaywall(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.slotText, { color: colors.text }]}>
-                  {remainingSlots}/{FREE_TIER_LIMITS.maxFavorites}
-                </Text>
-                <Ionicons name="add-circle" size={16} color={colors.primary} />
-              </TouchableOpacity>
-            )
-          )}
         </View>
 
         {/* Loading State */}
@@ -306,12 +278,6 @@ export default function FavoritesScreen() {
         onClose={handleCloseSheet}
       />
 
-      {/* Paywall Sheet */}
-      <PaywallSheet
-        visible={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        trigger="favorites"
-      />
     </View>
   );
 }

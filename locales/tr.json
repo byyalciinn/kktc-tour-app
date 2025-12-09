@@ -30,7 +30,9 @@
     "and": "ve",
     "enable": "Etkinleştir",
     "disable": "Devre Dışı Bırak",
-    "copied": "Kopyalandı"
+    "copied": "Kopyalandı",
+    "soon": "Yakında",
+    "info": "Bilgi"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -84,8 +86,8 @@
     "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
     "passwordNeedsNumber": "Şifre en az bir rakam içermelidir",
     "agreeToTerms": "Devam ederek kabul etmiş olursunuz:",
-    "privacyPolicyContent": "Gizlilik Politikası\n\nTour App olarak, gizliliğinize önem veriyoruz. Bu politika, kişisel verilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.\n\nVeri Toplama\nUygulamamızı kullandığınızda, ad, e-posta adresi ve konum bilgileri gibi kişisel verilerinizi toplayabiliriz. Bu veriler, size daha iyi hizmet sunmak için kullanılır.\n\nVeri Kullanımı\nTopladığımız verileri şu amaçlarla kullanıyoruz:\n• Tur rezervasyonlarınızı işlemek\n• Size özelleştirilmiş öneriler sunmak\n• Uygulama deneyimini iyileştirmek\n• Güvenlik ve dolandırıcılık önleme\n\nVeri Güvenliği\nVerilerinizin güvenliği bizim için önceliktir. SSL/TLS şifreleme kullanıyor ve düzenli güvenlik denetimleri yapıyoruz.\n\nHaklarınız\nKVKK kapsamında verilerinize erişim, düzeltme ve silme haklarına sahipsiniz.\n\nİletişim\nSorularınız için: privacy@tourapp.com",
-    "termsOfServiceContent": "Kullanım Koşulları\n\nTour App'i kullanarak aşağıdaki koşulları kabul etmiş olursunuz.\n\nHizmet Kullanımı\nUygulamamızı yalnızca yasal amaçlarla kullanabilirsiniz. Başkalarının haklarını ihlal eden veya uygulamanın işleyişini bozan davranışlar yasaktır.\n\nHesap Güvenliği\nHesabınızın güvenliğinden siz sorumlusunuz. Şifrenizi kimseyle paylaşmayın ve şüpheli aktivite fark ederseniz bize bildirin.\n\nRezervasyon ve İptal\nTur rezervasyonları, tur operatörlerinin belirlediği koşullara tabidir. İptal politikaları tur detaylarında belirtilir.\n\nFikri Mülkiyet\nUygulama içeriği ve tasarımı Tour App'e aittir. İzinsiz kopyalama veya dağıtım yasaktır.\n\nSorumluluk Sınırlaması\nTur operatörlerinin hizmetlerinden kaynaklanan sorunlardan Tour App sorumlu tutulamaz.\n\nDeğişiklikler\nBu koşulları önceden bildirmeksizin değiştirme hakkını saklı tutarız.\n\nİletişim\nSorularınız için: support@tourapp.com"
+    "privacyPolicyContent": "Gizlilik Politikası\n\nCyprigo olarak gizliliğinize saygı duyuyor ve kişisel verilerinizi korumayı taahhüt ediyoruz.\n\nTopladığımız Bilgiler\n• Hesap Bilgileri: Ad, e-posta adresi ve profil fotoğrafı\n• Konum Verileri: Yakınınızdaki turistik yerleri göstermek için (izninizle)\n• Kullanım Verileri: Uygulama içi etkileşimler ve tercihler\n• Cihaz Bilgileri: Performans iyileştirme amaçlı\n\nBilgilerin Kullanımı\n• Kuzey Kıbrıs'taki turistik yerler hakkında bilgi sunmak\n• Kişiselleştirilmiş öneriler sağlamak\n• Hesabınızı yönetmek ve güvenliğini sağlamak\n• Uygulama performansını iyileştirmek\n\nVeri Güvenliği\nSSL/TLS şifreleme ve güvenli sunucu altyapısı kullanıyoruz.\n\nHaklarınız\nVerilerinize erişim, düzeltme ve silme haklarına sahipsiniz. Hesabınızı Ayarlar > Hesabımı Sil seçeneğinden silebilirsiniz.\n\nİletişim\ncyprurigo@gmail.com\n\nSon güncelleme: Aralık 2024",
+    "termsOfServiceContent": "Kullanım Koşulları\n\nCyprigo'yu kullanarak aşağıdaki koşulları kabul etmiş olursunuz.\n\nHizmet Tanımı\nCyprigo, Kuzey Kıbrıs'taki turistik yerleri ve turları keşfetmenizi sağlayan bir bilgilendirme uygulamasıdır. Doğrudan rezervasyon veya ödeme işlemi yapmamaktayız.\n\nKullanıcı Hesabı\n• Doğru ve güncel bilgi sağlamalısınız\n• Hesap güvenliğinizden siz sorumlusunuz\n• Hesabınızı istediğiniz zaman silebilirsiniz\n\nUygulama İçi Satın Almalar\n• Tüm satın almalar Apple App Store üzerinden işlenir\n• Abonelikler otomatik yenilenir\n• İptal için iOS Ayarlar > Apple ID > Abonelikler kullanın\n\nKullanıcı Yükümlülükleri\n• Uygulamayı yasal amaçlarla kullanın\n• Diğer kullanıcılara saygılı davranın\n• Zararlı veya uygunsuz içerik paylaşmayın\n\nFikri Mülkiyet\nUygulama içeriği ve tasarımı Cyprigo'ya aittir.\n\nİletişim\ncyprurigo@gmail.com\n\nSon güncelleme: Aralık 2024"
   },
   "home": {
     "location": "Konum",
@@ -284,7 +286,8 @@
       "nationalityPlaceholder": "Uyruğunuzu girin",
       "securityNotice": "256-bit SSL şifreleme ile korunmaktadır",
       "saveButton": "Bilgileri Kaydet",
-      "saved": "Kimlik bilgileriniz kaydedildi."
+      "saved": "Kimlik bilgileriniz kaydedildi.",
+      "comingSoonSubtitle": "Kimlik bilgileri özelliği çok yakında sizlerle olacak."
     },
     "paymentMethods": {
       "infoBanner": "Tüm kart bilgileriniz PCI DSS standartlarına uygun şekilde şifrelenmektedir.",
@@ -783,6 +786,32 @@
     "maxAttemptsExceeded": "Çok fazla deneme yapıldı. Lütfen yeni bir kod isteyin.",
     "resendFailed": "Kod gönderilemedi. Lütfen tekrar deneyin.",
     "initFailed": "Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.",
+    "attemptsRemaining": "{{count}} deneme hakkınız kaldı"
+  },
+  "passwordReset": {
+    "title": "Şifre Sıfırlama",
+    "codeSentTitle": "Kod Gönderildi",
+    "codeSentMessage": "Doğrulama kodu {{email}} adresine gönderildi",
+    "enterCode": "Doğrulama Kodu",
+    "enterCodeDescription": "E-postanıza gönderilen 6 haneli kodu girin",
+    "verifyCode": "Kodu Doğrula",
+    "newPasswordTitle": "Yeni Şifre Belirle",
+    "newPasswordDescription": "Hesabınız için yeni bir şifre belirleyin",
+    "newPassword": "Yeni Şifre",
+    "newPasswordPlaceholder": "Yeni şifrenizi girin",
+    "confirmNewPassword": "Şifre Onay",
+    "confirmNewPasswordPlaceholder": "Yeni şifrenizi tekrar girin",
+    "updatePassword": "Şifreyi Güncelle",
+    "passwordMismatch": "Şifreler eşleşmiyor",
+    "passwordUpdated": "Şifreniz başarıyla güncellendi!",
+    "passwordUpdateFailed": "Şifre güncellenirken bir hata oluştu",
+    "codeExpired": "Kod süresi doldu. Lütfen yeni bir kod isteyin.",
+    "invalidCode": "Geçersiz kod. Lütfen tekrar deneyin.",
+    "resendCode": "Kodu Tekrar Gönder",
+    "resendIn": "Tekrar gönder ({{seconds}}s)",
+    "backToLogin": "Giriş sayfasına dön",
+    "userNotFound": "Bu e-posta adresiyle kayıtlı hesap bulunamadı",
+    "codeExpiresIn": "Kod {{time}} içinde geçerliliğini yitirecek",
     "attemptsRemaining": "{{count}} deneme hakkınız kaldı"
   }
 }

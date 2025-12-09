@@ -150,25 +150,13 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     });
 
     try {
-      // Check if user is Gold or Business member
-      const profile = useAuthStore.getState().profile;
-      const memberClass = profile?.member_class;
-      const isPremiumMember = memberClass === 'Gold' || memberClass === 'Business';
-
+      // All users see approved posts only
       let query = supabase
         .from('community_posts')
         .select('*')
+        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .range(0, PAGE_SIZE - 1);
-
-      // Normal users only see approved posts
-      // Gold/Business members see all posts (approved + pending)
-      if (!isPremiumMember) {
-        query = query.eq('status', 'approved');
-      } else {
-        // Premium members see approved and pending (not rejected)
-        query = query.in('status', ['approved', 'pending']);
-      }
 
       const { data, error } = await query;
 
@@ -201,27 +189,16 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     set({ isLoadingMore: true });
 
     try {
-      // Check if user is Gold or Business member
-      const profile = useAuthStore.getState().profile;
-      const memberClass = profile?.member_class;
-      const isPremiumMember = memberClass === 'Gold' || memberClass === 'Business';
-
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      // All users see approved posts only
       let query = supabase
         .from('community_posts')
         .select('*')
+        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .range(from, to);
-
-      // Normal users only see approved posts
-      // Gold/Business members see all posts (approved + pending)
-      if (!isPremiumMember) {
-        query = query.eq('status', 'approved');
-      } else {
-        query = query.in('status', ['approved', 'pending']);
-      }
 
       const { data, error } = await query;
 

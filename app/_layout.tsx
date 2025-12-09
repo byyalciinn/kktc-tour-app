@@ -1,10 +1,9 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore, useSubscriptionStore } from '@/stores';
+import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore } from '@/stores';
 import { Toast, ErrorBoundary, LoadingScreen } from '@/components/ui';
 import { usePushNotifications } from '@/hooks';
-import { initializeAdapty, identifyAdaptyUser } from '@/lib/adaptyService';
 
 // Initialize i18n
 import '@/lib/i18n';
@@ -25,51 +24,11 @@ export default function RootLayout() {
   // Initialize push notifications
   usePushNotifications();
 
-  // Subscription store for Adapty sync
-  const { syncWithAdapty } = useSubscriptionStore();
-
-  // Initialize auth, intro status, and Adapty on mount
+  // Initialize auth and intro status on mount
   useEffect(() => {
-    const setup = async () => {
-      // Initialize auth
-      initialize();
-      checkIntroStatus();
-      
-      // Initialize Adapty SDK
-      const adaptyPublicKey = process.env.EXPO_PUBLIC_ADAPTY_PUBLIC_KEY;
-      if (adaptyPublicKey) {
-        try {
-          await initializeAdapty(adaptyPublicKey);
-          console.log('[_layout] Adapty SDK initialized');
-        } catch (error) {
-          console.error('[_layout] Failed to initialize Adapty:', error);
-        }
-      } else {
-        console.warn('[_layout] EXPO_PUBLIC_ADAPTY_PUBLIC_KEY not set');
-      }
-    };
-    
-    setup();
+    initialize();
+    checkIntroStatus();
   }, []);
-
-  // Sync subscription status when user changes
-  useEffect(() => {
-    const syncSubscription = async () => {
-      if (user && initialized && !loading) {
-        try {
-          // Identify user with Adapty
-          await identifyAdaptyUser(user.id);
-          // Sync subscription state
-          await syncWithAdapty();
-          console.log('[_layout] Subscription synced with Adapty');
-        } catch (error) {
-          console.error('[_layout] Failed to sync with Adapty:', error);
-        }
-      }
-    };
-    
-    syncSubscription();
-  }, [user, initialized, loading]);
 
   // Handle navigation based on auth state and intro status
   useEffect(() => {

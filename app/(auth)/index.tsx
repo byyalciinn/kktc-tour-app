@@ -24,7 +24,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { useAuthStore, useUIStore, useThemeStore, useTwoFactorStore } from '@/stores';
+import { useAuthStore, useUIStore, useThemeStore, useTwoFactorStore, usePasswordResetStore } from '@/stores';
 import { checkTwoFactorEnabled } from '@/lib/twoFactorService';
 import { maskError } from '@/lib/errorHandler';
 import { router } from 'expo-router';
@@ -100,10 +100,11 @@ const IMAGE_MARGIN = 16;
 const IMAGE_BORDER_RADIUS = 32;
 
 // Slider images for hero section
+// Use assets/ because Metro resolves local assets there
 const SLIDER_IMAGES = [
-  require('../../public/auth-page-image-header-1.jpg'),
-  require('../../public/auth-page-image-header-2.jpg'),
-  require('../../public/auth-page-image-header-3.png'),
+  require('../../assets/auth-page-image-header-1.jpg'),
+  require('../../assets/auth-page-image-header-2.jpg'),
+  require('../../assets/auth-page-image-header-3.jpg'),
 ] as const;
 
 // Custom Bottom Sheet Component with spring animation and keyboard handling
@@ -316,6 +317,21 @@ export default function WelcomeScreen() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
   
+  // Password reset flow states
+  const [resetCodeVisible, setResetCodeVisible] = useState(false);
+  const [resetNewPasswordVisible, setResetNewPasswordVisible] = useState(false);
+  const [resetCode, setResetCode] = useState<string[]>(Array(6).fill(''));
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [resetResendCooldown, setResetResendCooldown] = useState(0);
+  const resetCodeInputRefs = useRef<(TextInput | null)[]>([]);
+  const resetCodeSlideAnim = useRef(new Animated.Value(400)).current;
+  const resetCodeFadeAnim = useRef(new Animated.Value(0)).current;
+  const newPasswordSlideAnim = useRef(new Animated.Value(400)).current;
+  const newPasswordFadeAnim = useRef(new Animated.Value(0)).current;
+  
   // Language state
   const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage());
   const slideAnim = useRef(new Animated.Value(300)).current;
@@ -329,7 +345,7 @@ export default function WelcomeScreen() {
   const twoFactorSlideAnim = useRef(new Animated.Value(400)).current;
   const twoFactorFadeAnim = useRef(new Animated.Value(0)).current;
   
-  const { signIn, signUp, resetPassword } = useAuthStore();
+  const { signIn, signUp } = useAuthStore();
   const { 
     pendingAuth, 
     isVerifying, 
@@ -341,6 +357,20 @@ export default function WelcomeScreen() {
     updateTimeRemaining,
     clearPending,
   } = useTwoFactorStore();
+  const {
+    isPending: isResetPending,
+    isVerified: isResetVerified,
+    isLoading: isResetLoading,
+    email: resetEmail,
+    error: resetError,
+    timeRemaining: resetTimeRemaining,
+    attemptsRemaining: resetAttemptsRemaining,
+    initiateReset,
+    verifyCode: verifyResetCode,
+    updatePassword,
+    updateTimeRemaining: updateResetTimeRemaining,
+    reset: resetPasswordStore,
+  } = usePasswordResetStore();
   const { t } = useTranslation();
   
   // Debug: Log when twoFactorVisible changes
@@ -367,6 +397,26 @@ export default function WelcomeScreen() {
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
+
+  // Password reset timer effect
+  useEffect(() => {
+    if (resetCodeVisible && isResetPending) {
+      const timer = setInterval(() => {
+        updateResetTimeRemaining();
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [resetCodeVisible, isResetPending]);
+
+  // Password reset resend cooldown timer
+  useEffect(() => {
+    if (resetResendCooldown > 0) {
+      const timer = setTimeout(() => {
+        setResetResendCooldown(resetResendCooldown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resetResendCooldown]);
 
   // Language modal functions
   const openLanguageModal = () => {
@@ -590,13 +640,18 @@ export default function WelcomeScreen() {
     }
 
     setForgotLoading(true);
-    const { error } = await resetPassword(forgotEmail.trim());
+    const result = await initiateReset(forgotEmail.trim());
     setForgotLoading(false);
-    if (error) {
-      const maskedError = maskError(error, 'Password Reset');
-      Alert.alert(t('common.error'), maskedError.message);
-    } else {
-      setForgotEmailSent(true);
+    
+    if (result.success) {
+      // Close forgot password sheet and open code verification
+      setForgotPasswordVisible(false);
+      setForgotEmailSent(false);
+      setTimeout(() => {
+        openResetCodeSheet();
+      }, 300);
+    } else if (result.error) {
+      Alert.alert(t('common.error'), result.error);
     }
   };
 
@@ -604,6 +659,196 @@ export default function WelcomeScreen() {
     setForgotPasswordVisible(false);
     setForgotEmailSent(false);
     setForgotEmail('');
+  };
+
+  // Password Reset Code Sheet Functions
+  const openResetCodeSheet = () => {
+    setResetCodeVisible(true);
+    setResetCode(Array(6).fill(''));
+    Animated.parallel([
+      Animated.timing(resetCodeSlideAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(resetCodeFadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setTimeout(() => {
+        resetCodeInputRefs.current[0]?.focus();
+      }, 100);
+    });
+  };
+
+  const closeResetCodeSheet = (shouldResetStore: boolean = true) => {
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(resetCodeSlideAnim, {
+        toValue: 400,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(resetCodeFadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setResetCodeVisible(false);
+      setResetCode(Array(6).fill(''));
+      if (shouldResetStore) {
+        resetPasswordStore();
+      }
+    });
+  };
+
+  const handleResetCodeChange = (index: number, value: string) => {
+    const digit = value.replace(/[^0-9]/g, '').slice(-1);
+    const newCode = [...resetCode];
+    newCode[index] = digit;
+    setResetCode(newCode);
+
+    // Auto-advance to next input
+    if (digit && index < 5) {
+      resetCodeInputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all digits entered
+    if (digit && index === 5) {
+      const fullCode = newCode.join('');
+      if (fullCode.length === 6) {
+        handleVerifyResetCode(fullCode);
+      }
+    }
+  };
+
+  const handleResetCodeKeyPress = (index: number, key: string) => {
+    if (key === 'Backspace' && !resetCode[index] && index > 0) {
+      resetCodeInputRefs.current[index - 1]?.focus();
+      const newCode = [...resetCode];
+      newCode[index - 1] = '';
+      setResetCode(newCode);
+    }
+  };
+
+  const handleVerifyResetCode = async (codeString?: string) => {
+    const fullCode = codeString || resetCode.join('');
+    
+    if (fullCode.length !== 6) {
+      useUIStore.getState().showToast(t('twoFactor.enterFullCode'), 'error');
+      return;
+    }
+
+    const result = await verifyResetCode(fullCode);
+
+    if (result.success) {
+      // Close code sheet and open new password sheet (don't reset store yet)
+      closeResetCodeSheet(false);
+      setTimeout(() => {
+        openNewPasswordSheet();
+      }, 350);
+    } else {
+      // Clear the code on error
+      setResetCode(Array(6).fill(''));
+      resetCodeInputRefs.current[0]?.focus();
+      
+      if (result.error === 'code_expired') {
+        useUIStore.getState().showToast(t('passwordReset.codeExpired'), 'error');
+      } else if (result.error === 'max_attempts_exceeded') {
+        useUIStore.getState().showToast(t('twoFactor.maxAttemptsExceeded'), 'error');
+        closeResetCodeSheet();
+      } else {
+        useUIStore.getState().showToast(t('passwordReset.invalidCode'), 'error');
+      }
+    }
+  };
+
+  const handleResendResetCode = async () => {
+    if (resetResendCooldown > 0) return;
+
+    const result = await initiateReset(forgotEmail.trim());
+    
+    if (result.success) {
+      setResetResendCooldown(60);
+      setResetCode(Array(6).fill(''));
+      resetCodeInputRefs.current[0]?.focus();
+      useUIStore.getState().showToast(t('twoFactor.codeSent'), 'success');
+    } else {
+      useUIStore.getState().showToast(t('twoFactor.resendFailed'), 'error');
+    }
+  };
+
+  // New Password Sheet Functions
+  const openNewPasswordSheet = () => {
+    setResetNewPasswordVisible(true);
+    setNewPassword('');
+    setConfirmNewPassword('');
+    Animated.parallel([
+      Animated.timing(newPasswordSlideAnim, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      Animated.timing(newPasswordFadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeNewPasswordSheet = () => {
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(newPasswordSlideAnim, {
+        toValue: 400,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(newPasswordFadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setResetNewPasswordVisible(false);
+      setNewPassword('');
+      setConfirmNewPassword('');
+      resetPasswordStore();
+    });
+  };
+
+  const handleUpdatePassword = async () => {
+    // Validate password
+    const passwordValidation = validatePassword(newPassword, t);
+    if (!passwordValidation.isValid) {
+      Alert.alert(t('common.error'), passwordValidation.message);
+      return;
+    }
+
+    // Check passwords match
+    if (newPassword !== confirmNewPassword) {
+      Alert.alert(t('common.error'), t('passwordReset.passwordMismatch'));
+      return;
+    }
+
+    const result = await updatePassword(newPassword);
+
+    if (result.success) {
+      useUIStore.getState().showToast(t('passwordReset.passwordUpdated'), 'success');
+      closeNewPasswordSheet();
+      // Reset forgot email state
+      setForgotEmail('');
+      // Open login sheet after a short delay
+      setTimeout(() => {
+        setLoginVisible(true);
+      }, 400);
+    } else {
+      Alert.alert(t('common.error'), t('passwordReset.passwordUpdateFailed'));
+    }
   };
 
   // 2FA Sheet Functions
@@ -761,6 +1006,7 @@ export default function WelcomeScreen() {
                 source={imageSource}
                 style={styles.backgroundImage}
                 resizeMode="cover"
+                fadeDuration={0}
               />
             </View>
           ))}
@@ -1158,7 +1404,7 @@ export default function WelcomeScreen() {
                           { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
                         ]}>
                           <Text style={[styles.comingSoonText, { color: colors.textSecondary }]}>
-                            {t('common.comingSoon') || 'Yakında'}
+                            {t('common.soon')}
                           </Text>
                         </View>
                       ) : isSelected ? (
@@ -1374,6 +1620,314 @@ export default function WelcomeScreen() {
               <TouchableOpacity
                 style={styles.twoFactorCancelButton}
                 onPress={cancelTwoFactor}
+              >
+                <Text style={[styles.twoFactorCancelText, { color: colors.textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Password Reset Code Verification Modal */}
+      <Modal
+        visible={resetCodeVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={() => closeResetCodeSheet()}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Animated.View
+              style={[
+                styles.modalOverlay,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)',
+                  opacity: resetCodeFadeAnim,
+                },
+              ]}
+            />
+          </TouchableWithoutFeedback>
+
+          <Animated.View
+            style={[
+              styles.twoFactorContainer,
+              {
+                transform: [{ translateY: resetCodeSlideAnim }],
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.twoFactorSheet,
+                {
+                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                },
+              ]}
+            >
+              {/* Handle Bar */}
+              <View style={styles.modalHandle}>
+                <View
+                  style={[
+                    styles.handleBar,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
+                  ]}
+                />
+              </View>
+
+              {/* Icon */}
+              <View style={[styles.twoFactorIconContainer, { backgroundColor: '#F03A52' + '15' }]}>
+                <Ionicons name="key" size={40} color="#F03A52" />
+              </View>
+
+              {/* Title */}
+              <Text style={[styles.twoFactorTitle, { color: colors.text }]}>
+                {t('passwordReset.enterCode')}
+              </Text>
+
+              {/* Description */}
+              <Text style={[styles.twoFactorDescription, { color: colors.textSecondary }]}>
+                {t('passwordReset.enterCodeDescription')}
+              </Text>
+
+              {/* Email indicator */}
+              {resetEmail && (
+                <Text style={[styles.twoFactorTimer, { color: colors.primary, marginBottom: 16 }]}>
+                  {resetEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')}
+                </Text>
+              )}
+
+              {/* Code Input */}
+              <View style={styles.twoFactorCodeContainer}>
+                {Array(6).fill(0).map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.twoFactorCodeInputWrapper,
+                      {
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                        borderColor: resetCode[index] 
+                          ? '#F03A52'
+                          : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'),
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      ref={(ref) => { resetCodeInputRefs.current[index] = ref; }}
+                      style={[styles.twoFactorCodeInput, { color: colors.text }]}
+                      value={resetCode[index]}
+                      onChangeText={(value) => handleResetCodeChange(index, value)}
+                      onKeyPress={({ nativeEvent }) => handleResetCodeKeyPress(index, nativeEvent.key)}
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      selectTextOnFocus
+                    />
+                  </View>
+                ))}
+              </View>
+
+              {/* Timer */}
+              {resetTimeRemaining && (
+                <Text style={[styles.twoFactorTimer, { color: colors.textSecondary }]}>
+                  {t('passwordReset.codeExpiresIn', { time: resetTimeRemaining })}
+                </Text>
+              )}
+
+              {/* Error Message */}
+              {resetError && (
+                <View style={styles.twoFactorErrorContainer}>
+                  <Ionicons name="alert-circle" size={16} color="#EF4444" />
+                  <Text style={styles.twoFactorErrorText}>{resetError}</Text>
+                </View>
+              )}
+
+              {/* Attempts Remaining */}
+              {resetAttemptsRemaining !== null && resetAttemptsRemaining < 5 && (
+                <Text style={[styles.twoFactorAttemptsText, { color: '#F59E0B' }]}>
+                  {t('passwordReset.attemptsRemaining', { count: resetAttemptsRemaining })}
+                </Text>
+              )}
+
+              {/* Verify Button */}
+              <TouchableOpacity
+                style={[
+                  styles.twoFactorVerifyButton,
+                  { backgroundColor: '#F03A52' },
+                  isResetLoading && { opacity: 0.6 },
+                ]}
+                onPress={() => handleVerifyResetCode()}
+                disabled={isResetLoading || resetCode.join('').length !== 6}
+              >
+                {isResetLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.twoFactorVerifyButtonText}>{t('passwordReset.verifyCode')}</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Resend Code */}
+              <TouchableOpacity
+                style={styles.twoFactorResendButton}
+                onPress={handleResendResetCode}
+                disabled={resetResendCooldown > 0 || isResetLoading}
+              >
+                <Text
+                  style={[
+                    styles.twoFactorResendText,
+                    { color: resetResendCooldown > 0 ? colors.textSecondary : '#F03A52' },
+                  ]}
+                >
+                  {resetResendCooldown > 0
+                    ? t('passwordReset.resendIn', { seconds: resetResendCooldown })
+                    : t('passwordReset.resendCode')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                style={styles.twoFactorCancelButton}
+                onPress={() => closeResetCodeSheet()}
+              >
+                <Text style={[styles.twoFactorCancelText, { color: colors.textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* New Password Modal */}
+      <Modal
+        visible={resetNewPasswordVisible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={closeNewPasswordSheet}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Animated.View
+              style={[
+                styles.modalOverlay,
+                {
+                  backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)',
+                  opacity: newPasswordFadeAnim,
+                },
+              ]}
+            />
+          </TouchableWithoutFeedback>
+
+          <Animated.View
+            style={[
+              styles.twoFactorContainer,
+              {
+                transform: [{ translateY: newPasswordSlideAnim }],
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.twoFactorSheet,
+                {
+                  backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                },
+              ]}
+            >
+              {/* Handle Bar */}
+              <View style={styles.modalHandle}>
+                <View
+                  style={[
+                    styles.handleBar,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)' },
+                  ]}
+                />
+              </View>
+
+              {/* Icon */}
+              <View style={[styles.twoFactorIconContainer, { backgroundColor: '#4CAF50' + '15' }]}>
+                <Ionicons name="lock-open" size={40} color="#4CAF50" />
+              </View>
+
+              {/* Title */}
+              <Text style={[styles.twoFactorTitle, { color: colors.text }]}>
+                {t('passwordReset.newPasswordTitle')}
+              </Text>
+
+              {/* Description */}
+              <Text style={[styles.twoFactorDescription, { color: colors.textSecondary }]}>
+                {t('passwordReset.newPasswordDescription')}
+              </Text>
+
+              {/* New Password Input */}
+              <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5', marginBottom: 14 }]}>
+                <Ionicons name="lock-closed-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder={t('passwordReset.newPasswordPlaceholder')}
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                  <Ionicons
+                    name={showNewPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : '#999'}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Password Input */}
+              <View style={[styles.inputContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
+                <Ionicons name="lock-closed-outline" size={20} color={isDark ? 'rgba(255,255,255,0.5)' : '#999'} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder={t('passwordReset.confirmNewPasswordPlaceholder')}
+                  placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : '#999'}
+                  value={confirmNewPassword}
+                  onChangeText={setConfirmNewPassword}
+                  secureTextEntry={!showConfirmNewPassword}
+                />
+                <TouchableOpacity onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                  <Ionicons
+                    name={showConfirmNewPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color={isDark ? 'rgba(255,255,255,0.5)' : '#999'}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Update Password Button */}
+              <TouchableOpacity
+                style={[
+                  styles.twoFactorVerifyButton,
+                  { backgroundColor: '#4CAF50', marginTop: 20 },
+                  isResetLoading && { opacity: 0.6 },
+                ]}
+                onPress={handleUpdatePassword}
+                disabled={isResetLoading || !newPassword || !confirmNewPassword}
+              >
+                {isResetLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.twoFactorVerifyButtonText}>{t('passwordReset.updatePassword')}</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                style={styles.twoFactorCancelButton}
+                onPress={closeNewPasswordSheet}
               >
                 <Text style={[styles.twoFactorCancelText, { color: colors.textSecondary }]}>
                   {t('common.cancel')}
@@ -1694,11 +2248,14 @@ const styles = StyleSheet.create({
   },
   sheetButton: {
     backgroundColor: '#F03A52',
-    borderRadius: 28,
+    borderRadius: 12,
     height: 54,
+    minWidth: 160,
+    paddingHorizontal: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
+    alignSelf: 'center',
   },
   sheetButtonText: {
     color: '#fff',

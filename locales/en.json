@@ -30,7 +30,9 @@
     "and": "and",
     "enable": "Enable",
     "disable": "Disable",
-    "copied": "Copied"
+    "copied": "Copied",
+    "soon": "Soon",
+    "info": "Info"
   },
   "auth": {
     "login": "Login",
@@ -84,8 +86,8 @@
     "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
     "passwordNeedsNumber": "Password must contain at least one number",
     "agreeToTerms": "By continuing, you agree to our",
-    "privacyPolicyContent": "Privacy Policy\n\nAt Tour App, we value your privacy. This policy explains how we collect, use, and protect your personal data.\n\nData Collection\nWhen you use our app, we may collect personal data such as your name, email address, and location information. This data is used to provide you with better service.\n\nData Usage\nWe use the collected data for the following purposes:\n• Processing your tour reservations\n• Providing personalized recommendations\n• Improving the app experience\n• Security and fraud prevention\n\nData Security\nYour data security is our priority. We use SSL/TLS encryption and conduct regular security audits.\n\nYour Rights\nYou have the right to access, correct, and delete your data under applicable data protection laws.\n\nContact\nFor questions: privacy@tourapp.com",
-    "termsOfServiceContent": "Terms of Service\n\nBy using Tour App, you agree to the following terms.\n\nService Usage\nYou may only use our app for lawful purposes. Behavior that violates others' rights or disrupts the app's operation is prohibited.\n\nAccount Security\nYou are responsible for your account security. Do not share your password and notify us if you notice suspicious activity.\n\nReservations and Cancellations\nTour reservations are subject to conditions set by tour operators. Cancellation policies are specified in tour details.\n\nIntellectual Property\nApp content and design belong to Tour App. Unauthorized copying or distribution is prohibited.\n\nLimitation of Liability\nTour App is not responsible for issues arising from tour operators' services.\n\nChanges\nWe reserve the right to change these terms without prior notice.\n\nContact\nFor questions: support@tourapp.com"
+    "privacyPolicyContent": "Privacy Policy\n\nAt Cyprigo, we respect your privacy and are committed to protecting your personal data.\n\nInformation We Collect\n• Account Information: Name, email address, and profile photo\n• Location Data: To show nearby tourist attractions (with your permission)\n• Usage Data: In-app interactions and preferences\n• Device Information: For performance improvement\n\nHow We Use Information\n• Provide information about tourist places in Northern Cyprus\n• Offer personalized recommendations\n• Manage and secure your account\n• Improve app performance\n\nData Security\nWe use SSL/TLS encryption and secure server infrastructure.\n\nYour Rights\nYou have the right to access, correct, and delete your data. You can delete your account from Settings > Delete My Account.\n\nContact\ncyprurigo@gmail.com\n\nLast updated: December 2024",
+    "termsOfServiceContent": "Terms of Service\n\nBy using Cyprigo, you agree to the following terms.\n\nService Description\nCyprigo is an informational app that helps you discover tourist attractions and tours in Northern Cyprus. We do not process direct reservations or payments.\n\nUser Account\n• You must provide accurate and current information\n• You are responsible for your account security\n• You can delete your account at any time\n\nIn-App Purchases\n• All purchases are processed through Apple App Store\n• Subscriptions auto-renew\n• To cancel, use iOS Settings > Apple ID > Subscriptions\n\nUser Responsibilities\n• Use the app for lawful purposes only\n• Respect other users\n• Do not share harmful or inappropriate content\n\nIntellectual Property\nApp content and design belong to Cyprigo.\n\nContact\ncyprurigo@gmail.com\n\nLast updated: December 2024"
   },
   "home": {
     "location": "Location",
@@ -284,7 +286,8 @@
       "nationalityPlaceholder": "Enter your nationality",
       "securityNotice": "Protected with 256-bit SSL encryption",
       "saveButton": "Save Information",
-      "saved": "Your ID information has been saved."
+      "saved": "Your ID information has been saved.",
+      "comingSoonSubtitle": "ID information feature will be available very soon."
     },
     "paymentMethods": {
       "infoBanner": "All card information is encrypted in accordance with PCI DSS standards.",
@@ -783,6 +786,32 @@
     "maxAttemptsExceeded": "Too many attempts. Please request a new code.",
     "resendFailed": "Failed to send code. Please try again.",
     "initFailed": "Failed to send verification code. Please try again.",
+    "attemptsRemaining": "{{count}} attempts remaining"
+  },
+  "passwordReset": {
+    "title": "Password Reset",
+    "codeSentTitle": "Code Sent",
+    "codeSentMessage": "Verification code sent to {{email}}",
+    "enterCode": "Verification Code",
+    "enterCodeDescription": "Enter the 6-digit code sent to your email",
+    "verifyCode": "Verify Code",
+    "newPasswordTitle": "Set New Password",
+    "newPasswordDescription": "Create a new password for your account",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter your new password",
+    "confirmNewPassword": "Confirm Password",
+    "confirmNewPasswordPlaceholder": "Re-enter your new password",
+    "updatePassword": "Update Password",
+    "passwordMismatch": "Passwords do not match",
+    "passwordUpdated": "Your password has been updated successfully!",
+    "passwordUpdateFailed": "Failed to update password",
+    "codeExpired": "Code expired. Please request a new one.",
+    "invalidCode": "Invalid code. Please try again.",
+    "resendCode": "Resend Code",
+    "resendIn": "Resend in ({{seconds}}s)",
+    "backToLogin": "Back to login",
+    "userNotFound": "No account found with this email address",
+    "codeExpiresIn": "Code expires in {{time}}",
     "attemptsRemaining": "{{count}} attempts remaining"
   }
 }

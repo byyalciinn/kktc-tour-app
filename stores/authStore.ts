@@ -9,7 +9,6 @@ import {
   getAvatarUrl,
   generateDefaultAvatarUrl 
 } from '@/lib/avatarService';
-import { identifyAdaptyUser, logoutAdapty } from '@/lib/adaptyService';
 import { createLogger } from '@/lib/logger';
 
 const authLogger = createLogger('Auth');
@@ -181,17 +180,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password,
     });
 
-    // Identify user with Adapty on successful login
-    if (!error && data.user) {
-      try {
-        await identifyAdaptyUser(data.user.id);
-        authLogger.info('User identified with Adapty');
-      } catch (adaptyError) {
-        // Don't fail login if Adapty fails
-        authLogger.error('Failed to identify with Adapty:', adaptyError);
-      }
-    }
-
     set({ loading: false });
     return { error };
   },
@@ -199,15 +187,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Sign out current user
   signOut: async () => {
     set({ loading: true });
-    
-    // Logout from Adapty
-    try {
-      await logoutAdapty();
-      authLogger.info('Logged out from Adapty');
-    } catch (adaptyError) {
-      // Don't fail logout if Adapty fails
-      authLogger.error('Failed to logout from Adapty:', adaptyError);
-    }
     
     await supabase.auth.signOut();
     set({

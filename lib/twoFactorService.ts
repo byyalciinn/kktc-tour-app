@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase';
 import { logger } from './logger';
+import { getCurrentLanguage } from './i18n';
 
 export type VerificationPurpose = 'two_factor' | 'email_change' | 'password_reset';
 
@@ -106,23 +107,18 @@ export async function verifyCode(
  * Check if a user has 2FA enabled
  */
 export async function checkTwoFactorEnabled(userId: string): Promise<TwoFactorStatus> {
-  console.log('[TwoFactorService] checkTwoFactorEnabled called for user:', userId);
   try {
     const { data, error } = await supabase.rpc('check_two_factor_enabled', {
       p_user_id: userId,
     });
-    
-    console.log('[TwoFactorService] RPC result:', { data, error: error?.message });
 
     if (error) {
       logger.error('[TwoFactorService] Check 2FA status error:', error);
       return { enabled: false, error: error.message };
     }
 
-    console.log('[TwoFactorService] 2FA enabled:', data === true);
     return { enabled: data === true };
   } catch (error: any) {
-    console.log('[TwoFactorService] Exception:', error.message);
     logger.error('[TwoFactorService] Check 2FA status exception:', error);
     return { enabled: false, error: error.message };
   }
@@ -159,7 +155,7 @@ export async function toggleTwoFactor(
 
 /**
  * Send verification code via email
- * Uses Supabase Edge Function in production, logs to console in development
+ * Uses Supabase Edge Function to send emails via Resend API
  */
 export async function sendVerificationEmail(
   email: string,
@@ -167,21 +163,36 @@ export async function sendVerificationEmail(
   userName?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // In development, log the code to console for testing
-    if (__DEV__) {
-      logger.info(`[TwoFactorService] DEV MODE - Verification code for ${email}: ${code}`);
-      console.log(`\n🔐 VERIFICATION CODE: ${code}\n`);
-      return { success: true };
-    }
+    // Get current app language for localized email
+    const language = getCurrentLanguage();
+    
+    logger.info(`[TwoFactorService] Sending verification email to ${email}`);
 
-    // In production, use Supabase Edge Function
+    // Use Supabase Edge Function to send email
     const { data, error } = await supabase.functions.invoke('send-verification-email', {
-      body: { email, code, userName },
+      body: { 
+        email, 
+        code, 
+        userName,
+        language: language === 'en' ? 'en' : 'tr', // Support tr/en for now
+      },
     });
 
     if (error) {
       logger.error('[TwoFactorService] Edge function error:', error);
       return { success: false, error: error.message };
+    }
+
+    // Check if the response indicates success
+    if (data && data.success) {
+      logger.info(`[TwoFactorService] Verification email sent successfully to ${email}`);
+      return { success: true };
+    }
+
+    // Handle error response from Edge Function
+    if (data && data.error) {
+      logger.error('[TwoFactorService] Edge function returned error:', data.error);
+      return { success: false, error: data.error };
     }
 
     return { success: true };
@@ -206,19 +217,18 @@ export async function initiateTwoFactorVerification(
     return result;
   }
 
-  // Send the email
+  // Send the email via Edge Function
   const emailResult = await sendVerificationEmail(email, result.code, userName);
 
   if (!emailResult.success) {
+    logger.error('[TwoFactorService] Failed to send verification email:', emailResult.error);
     return { success: false, error: emailResult.error };
   }
 
-  // Don't return the code in production for security
+  // Never return the code to client for security
   return {
     success: true,
     expiresAt: result.expiresAt,
-    // Only include code in development for testing
-    code: __DEV__ ? result.code : undefined,
   };
 }
 

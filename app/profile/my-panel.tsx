@@ -267,18 +267,17 @@ export default function MyPanelScreen() {
           </View>
         )}
 
-        {/* Upgrade Prompt for Normal Members */}
+        {/* Upgrade Prompt for Normal Members - Disabled with Coming Soon badge */}
         {memberClass === 'Normal' && (
-          <TouchableOpacity
+          <View
             style={[
               styles.upgradeCard,
               {
                 backgroundColor: isDark ? 'rgba(184, 134, 11, 0.1)' : 'rgba(184, 134, 11, 0.06)',
                 borderColor: isDark ? 'rgba(184, 134, 11, 0.2)' : 'rgba(184, 134, 11, 0.15)',
+                opacity: 0.7,
               },
             ]}
-            activeOpacity={0.7}
-            onPress={() => router.push('/profile/membership-card')}
           >
             <View style={styles.upgradeContent}>
               <Text style={[styles.upgradeTitle, { color: isDark ? '#D4A84B' : '#B8860B' }]}>
@@ -288,8 +287,12 @@ export default function MyPanelScreen() {
                 Premium avantajlardan yararlanın
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={isDark ? '#D4A84B' : '#B8860B'} />
-          </TouchableOpacity>
+            <View style={[styles.comingSoonBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)' }]}>
+              <Text style={[styles.comingSoonText, { color: isDark ? '#F59E0B' : '#D97706' }]}>
+                {t('common.soon')}
+              </Text>
+            </View>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -449,5 +452,15 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
     lineHeight: 20,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  comingSoonText: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
   },
 });

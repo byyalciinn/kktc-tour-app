@@ -588,7 +588,7 @@ export default function SettingsScreen() {
                           { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' },
                         ]}>
                           <Text style={[styles.comingSoonText, { color: colors.textSecondary }]}>
-                            Yakında
+                            {t('common.soon')}
                           </Text>
                         </View>
                       ) : isSelected ? (

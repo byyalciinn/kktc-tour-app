@@ -7,7 +7,6 @@ import {
   isTourFavorited,
   toggleFavorite as toggleFavoriteService,
 } from '@/lib/tourService';
-import { useSubscriptionStore, FREE_TIER_LIMITS } from './subscriptionStore';
 
 /**
  * Result type for favorite operations with paywall info
@@ -107,16 +106,6 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
       return { success: false, error: 'Giriş yapmalısınız', requiresUpgrade: false };
     }
 
-    // Check subscription limit
-    const { canAddMoreFavorites } = get();
-    if (!canAddMoreFavorites()) {
-      return { 
-        success: false, 
-        error: 'Favori limitinize ulaştınız', 
-        requiresUpgrade: true 
-      };
-    }
-
     // Optimistic update
     set((state) => ({
       favorites: [tour, ...state.favorites],
@@ -197,18 +186,14 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     return get().favorites.length;
   },
 
-  // Check if user can add more favorites based on subscription
+  // Check if user can add more favorites (always true now - no limit)
   canAddMoreFavorites: () => {
-    const currentCount = get().favorites.length;
-    const subscriptionStore = useSubscriptionStore.getState();
-    return subscriptionStore.canAddFavorite(currentCount);
+    return true;
   },
 
-  // Get remaining favorite slots
+  // Get remaining favorite slots (unlimited)
   getRemainingFavoriteSlots: () => {
-    const currentCount = get().favorites.length;
-    const subscriptionStore = useSubscriptionStore.getState();
-    return subscriptionStore.getRemainingFavorites(currentCount);
+    return Infinity;
   },
 }));
 
