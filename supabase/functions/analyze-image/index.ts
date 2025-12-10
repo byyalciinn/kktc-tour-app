@@ -66,19 +66,18 @@ async function fetchWithRetry(
   return fetchFn();
 }
 
-// OPTIMIZED PROMPT: Reduced token usage by ~40% while maintaining quality
-// - Removed verbose instructions
-// - Used compact JSON schema notation
-// - Focused on essential fields only
-const SYSTEM_PROMPT = `Expert North Cyprus (KKTC) tour guide. Analyze image, identify landmark/place.
+// OPTIMIZED PROMPT: Türkçe çıktı için kısaltılmış şema
+// - Kısa talimat, Türkçe açıklama/ipuçları
+// - JSON anahtarları İngilizce kalsın, içerik Türkçe olsun
+const SYSTEM_PROMPT = `Uzman Kuzey Kıbrıs (KKTC) tur rehberisin. Görseli analiz et, yapı/yer adını bul.
 
-Return ONLY valid JSON:
-{"placeName":"English name","placeNameLocal":"Turkish name","category":"historical|natural|religious|architectural|beach|monument|museum|unknown","confidence":0.0-1.0,"description":"Brief description","historicalPeriod":"Era","yearBuilt":"Year/century","significance":"Importance","funFacts":["fact1","fact2"],"visitTips":["tip1","tip2"],"bestTimeToVisit":"Time","estimatedDuration":"Duration","nearbyAttractions":["place1"],"location":{"city":"City","region":"Region"}}
+SADECE geçerli JSON döndür:
+{"placeName":"İngilizce ad","placeNameLocal":"Türkçe ad","category":"historical|natural|religious|architectural|beach|monument|museum|unknown","confidence":0.0-1.0,"description":"Kısa Türkçe açıklama","historicalPeriod":"Dönem","yearBuilt":"Yıl/yüzyıl","significance":"Önemi (Türkçe)","funFacts":["bilgi1","bilgi2"],"visitTips":["ipucu1","ipucu2"],"bestTimeToVisit":"Zaman","estimatedDuration":"Süre","nearbyAttractions":["yer1"],"location":{"city":"Şehir","region":"Bölge"}}
 
-If unidentified or not KKTC, confidence=0. Focus: Kyrenia, Famagusta, Nicosia, Morphou, Karpaz.`;
+Tanımsız veya KKTC değilse confidence=0 ver. Odak: Girne, Gazimağusa, Lefkoşa, Güzelyurt, Karpaz.`;
 
-// Compact user prompt for token efficiency
-const USER_PROMPT = 'Identify this North Cyprus landmark.';
+// Kullanıcı istemi (Türkçe, token dostu)
+const USER_PROMPT = 'Bu görseldeki KKTC noktasını belirle ve bilgileri Türkçe yaz.';
 
 async function analyzeWithOpenAI(imageBase64: string): Promise<Response> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -174,7 +173,7 @@ async function analyzeWithGemini(imageBase64: string): Promise<Response> {
           ],
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 800,
+            maxOutputTokens: 1400, // Increased to avoid truncation (was 800)
             responseMimeType: 'application/json', // Force JSON output
           },
         }),
