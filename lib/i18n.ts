@@ -41,24 +41,44 @@ const getInitialLanguage = async (): Promise<LanguageCode> => {
 
 // Initialize i18n
 const initI18n = async () => {
-  const initialLanguage = await getInitialLanguage();
+  try {
+    const initialLanguage = await getInitialLanguage();
 
-  await i18n.use(initReactI18next).init({
-    resources: {
-      tr: { translation: tr },
-      en: { translation: en },
-    },
-    lng: initialLanguage,
-    fallbackLng: 'tr',
-    interpolation: {
-      escapeValue: false,
-    },
-    react: {
-      useSuspense: false,
-    },
-  });
+    await i18n.use(initReactI18next).init({
+      resources: {
+        tr: { translation: tr },
+        en: { translation: en },
+      },
+      lng: initialLanguage,
+      fallbackLng: 'tr',
+      interpolation: {
+        escapeValue: false,
+      },
+      react: {
+        useSuspense: false,
+      },
+    });
 
-  return i18n;
+    return i18n;
+  } catch (error) {
+    console.warn('[i18n] Failed to initialize:', error);
+    // Initialize with defaults if async fails
+    i18n.use(initReactI18next).init({
+      resources: {
+        tr: { translation: tr },
+        en: { translation: en },
+      },
+      lng: 'tr',
+      fallbackLng: 'tr',
+      interpolation: {
+        escapeValue: false,
+      },
+      react: {
+        useSuspense: false,
+      },
+    });
+    return i18n;
+  }
 };
 
 // Change language and persist
@@ -77,6 +97,8 @@ export const getCurrentLanguage = (): LanguageCode => {
 };
 
 // Initialize and export
-initI18n();
+initI18n().catch((error) => {
+  console.warn('[i18n] Initialization error:', error);
+});
 
 export default i18n;

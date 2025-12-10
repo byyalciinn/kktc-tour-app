@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cyprigo",
     "slug": "cyprigo",
-    "version": "0.1.2",
+    "version": "0.1.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,13 +16,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cyprigo.app",
-      "buildNumber": "3",
+      "buildNumber": "5",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Cyprigo needs camera access to take photos for your profile and posts.",
+        "NSPhotoLibraryUsageDescription": "Cyprigo needs photo library access to select images for your profile and posts.",
+        "NSLocationWhenInUseUsageDescription": "Cyprigo needs your location to show nearby tours and provide navigation.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Cyprigo needs your location to show nearby tours and provide navigation.",
+        "NSFaceIDUsageDescription": "Cyprigo uses Face ID for secure authentication."
       }
     },
     "android": {
@@ -31,10 +35,17 @@
         "backgroundColor": "#F3F2EE"
       },
       "package": "com.cyprigo.app",
-      "versionCode": 3,
+      "versionCode": 5,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -50,6 +61,30 @@
           "icon": "./assets/icon.png",
           "color": "#F89C28",
           "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cyprigo needs your location to show nearby tours."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cyprigo needs camera access to take photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cyprigo needs photo library access to select images."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Cyprigo uses Face ID for secure authentication."
         }
       ]
     ],

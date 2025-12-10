@@ -1,6 +1,6 @@
 {
   "name": "cyprigo",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Cyprigo - Discover tours in North Cyprus",
   "main": "expo-router/entry",
   "scripts": {

@@ -53,33 +53,41 @@ export function usePushNotifications() {
 
   // Set up notification listeners
   useEffect(() => {
-    // Listener for notifications received while app is foregrounded
-    notificationListener.current = addNotificationReceivedListener((notification) => {
-      console.log('Notification received:', notification);
-      // You can show an in-app toast or update badge here
-    });
+    try {
+      // Listener for notifications received while app is foregrounded
+      notificationListener.current = addNotificationReceivedListener((notification) => {
+        console.log('Notification received:', notification);
+        // You can show an in-app toast or update badge here
+      });
 
-    // Listener for when user taps on a notification
-    responseListener.current = addNotificationResponseListener((response) => {
-      console.log('Notification response:', response);
-      
-      const data = response.notification.request.content.data;
-      
-      // Handle deep linking
-      if (data?.deepLink) {
-        router.push(data.deepLink as any);
-      } else {
-        // Default: open notification sheet
-        openNotificationSheet();
-      }
-    });
+      // Listener for when user taps on a notification
+      responseListener.current = addNotificationResponseListener((response) => {
+        console.log('Notification response:', response);
+        
+        const data = response.notification.request.content.data;
+        
+        // Handle deep linking
+        if (data?.deepLink) {
+          router.push(data.deepLink as any);
+        } else {
+          // Default: open notification sheet
+          openNotificationSheet();
+        }
+      });
+    } catch (error) {
+      console.warn('[usePushNotifications] Failed to set up listeners:', error);
+    }
 
     return () => {
-      if (notificationListener.current) {
-        removeNotificationListener(notificationListener.current);
-      }
-      if (responseListener.current) {
-        removeNotificationListener(responseListener.current);
+      try {
+        if (notificationListener.current) {
+          removeNotificationListener(notificationListener.current);
+        }
+        if (responseListener.current) {
+          removeNotificationListener(responseListener.current);
+        }
+      } catch (error) {
+        console.warn('[usePushNotifications] Failed to remove listeners:', error);
       }
     };
   }, [openNotificationSheet]);

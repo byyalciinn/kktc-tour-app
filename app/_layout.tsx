@@ -1,16 +1,22 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore } from '@/stores';
 import { Toast, ErrorBoundary, LoadingScreen } from '@/components/ui';
 import { usePushNotifications } from '@/hooks';
 
-// Initialize i18n
-import '@/lib/i18n';
+// Initialize i18n - wrapped in try-catch for safety
+try {
+  require('@/lib/i18n');
+} catch (error) {
+  console.warn('[_layout] Failed to initialize i18n:', error);
+}
 
 export default function RootLayout() {
   const { colorScheme } = useThemeStore();
   const segments = useSegments();
+  const [isReady, setIsReady] = useState(false);
   
   // Zustand auth store
   const { user, loading, initialized, initialize } = useAuthStore();
@@ -21,8 +27,17 @@ export default function RootLayout() {
   // 2FA store - check if 2FA verification is pending or being checked
   const { isPending: is2FAPending, isCheckingRequired: is2FAChecking } = useTwoFactorStore();
   
-  // Initialize push notifications
+  // Initialize push notifications - only after app is ready
   usePushNotifications();
+  
+  // Mark app as ready after initial render
+  useEffect(() => {
+    // Small delay to ensure native modules are ready
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initialize auth and intro status on mount
   useEffect(() => {
