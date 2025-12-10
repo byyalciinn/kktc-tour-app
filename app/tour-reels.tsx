@@ -143,7 +143,7 @@ export default function TourReelsScreen() {
       {/* Loading State */}
       {isLoadingAllTours && allTours.length === 0 && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F03A52" />
+          <ActivityIndicator size="large" color="#F89C28" />
           <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       )}

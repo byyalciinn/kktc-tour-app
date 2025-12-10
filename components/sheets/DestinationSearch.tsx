@@ -26,6 +26,7 @@ import { Tour, tourDataToTour } from '@/types';
 import { searchTours, TourData } from '@/lib/tourService';
 import { useDebounce } from '@/hooks';
 import { useTranslation } from 'react-i18next';
+import { sanitizeInput } from '@/lib/validation';
 
 const { width, height } = Dimensions.get('window');
 const RECENT_SEARCHES_KEY = '@recent_searches';
@@ -122,12 +123,14 @@ export default function DestinationSearch({
 
   // Save recent search
   const saveRecentSearch = async (query: string) => {
-    if (!query.trim()) return;
+    // Sanitize before saving to prevent XSS when displaying
+    const sanitized = sanitizeInput(query, { maxLength: 100 });
+    if (!sanitized) return;
     
     try {
       const updated = [
-        query.trim(),
-        ...recentSearches.filter(s => s.toLowerCase() !== query.toLowerCase())
+        sanitized,
+        ...recentSearches.filter(s => s.toLowerCase() !== sanitized.toLowerCase())
       ].slice(0, MAX_RECENT_SEARCHES);
       
       setRecentSearches(updated);

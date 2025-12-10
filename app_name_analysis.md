@@ -61,7 +61,7 @@
 #### app/(tabs)/_layout.tsx
 | Satır | Mevcut Değer | Yeni Değer |
 |-------|--------------|------------|
-| 11 | `// KKTC Tour App - Primary color: #F03A52` | `// Cyprigo - Primary color: #F03A52` |
+| 11 | `// KKTC Tour App - Primary color: #F89C28` | `// Cyprigo - Primary color: #F89C28` |
 
 #### constants/Colors.ts
 | Satır | Mevcut Değer | Yeni Değer |

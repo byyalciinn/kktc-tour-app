@@ -1,5 +1,5 @@
 Projede Kullanılacak Renk Teması
-#F03A52
+#F89C28
 #F3F2EE
 #212529
 #FFFFFF

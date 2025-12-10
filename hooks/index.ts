@@ -14,3 +14,9 @@ export { useBiometricAuth } from './useBiometricAuth';
 export { useDeviceSecurity } from './useDeviceSecurity';
 export { useScreenProtection } from './useScreenProtection';
 export type { ScreenProtectionOptions } from './useScreenProtection';
+
+// Accessibility hooks
+export { useAccessibility, a11yLabels, getHitSlop, MIN_TOUCH_TARGET } from './useAccessibility';
+
+// Performance hooks
+export { useOptimizedList, LIST_PRESETS } from './useOptimizedList';

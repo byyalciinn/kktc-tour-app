@@ -70,7 +70,7 @@ const TourReelCard: React.FC<TourReelCardProps> = ({ tour, onDetailPress }) => {
           <Ionicons
             name={isFav ? 'heart' : 'heart-outline'}
             size={26}
-            color={isFav ? '#F03A52' : '#FFFFFF'}
+            color={isFav ? '#F89C28' : '#FFFFFF'}
           />
         </TouchableOpacity>
 
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F03A52',
+    backgroundColor: '#F89C28',
     paddingVertical: 16,
     borderRadius: 28,
     gap: 8,

@@ -24,6 +24,7 @@ import { useAuthStore, useThemeStore, useTwoFactorStore } from '@/stores';
 import { useToast } from '@/components/ui';
 import { languages, changeLanguage, getCurrentLanguage, LanguageCode } from '@/lib/i18n';
 import { clearAllCache } from '@/lib/cacheService';
+import { confirmSecureAction, executeSecureAction } from '@/lib/secureAction';
 
 interface SettingItemProps {
   label: string;
@@ -200,6 +201,7 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
+    // First confirmation
     Alert.alert(
       t('settings.deleteAccount'),
       t('settings.deleteAccountConfirm'),
@@ -208,33 +210,33 @@ export default function SettingsScreen() {
         {
           text: t('settings.deleteAccount'),
           style: 'destructive',
-          onPress: async () => {
-            // Second confirmation for destructive action
-            Alert.alert(
+          onPress: () => {
+            // Second confirmation with biometric re-auth
+            confirmSecureAction(
               t('settings.deleteAccountFinal'),
               t('settings.deleteAccountFinalConfirm'),
-              [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                  text: t('settings.deleteAccountConfirmButton'),
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      const { deleteAccount } = useAuthStore.getState();
-                      const result = await deleteAccount();
-                      
-                      if (result.success) {
-                        toast.success(t('settings.accountDeleted'));
-                        router.replace('/(auth)');
-                      } else {
-                        toast.error(result.error || t('common.error'));
-                      }
-                    } catch (error) {
-                      toast.error(t('common.error'));
-                    }
-                  },
+              {
+                actionType: 'delete_account',
+                language: currentLang,
+                forceReauth: true, // Always require re-auth for account deletion
+                confirmText: t('settings.deleteAccountConfirmButton'),
+                cancelText: t('common.cancel'),
+                destructive: true,
+                onConfirm: async () => {
+                  const { deleteAccount } = useAuthStore.getState();
+                  const result = await deleteAccount();
+                  
+                  if (result.success) {
+                    toast.success(t('settings.accountDeleted'));
+                    router.replace('/(auth)');
+                  } else {
+                    toast.error(result.error || t('common.error'));
+                  }
                 },
-              ]
+                onAuthFailed: (error) => {
+                  toast.error(error);
+                },
+              }
             );
           },
         },
@@ -264,45 +266,51 @@ export default function SettingsScreen() {
     if (!user?.id) return;
 
     if (enabled) {
-      // Show confirmation before enabling
-      Alert.alert(
+      // Show confirmation with biometric re-auth before enabling
+      confirmSecureAction(
         t('settings.twoFactorAuth'),
         t('settings.twoFactorEnableConfirm'),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('common.enable'),
-            onPress: async () => {
-              const result = await enableTwoFactor(user.id);
-              if (result.success) {
-                toast.success(t('settings.twoFactorEnabled'));
-              } else {
-                toast.error(result.error || t('common.error'));
-              }
-            },
+        {
+          actionType: 'toggle_2fa',
+          language: currentLang,
+          confirmText: t('common.enable'),
+          cancelText: t('common.cancel'),
+          onConfirm: async () => {
+            const result = await enableTwoFactor(user.id);
+            if (result.success) {
+              toast.success(t('settings.twoFactorEnabled'));
+            } else {
+              toast.error(result.error || t('common.error'));
+            }
           },
-        ]
+          onAuthFailed: (error) => {
+            toast.error(error);
+          },
+        }
       );
     } else {
-      // Show confirmation before disabling
-      Alert.alert(
+      // Show confirmation with biometric re-auth before disabling
+      confirmSecureAction(
         t('settings.twoFactorAuth'),
         t('settings.twoFactorDisableConfirm'),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('common.disable'),
-            style: 'destructive',
-            onPress: async () => {
-              const result = await disableTwoFactor(user.id);
-              if (result.success) {
-                toast.success(t('settings.twoFactorDisabled'));
-              } else {
-                toast.error(result.error || t('common.error'));
-              }
-            },
+        {
+          actionType: 'toggle_2fa',
+          language: currentLang,
+          confirmText: t('common.disable'),
+          cancelText: t('common.cancel'),
+          destructive: true,
+          onConfirm: async () => {
+            const result = await disableTwoFactor(user.id);
+            if (result.success) {
+              toast.success(t('settings.twoFactorDisabled'));
+            } else {
+              toast.error(result.error || t('common.error'));
+            }
           },
-        ]
+          onAuthFailed: (error) => {
+            toast.error(error);
+          },
+        }
       );
     }
   };

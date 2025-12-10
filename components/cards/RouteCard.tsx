@@ -73,7 +73,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
           fallbackIconSize={48}
           fallbackIconColor="rgba(255,255,255,0.5)"
           priority="normal"
-          fadeIn={true}
+          fadeIn={false}
           skeletonColor="#374151"
         />
         
@@ -129,7 +129,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
         fallbackIconSize={64}
         fallbackIconColor="rgba(255,255,255,0.5)"
         priority="high"
-        fadeIn={true}
+        fadeIn={false}
         skeletonColor="#374151"
       />
 

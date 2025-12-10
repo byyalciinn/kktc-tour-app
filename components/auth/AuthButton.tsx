@@ -48,7 +48,7 @@ export function AuthButton({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#fff' : '#F03A52'} />
+        <ActivityIndicator color={variant === 'primary' ? '#fff' : '#F89C28'} />
       ) : (
         <Text style={textStyle}>{title}</Text>
       )}
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#F03A52',
+    backgroundColor: '#F89C28',
     marginTop: 8,
   },
   secondaryButton: {
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   linkText: {
-    color: '#F03A52',
+    color: '#F89C28',
     fontSize: 14,
   },
 });

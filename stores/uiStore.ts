@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { AccessibilityInfo } from 'react-native';
 import { Tour } from '@/types';
 
 // Store timeout ID for cleanup
@@ -20,7 +21,11 @@ interface UIState {
   // Global UI states
   isGlobalLoading: boolean;
   toastMessage: string | null;
-  toastType: 'success' | 'error' | 'info' | null;
+  toastType: 'success' | 'error' | 'warning' | 'info' | null;
+
+  // Accessibility states
+  isReduceMotionEnabled: boolean;
+  isScreenReaderEnabled: boolean;
 
   // Actions - Modals
   openSearch: () => void;
@@ -45,8 +50,14 @@ interface UIState {
 
   // Actions - Global UI
   setGlobalLoading: (loading: boolean) => void;
-  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
+  showToast: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
   hideToast: () => void;
+
+  // Actions - Accessibility
+  initAccessibility: () => void;
+  setReduceMotionEnabled: (enabled: boolean) => void;
+  setScreenReaderEnabled: (enabled: boolean) => void;
+  getAnimationDuration: (normalDuration: number) => number;
 
   // Reset all modals
   resetModals: () => void;
@@ -63,6 +74,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   isGlobalLoading: false,
   toastMessage: null,
   toastType: null,
+
+  // Accessibility initial state
+  isReduceMotionEnabled: false,
+  isScreenReaderEnabled: false,
 
   // Search modal
   openSearch: () => set({ isSearchVisible: true }),
@@ -110,8 +125,8 @@ export const useUIStore = create<UIState>((set, get) => ({
     
     set({ toastMessage: message, toastType: type });
     
-    // Auto-hide based on type (errors stay longer)
-    const duration = type === 'error' ? 5000 : 3000;
+    // Auto-hide based on type (errors stay longer, warnings medium)
+    const duration = type === 'error' ? 5000 : type === 'warning' ? 4000 : 3000;
     toastTimeoutId = setTimeout(() => {
       // Only hide if the message is still the same
       if (get().toastMessage === message) {
@@ -127,6 +142,35 @@ export const useUIStore = create<UIState>((set, get) => ({
       toastTimeoutId = null;
     }
     set({ toastMessage: null, toastType: null });
+  },
+
+  // Accessibility actions
+  initAccessibility: () => {
+    // Fetch initial accessibility states
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      set({ isReduceMotionEnabled: enabled });
+    });
+    AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
+      set({ isScreenReaderEnabled: enabled });
+    });
+
+    // Set up listeners for changes
+    const reduceMotionListener = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      (enabled) => set({ isReduceMotionEnabled: enabled })
+    );
+    const screenReaderListener = AccessibilityInfo.addEventListener(
+      'screenReaderChanged',
+      (enabled) => set({ isScreenReaderEnabled: enabled })
+    );
+
+    // Store cleanup functions (in real app, would be called on unmount)
+    // For now, these listeners persist for app lifetime
+  },
+  setReduceMotionEnabled: (enabled) => set({ isReduceMotionEnabled: enabled }),
+  setScreenReaderEnabled: (enabled) => set({ isScreenReaderEnabled: enabled }),
+  getAnimationDuration: (normalDuration) => {
+    return get().isReduceMotionEnabled ? 0 : normalDuration;
   },
 
   // Reset all modals (useful for navigation)
@@ -149,3 +193,7 @@ export const selectToast = (state: UIState) => ({
   message: state.toastMessage,
   type: state.toastType,
 });
+
+// Accessibility selectors
+export const selectIsReduceMotionEnabled = (state: UIState) => state.isReduceMotionEnabled;
+export const selectIsScreenReaderEnabled = (state: UIState) => state.isScreenReaderEnabled;

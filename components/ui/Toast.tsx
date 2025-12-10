@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUIStore } from '@/stores';
 
-type ToastType = 'success' | 'error' | 'info';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastConfig {
   icon: keyof typeof Ionicons.glyphMap;
@@ -26,8 +26,13 @@ const toastConfig: Record<ToastType, ToastConfig> = {
     iconColor: '#FFFFFF',
   },
   error: {
-    icon: 'alert-circle',
+    icon: 'close-circle',
     backgroundColor: '#EF4444',
+    iconColor: '#FFFFFF',
+  },
+  warning: {
+    icon: 'warning',
+    backgroundColor: '#F59E0B',
     iconColor: '#FFFFFF',
   },
   info: {
@@ -127,6 +132,7 @@ export function useToast() {
   return {
     success: (message: string) => showToast(message, 'success'),
     error: (message: string) => showToast(message, 'error'),
+    warning: (message: string) => showToast(message, 'warning'),
     info: (message: string) => showToast(message, 'info'),
     hide: hideToast,
   };

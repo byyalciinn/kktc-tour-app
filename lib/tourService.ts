@@ -3,6 +3,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { optimizeTourImage } from './imageOptimizer';
+import { sanitizeForLike, sanitizeInput } from './validation';
 
 const BUCKET_NAME = 'image-bucket';
 const IMAGE_WIDTH = 800;
@@ -484,8 +485,14 @@ export const searchTours = async (
       return { data: [], error: null };
     }
 
+    // Sanitize input to prevent SQL injection via LIKE wildcards
+    const sanitizedQuery = sanitizeForLike(sanitizeInput(query, { maxLength: 100 }));
+    if (!sanitizedQuery) {
+      return { data: [], error: null };
+    }
+
     // Use ilike for case-insensitive search on title and location
-    const searchTerm = `%${query.trim()}%`;
+    const searchTerm = `%${sanitizedQuery}%`;
     
     const { data, error } = await supabase
       .from('tours')

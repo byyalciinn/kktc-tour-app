@@ -193,6 +193,7 @@ export interface ThematicRoute {
   coverImage: string;
   tags: string[];              // e.g., ["Tarihi", "Girne", "Aile"]
   highlighted?: boolean;       // Featured on Explore screen
+  isActive?: boolean;          // Whether route is active and visible
   difficulty?: 'easy' | 'moderate' | 'challenging';
   bestSeason?: string;         // e.g., "İlkbahar - Sonbahar"
   itinerary: RouteDay[];
@@ -217,6 +218,7 @@ export interface ThematicRouteData {
   cover_image: string;
   tags: string[];
   highlighted: boolean;
+  is_active: boolean;
   difficulty: 'easy' | 'moderate' | 'challenging' | null;
   best_season: string | null;
   itinerary: RouteDay[];       // JSONB column
@@ -241,6 +243,7 @@ export const routeDataToRoute = (data: ThematicRouteData): ThematicRoute => ({
   coverImage: data.cover_image && data.cover_image.trim() ? data.cover_image : '',
   tags: data.tags || [],
   highlighted: data.highlighted,
+  isActive: data.is_active !== false, // Default to true if undefined
   difficulty: data.difficulty || undefined,
   bestSeason: data.best_season || undefined,
   itinerary: data.itinerary || [],

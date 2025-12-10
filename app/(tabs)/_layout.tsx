@@ -8,8 +8,8 @@ import {
 import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-// Cyprigo - Primary color: #F03A52
-const PRIMARY_COLOR = '#F03A52';
+// Cyprigo - Primary color: #F89C28
+const PRIMARY_COLOR = '#F89C28';
 
 export default function TabLayout() {
   const { t } = useTranslation();

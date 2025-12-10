@@ -47,7 +47,7 @@ export const getThematicRoutes = async (): Promise<{
 
 /**
  * Get highlighted/featured thematic routes for Explore screen
- * Returns only routes from Supabase (no fallback to local data)
+ * Returns only active routes from Supabase (no fallback to local data)
  */
 export const getHighlightedRoutes = async (): Promise<{ 
   data: ThematicRoute[]; 
@@ -58,6 +58,7 @@ export const getHighlightedRoutes = async (): Promise<{
       .from('thematic_routes')
       .select('*')
       .eq('highlighted', true)
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -297,6 +298,7 @@ export interface RouteInput {
   coverImage: string;
   tags: string[];
   highlighted: boolean;
+  isActive?: boolean;
   difficulty?: 'easy' | 'moderate' | 'challenging';
   bestSeason?: string;
   itinerary: RouteDay[];
@@ -337,6 +339,7 @@ export const createRoute = async (
       cover_image: input.coverImage,
       tags: input.tags,
       highlighted: input.highlighted,
+      is_active: input.isActive !== false, // Default to true
       difficulty: input.difficulty || null,
       best_season: input.bestSeason || null,
       itinerary: input.itinerary,
@@ -385,6 +388,7 @@ export const updateRoute = async (
     if (input.coverImage !== undefined) updateData.cover_image = input.coverImage;
     if (input.tags !== undefined) updateData.tags = input.tags;
     if (input.highlighted !== undefined) updateData.highlighted = input.highlighted;
+    if (input.isActive !== undefined) updateData.is_active = input.isActive;
     if (input.difficulty !== undefined) updateData.difficulty = input.difficulty || null;
     if (input.bestSeason !== undefined) updateData.best_season = input.bestSeason || null;
     if (input.itinerary !== undefined) updateData.itinerary = input.itinerary;
@@ -456,6 +460,34 @@ export const toggleRouteHighlighted = async (
     return { success: true, error: null };
   } catch (err: any) {
     console.error('Toggle highlighted exception:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Toggle route active status
+ */
+export const toggleRouteActive = async (
+  id: string,
+  isActive: boolean
+): Promise<{ success: boolean; error: string | null }> => {
+  try {
+    const { error } = await supabase
+      .from('thematic_routes')
+      .update({ 
+        is_active: isActive, 
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Toggle active error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('Toggle active exception:', err);
     return { success: false, error: err.message };
   }
 };

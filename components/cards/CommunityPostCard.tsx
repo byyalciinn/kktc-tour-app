@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, memo } from 'react';
 import {
   View,
   Text,
@@ -75,8 +75,9 @@ interface CommunityPostCardProps {
 
 /**
  * Community post card with iOS 26 glass/liquid design
+ * Wrapped in memo for performance optimization
  */
-export function CommunityPostCard({
+function CommunityPostCardComponent({
   post,
   onPress,
   onLikePress,
@@ -464,6 +465,9 @@ export function CommunityPostCard({
     </Animated.View>
   );
 }
+
+// Export memoized component for performance
+export const CommunityPostCard = memo(CommunityPostCardComponent);
 
 const styles = StyleSheet.create({
   container: {

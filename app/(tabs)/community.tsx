@@ -22,11 +22,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useCommunityStore, useAuthStore, useThemeStore } from '@/stores';
+import { useCommunityStore, useAuthStore, useThemeStore, useShallow } from '@/stores';
 import { CommunityPost, CommunityPostType } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
 import { CreatePostSheet, PostDetailSheet, ProfileSheet } from '@/components/sheets';
+import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 
 const { width } = Dimensions.get('window');
 
@@ -46,11 +47,14 @@ export default function CommunityScreen() {
   const { t } = useTranslation();
   const spinAnim = useRef(new Animated.Value(0)).current;
 
+  // Performance optimized list props
+  const { listProps } = useOptimizedList(LIST_PRESETS.cards);
+
   // Auth
   const { user, profile } = useAuthStore();
   
 
-  // Community store
+  // Community store - optimized with useShallow
   const {
     posts,
     isLoading,
@@ -61,7 +65,19 @@ export default function CommunityScreen() {
     fetchMorePosts,
     toggleLike,
     setSelectedPost,
-  } = useCommunityStore();
+  } = useCommunityStore(
+    useShallow((state) => ({
+      posts: state.posts,
+      isLoading: state.isLoading,
+      isRefreshing: state.isRefreshing,
+      isLoadingMore: state.isLoadingMore,
+      hasMore: state.hasMore,
+      fetchPosts: state.fetchPosts,
+      fetchMorePosts: state.fetchMorePosts,
+      toggleLike: state.toggleLike,
+      setSelectedPost: state.setSelectedPost,
+    }))
+  );
 
   // Local state
   const [activeFilter, setActiveFilter] = useState<CommunityPostType | 'all'>('all');
@@ -360,7 +376,7 @@ export default function CommunityScreen() {
         </View>
       </View>
 
-      {/* Posts List */}
+      {/* Posts List - Performance Optimized */}
       <FlatList
         data={visiblePosts}
         renderItem={renderPostItem}
@@ -385,6 +401,8 @@ export default function CommunityScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
+        // Performance optimizations
+        {...listProps}
       />
 
       {/* Floating Action Button */}
@@ -646,7 +664,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 28,
     gap: 8,
-    shadowColor: '#F03A52',
+    shadowColor: '#F89C28',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

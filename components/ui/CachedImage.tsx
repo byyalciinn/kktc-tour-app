@@ -9,7 +9,7 @@
  * - Prefetch support for faster loading
  */
 
-import React, { memo, useState, useCallback, useEffect } from 'react';
+import React, { memo, useState, useCallback, useEffect, useRef } from 'react';
 import {
   Image,
   ImageProps,
@@ -80,9 +80,9 @@ const CachedImage = memo<CachedImageProps>(({
   fallbackIconSize = 40,
   fallbackIconColor = '#9CA3AF',
   showLoader = true,
-  loaderColor = '#F03A52',
-  fadeIn = true,
-  fadeInDuration = 200, // Reduced for snappier feel
+  loaderColor = '#F89C28',
+  fadeIn = false, // Disabled by default to prevent flickering
+  fadeInDuration = 150, // Faster fade
   priority = 'normal',
   skeleton = true, // Default to skeleton
   skeletonColor,
@@ -90,30 +90,19 @@ const CachedImage = memo<CachedImageProps>(({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [fadeAnim] = useState(() => new Animated.Value(fadeIn ? 0 : 1));
-  const [pulseAnim] = useState(() => new Animated.Value(0.3));
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(fadeIn ? 0 : 1)).current;
 
-  // Skeleton pulse animation
+  // Reset state when URI changes
   useEffect(() => {
-    if (loading && skeleton) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 0.6,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 0.3,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
+    if (uri) {
+      setLoading(true);
+      setError(false);
+      if (fadeIn) {
+        fadeAnim.setValue(0);
+      }
     }
-  }, [loading, skeleton, pulseAnim]);
+  }, [uri, fadeIn, fadeAnim]);
 
   // Prefetch high priority images
   useEffect(() => {
@@ -124,12 +113,16 @@ const CachedImage = memo<CachedImageProps>(({
   }, [uri, priority]);
 
   const handleLoadStart = useCallback(() => {
-    setLoading(true);
+    // Only set loading if not already loaded to prevent flicker
+    if (!hasLoaded) {
+      setLoading(true);
+    }
     setError(false);
-  }, []);
+  }, [hasLoaded]);
 
   const handleLoad = useCallback(() => {
     setLoading(false);
+    setHasLoaded(true);
     if (fadeIn) {
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -197,11 +190,11 @@ const CachedImage = memo<CachedImageProps>(({
         fadeDuration={0} // Disable default fade on Android
         progressiveRenderingEnabled={true}
       />
-      {loading && showLoader && (
-        <Animated.View 
+      {loading && showLoader && !hasLoaded && (
+        <View 
           style={[
             styles.loaderContainer, 
-            skeleton && { backgroundColor: getSkeletonBg(), opacity: pulseAnim }
+            skeleton && { backgroundColor: getSkeletonBg() }
           ]} 
           pointerEvents="none"
         />

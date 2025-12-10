@@ -38,6 +38,7 @@ import {
   updateRoute,
   deleteRoute,
   toggleRouteHighlighted,
+  toggleRouteActive,
   uploadRouteCoverImage,
   uploadRouteStopImage,
   SEASON_OPTIONS,
@@ -130,6 +131,9 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
   // Season picker state
   const [showSeasonPicker, setShowSeasonPicker] = useState(false);
   
+  // Toggle active state
+  const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+
   // Form state - Basic Info
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
@@ -404,6 +408,28 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
     setIsSaving(false);
   };
 
+  // Toggle active status
+  const handleToggleActive = async (route: ThematicRoute) => {
+    if (isLocalRoute(route.id)) {
+      Alert.alert('Yapılamaz', 'Bu rota yerel verilerden yüklendi.');
+      return;
+    }
+    
+    setTogglingActiveId(route.id);
+    const newStatus = !route.isActive;
+    const { success, error } = await toggleRouteActive(route.id, newStatus);
+    setTogglingActiveId(null);
+    
+    if (success) {
+      setRoutes(prev => prev.map(r => 
+        r.id === route.id ? { ...r, isActive: newStatus } : r
+      ));
+      await refreshRoutes();
+    } else {
+      Alert.alert('Hata', error || 'Durum değiştirilemedi');
+    }
+  };
+
   // Delete route
   const handleDelete = (route: ThematicRoute) => {
     // Check if this is a local fallback route
@@ -529,6 +555,11 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
                     <Text style={[styles.routeTitle, { color: colors.text }]} numberOfLines={1}>
                       {route.title}
                     </Text>
+                    {route.isActive === false && (
+                      <View style={[styles.inactiveBadge, { backgroundColor: 'rgba(156, 163, 175, 0.2)' }]}>
+                        <Text style={styles.inactiveBadgeText}>Pasif</Text>
+                      </View>
+                    )}
                     {isLocal && (
                       <View style={[styles.localBadge, { backgroundColor: '#F59E0B20' }]}>
                         <Ionicons name="cloud-offline-outline" size={10} color="#F59E0B" />
@@ -547,6 +578,22 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
                   </Text>
                 </View>
                 <View style={styles.cardActions}>
+                  {/* Active/Inactive Toggle */}
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: route.isActive !== false ? 'rgba(34, 197, 94, 0.1)' : 'rgba(156, 163, 175, 0.1)' }]}
+                    onPress={() => handleToggleActive(route)}
+                    disabled={isLocal || togglingActiveId === route.id}
+                  >
+                    {togglingActiveId === route.id ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Ionicons 
+                        name={route.isActive !== false ? 'eye' : 'eye-off'} 
+                        size={18} 
+                        color={isLocal ? '#999' : (route.isActive !== false ? '#22C55E' : '#9CA3AF')} 
+                      />
+                    )}
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: isLocal ? 'rgba(0, 0, 0, 0.05)' : 'rgba(0, 122, 255, 0.1)' }]}
                     onPress={() => openEditModal(route)}
@@ -966,6 +1013,8 @@ const styles = StyleSheet.create({
   routeHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   routeTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   localBadge: { width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  inactiveBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
+  inactiveBadgeText: { fontSize: 10, fontWeight: '600', color: '#6B7280' },
   routeMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   themeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   themeBadgeText: { fontSize: 11, fontWeight: '500' },

@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#F03A52',
+    shadowColor: '#F89C28',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 16,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   ctaButton: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#F03A52',
+    shadowColor: '#F89C28',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,

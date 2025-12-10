@@ -2,6 +2,9 @@
  * Central export for all Zustand stores
  */
 
+// Re-export useShallow for optimized selectors
+export { useShallow } from 'zustand/react/shallow';
+
 // Auth store
 export { useAuthStore, selectUser, selectProfile, selectIsAuthenticated } from './authStore';
 export type { } from './authStore';

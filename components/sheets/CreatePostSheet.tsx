@@ -29,6 +29,7 @@ import { useCommunityStore, useAuthStore, useThemeStore, useTourStore } from '@/
 import { supabase } from '@/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import { optimizeCommunityImage } from '@/lib/imageOptimizer';
+import { sanitizeInput, validatePostInput } from '@/lib/validation';
 
 const { width, height } = Dimensions.get('window');
 const SHEET_HEIGHT = height * 0.9;
@@ -250,13 +251,31 @@ export default function CreatePostSheet({
       return;
     }
 
+    // Sanitize inputs to prevent XSS
+    const sanitizedTitle = sanitizeInput(title, { maxLength: 200, allowNewlines: false });
+    const sanitizedContent = sanitizeInput(content, { maxLength: 2000, allowNewlines: true });
+    const sanitizedLocation = sanitizeInput(location, { maxLength: 200, allowNewlines: false });
+
+    // Validate sanitized inputs
+    const validation = validatePostInput({
+      title: sanitizedTitle,
+      content: sanitizedContent,
+      type: postType,
+    });
+
+    if (!validation.isValid) {
+      const firstError = Object.values(validation.errors)[0];
+      Alert.alert(t('common.error'), firstError);
+      return;
+    }
+
     const input: CreatePostInput = {
       type: postType,
-      title: title.trim() || undefined,
-      content: content.trim() || undefined,
+      title: sanitizedTitle || undefined,
+      content: sanitizedContent || undefined,
       images,
       tourId: selectedTourId || undefined,
-      location: location.trim() || undefined,
+      location: sanitizedLocation || undefined,
     };
 
     const { success, error } = await createPost(user.id, input);
@@ -321,10 +340,22 @@ export default function CreatePostSheet({
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <TouchableOpacity
+            onPress={handleClose}
+            style={styles.closeButton}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.close')}
+            accessibilityHint={t('accessibility.closeSheet')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>
+          <Text
+            style={[styles.headerTitle, { color: colors.text }]}
+            accessible={true}
+            accessibilityRole="header"
+          >
             {t('community.createPost')}
           </Text>
           <TouchableOpacity
@@ -335,6 +366,10 @@ export default function CreatePostSheet({
             ]}
             onPress={handleSubmit}
             disabled={isSubmitting || isUploading}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={isSubmitting ? t('common.sending') : t('common.send')}
+            accessibilityState={{ disabled: isSubmitting || isUploading }}
           >
             {isSubmitting ? (
               <View style={styles.submitButtonLoading}>
@@ -380,6 +415,10 @@ export default function CreatePostSheet({
                       ]}
                       onPress={() => setPostType(type.id)}
                       activeOpacity={0.8}
+                      accessible={true}
+                      accessibilityRole="radio"
+                      accessibilityLabel={t(type.labelKey)}
+                      accessibilityState={{ selected: isActive }}
                     >
                       <Ionicons
                         name={type.icon as any}
@@ -420,6 +459,9 @@ export default function CreatePostSheet({
                 value={title}
                 onChangeText={setTitle}
                 maxLength={200}
+                accessible={true}
+                accessibilityLabel={t('community.titleOptional')}
+                accessibilityHint={t('community.titlePlaceholder')}
               />
             </View>
 

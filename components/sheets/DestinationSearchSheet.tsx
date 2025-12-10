@@ -23,15 +23,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useThemeStore, useTourStore, useRouteStore } from '@/stores';
-import { Tour, ThematicRoute } from '@/types';
+import { useThemeStore, useRouteStore } from '@/stores';
+import { ThematicRoute } from '@/types';
 import CachedImage from '@/components/ui/CachedImage';
 import { useDebounce } from '@/hooks';
 
 interface DestinationSearchSheetProps {
   visible: boolean;
   onClose: () => void;
-  onSelectTour: (tour: Tour) => void;
+  onSelectTour?: (tour: any) => void; // Keep for backward compatibility
   onSelectRoute: (route: ThematicRoute) => void;
 }
 
@@ -49,21 +49,16 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
   const inputRef = useRef<TextInput>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'tours' | 'routes'>('all');
   
   const debouncedQuery = useDebounce(searchQuery, 300);
 
-  // Store data
-  const tours = useTourStore((state) => state.tours);
-  const searchTours = useTourStore((state) => state.searchTours);
-  const searchResults = useTourStore((state) => state.searchResults);
-  const isSearching = useTourStore((state) => state.isSearching);
-  const clearSearch = useTourStore((state) => state.clearSearch);
-
+  // Store data - only routes
   const routes = useRouteStore((state) => state.routes);
 
-  // Filter routes locally
+  // Filter routes locally - only show active routes
   const filteredRoutes = routes.filter((route) => {
+    // Only show active routes
+    if (route.isActive === false) return false;
     if (!debouncedQuery.trim()) return true;
     const query = debouncedQuery.toLowerCase();
     return (
@@ -74,17 +69,7 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
   });
 
   // Get display data based on search
-  const displayTours = debouncedQuery.trim() ? searchResults : tours.slice(0, 10);
-  const displayRoutes = filteredRoutes.slice(0, 10);
-
-  // Search effect
-  useEffect(() => {
-    if (debouncedQuery.trim()) {
-      searchTours(debouncedQuery);
-    } else {
-      clearSearch();
-    }
-  }, [debouncedQuery, searchTours, clearSearch]);
+  const displayRoutes = filteredRoutes.slice(0, 20);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -94,59 +79,14 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
       }, 300);
     } else {
       setSearchQuery('');
-      clearSearch();
     }
-  }, [visible, clearSearch]);
-
-  const handleSelectTour = useCallback((tour: Tour) => {
-    Keyboard.dismiss();
-    onClose();
-    setTimeout(() => onSelectTour(tour), 300);
-  }, [onClose, onSelectTour]);
+  }, [visible]);
 
   const handleSelectRoute = useCallback((route: ThematicRoute) => {
     Keyboard.dismiss();
     onClose();
     setTimeout(() => onSelectRoute(route), 300);
   }, [onClose, onSelectRoute]);
-
-  const renderTourItem = (tour: Tour) => (
-    <TouchableOpacity
-      key={tour.id}
-      style={[
-        styles.resultItem,
-        {
-          backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-        },
-      ]}
-      onPress={() => handleSelectTour(tour)}
-      activeOpacity={0.7}
-    >
-      <CachedImage
-        uri={tour.image}
-        style={styles.resultImage}
-        fallbackIcon="map-outline"
-        skeletonColor={isDark ? '#374151' : '#E5E7EB'}
-      />
-      <View style={styles.resultContent}>
-        <Text style={[styles.resultTitle, { color: colors.text }]} numberOfLines={1}>
-          {tour.title}
-        </Text>
-        <View style={styles.resultMeta}>
-          <Ionicons name="location" size={12} color={colors.textSecondary} />
-          <Text style={[styles.resultLocation, { color: colors.textSecondary }]} numberOfLines={1}>
-            {tour.location}
-          </Text>
-        </View>
-        <Text style={[styles.resultPrice, { color: colors.primary }]}>
-          {tour.currency}{tour.price}
-        </Text>
-      </View>
-      <View style={[styles.resultBadge, { backgroundColor: colors.primary + '20' }]}>
-        <Ionicons name="compass-outline" size={14} color={colors.primary} />
-      </View>
-    </TouchableOpacity>
-  );
 
   const renderRouteItem = (route: ThematicRoute) => (
     <TouchableOpacity
@@ -198,7 +138,7 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
         <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <View style={styles.headerTop}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
-              {t('explore.searchDestination')}
+              {t('explore.searchRoute')}
             </Text>
             <TouchableOpacity
               style={[styles.closeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
@@ -222,7 +162,7 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
             <TextInput
               ref={inputRef}
               style={[styles.searchInput, { color: colors.text }]}
-              placeholder={t('explore.searchPlaceholder')}
+              placeholder={t('explore.searchRoutePlaceholder')}
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -236,81 +176,37 @@ export const DestinationSearchSheet: React.FC<DestinationSearchSheetProps> = ({
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Tabs */}
-          <View style={styles.tabsContainer}>
-            {(['all', 'tours', 'routes'] as const).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[
-                  styles.tab,
-                  {
-                    backgroundColor: activeTab === tab ? colors.primary : 'transparent',
-                    borderColor: activeTab === tab ? colors.primary : isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)',
-                  },
-                ]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text
-                  style={[
-                    styles.tabText,
-                    { color: activeTab === tab ? '#FFF' : colors.text },
-                  ]}
-                >
-                  {tab === 'all' ? t('home.allCategories') : tab === 'tours' ? t('explore.tours') : t('explore.routes')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
         </View>
 
-        {/* Results */}
+        {/* Results - Only Routes */}
         <ScrollView
           style={styles.results}
           contentContainerStyle={[styles.resultsContent, { paddingBottom: insets.bottom + 20 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {isSearching ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+          {/* Routes Section */}
+          {displayRoutes.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t('explore.routes')}
+              </Text>
+              {displayRoutes.map(renderRouteItem)}
+            </View>
+          ) : debouncedQuery.trim() ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="search-outline" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                {t('explore.noResults')}
+              </Text>
             </View>
           ) : (
-            <>
-              {/* Tours Section */}
-              {(activeTab === 'all' || activeTab === 'tours') && displayTours.length > 0 && (
-                <View style={styles.section}>
-                  {activeTab === 'all' && (
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t('explore.tours')}
-                    </Text>
-                  )}
-                  {displayTours.map(renderTourItem)}
-                </View>
-              )}
-
-              {/* Routes Section */}
-              {(activeTab === 'all' || activeTab === 'routes') && displayRoutes.length > 0 && (
-                <View style={styles.section}>
-                  {activeTab === 'all' && (
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      {t('explore.routes')}
-                    </Text>
-                  )}
-                  {displayRoutes.map(renderRouteItem)}
-                </View>
-              )}
-
-              {/* Empty State */}
-              {displayTours.length === 0 && displayRoutes.length === 0 && debouncedQuery.trim() && (
-                <View style={styles.emptyState}>
-                  <Ionicons name="search-outline" size={48} color={colors.textSecondary} />
-                  <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-                    {t('explore.noResults')}
-                  </Text>
-                </View>
-              )}
-            </>
+            <View style={styles.emptyState}>
+              <Ionicons name="compass-outline" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
+                {t('explore.searchRouteHint')}
+              </Text>
+            </View>
           )}
         </ScrollView>
       </View>

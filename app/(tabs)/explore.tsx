@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useTourStore, useUIStore, useThemeStore, useRouteStore, selectTours, selectCategories, selectHighlightedRoutes, selectRoutes } from '@/stores';
+import { useTourStore, useUIStore, useThemeStore, useRouteStore, useShallow, selectTours, selectCategories, selectHighlightedRoutes, selectRoutes } from '@/stores';
 import { Tour, Category, ThematicRoute } from '@/types';
 import { TourDetailSheet, RouteDetailSheet, DestinationSearchSheet } from '@/components/sheets';
 import { RouteCard } from '@/components/cards';
@@ -250,23 +250,35 @@ export default function ExploreScreen() {
   const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
 
-  // Zustand stores with optimized selectors
+  // Zustand stores with optimized selectors using useShallow
   const tours = useTourStore(selectTours);
   const categories = useTourStore(selectCategories);
-  const fetchTours = useTourStore((state) => state.fetchTours);
-  const fetchCategories = useTourStore((state) => state.fetchCategories);
+  const { fetchTours, fetchCategories } = useTourStore(
+    useShallow((state) => ({
+      fetchTours: state.fetchTours,
+      fetchCategories: state.fetchCategories,
+    }))
+  );
   
-  const selectedTour = useUIStore((state) => state.selectedTour);
-  const isTourDetailVisible = useUIStore((state) => state.isTourDetailVisible);
-  const openTourDetail = useUIStore((state) => state.openTourDetail);
-  const closeTourDetail = useUIStore((state) => state.closeTourDetail);
+  const { selectedTour, isTourDetailVisible, openTourDetail, closeTourDetail } = useUIStore(
+    useShallow((state) => ({
+      selectedTour: state.selectedTour,
+      isTourDetailVisible: state.isTourDetailVisible,
+      openTourDetail: state.openTourDetail,
+      closeTourDetail: state.closeTourDetail,
+    }))
+  );
 
-  // Route store for thematic routes
+  // Route store for thematic routes - optimized with useShallow
   const highlightedRoutes = useRouteStore(selectHighlightedRoutes);
   const allRoutes = useRouteStore(selectRoutes);
-  const fetchHighlightedRoutes = useRouteStore((state) => state.fetchHighlightedRoutes);
-  const fetchAllRoutes = useRouteStore((state) => state.fetchRoutes);
-  const isLoadingRoutes = useRouteStore((state) => state.isLoadingHighlighted);
+  const { fetchHighlightedRoutes, fetchAllRoutes, isLoadingRoutes } = useRouteStore(
+    useShallow((state) => ({
+      fetchHighlightedRoutes: state.fetchHighlightedRoutes,
+      fetchAllRoutes: state.fetchRoutes,
+      isLoadingRoutes: state.isLoadingHighlighted,
+    }))
+  );
 
   // Route detail sheet state
   const [selectedRoute, setSelectedRoute] = useState<ThematicRoute | null>(null);
@@ -391,6 +403,12 @@ export default function ExploreScreen() {
     return map;
   }, [categories]);
 
+  // Realtime subscriptions for tours
+  const subscribeToRealtime = useTourStore((state) => state.subscribeToRealtime);
+  const unsubscribeFromRealtime = useTourStore((state) => state.unsubscribeFromRealtime);
+  const subscribeToRoutesRealtime = useRouteStore((state) => state.subscribeToRealtime);
+  const unsubscribeFromRoutesRealtime = useRouteStore((state) => state.unsubscribeFromRealtime);
+
   // Load data on mount with delayed rendering
   useEffect(() => {
     const loadData = async () => {
@@ -404,7 +422,17 @@ export default function ExploreScreen() {
       setTimeout(() => setIsDataReady(true), 100);
     };
     loadData();
-  }, [fetchCategories, fetchTours, fetchHighlightedRoutes, fetchAllRoutes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    // Subscribe to realtime updates for tours and routes
+    subscribeToRealtime();
+    subscribeToRoutesRealtime();
+    
+    return () => {
+      unsubscribeFromRealtime();
+      unsubscribeFromRoutesRealtime();
+    };
+  }, [fetchCategories, fetchTours, fetchHighlightedRoutes, fetchAllRoutes, subscribeToRealtime, unsubscribeFromRealtime, subscribeToRoutesRealtime, unsubscribeFromRoutesRealtime]);
 
   // Prefetch tour images for faster loading
   useEffect(() => {
@@ -789,8 +817,8 @@ export default function ExploreScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          {/* Suggested Routes Section */}
-          {highlightedRoutes.length > 0 && (
+          {/* Suggested Routes Section - Only show active routes */}
+          {highlightedRoutes.filter(r => r.isActive !== false).length > 0 && (
             <View style={styles.routesSection}>
               <View style={styles.routesHeader}>
                 <Text style={[styles.routesTitle, { color: colors.text }]}>
@@ -807,7 +835,7 @@ export default function ExploreScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.routesScrollContent}
               >
-                {highlightedRoutes.map((route: ThematicRoute) => (
+                {highlightedRoutes.filter(r => r.isActive !== false).map((route: ThematicRoute) => (
                   <RouteCard
                     key={route.id}
                     route={route}
@@ -948,8 +976,8 @@ export default function ExploreScreen() {
             showsVerticalScrollIndicator={false}
           >
             {viewAllType === 'routes' ? (
-              // All Routes - show all routes from Supabase
-              allRoutes.length === 0 ? (
+              // All Routes - show only active routes from Supabase
+              allRoutes.filter(r => r.isActive !== false).length === 0 ? (
                 <View style={styles.emptyState}>
                   <Ionicons name="compass-outline" size={48} color={colors.textSecondary} />
                   <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
@@ -959,7 +987,7 @@ export default function ExploreScreen() {
                     {t('explore.noRoutesSubtitle')}
                   </Text>
                 </View>
-              ) : allRoutes.map((route: ThematicRoute) => (
+              ) : allRoutes.filter(r => r.isActive !== false).map((route: ThematicRoute) => (
                 <TouchableOpacity
                   key={route.id}
                   style={[styles.viewAllRouteCard, { backgroundColor: isDark ? 'rgba(30,30,30,0.95)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}

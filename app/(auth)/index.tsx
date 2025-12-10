@@ -9,7 +9,6 @@ import {
   Platform,
   TextInput,
   ActivityIndicator,
-  Alert,
   Modal,
   Animated,
   TouchableWithoutFeedback,
@@ -26,7 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore, useUIStore, useThemeStore, useTwoFactorStore, usePasswordResetStore } from '@/stores';
 import { checkTwoFactorEnabled } from '@/lib/twoFactorService';
-import { maskError } from '@/lib/errorHandler';
+import { getAuthErrorMessage, getValidationErrorType } from '@/lib/authErrorHandler';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/Colors';
@@ -500,13 +499,13 @@ export default function WelcomeScreen() {
     // Validate email
     const emailValidation = validateEmail(loginEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert(t('common.error'), emailValidation.message);
+      useUIStore.getState().showToast(emailValidation.message, getValidationErrorType(emailValidation.message));
       return;
     }
 
     // Basic password check for login (not full strength check)
     if (!loginPassword) {
-      Alert.alert(t('common.error'), t('auth.passwordRequired'));
+      useUIStore.getState().showToast(t('auth.passwordRequired'), 'warning');
       return;
     }
 
@@ -523,8 +522,8 @@ export default function WelcomeScreen() {
       console.log('[handleLogin] Login failed, clearing 2FA state');
       useTwoFactorStore.getState().setCheckingRequired(false);
       setLoginLoading(false);
-      const maskedError = maskError(error, 'Login');
-      Alert.alert(t('auth.loginErrorTitle'), maskedError.message);
+      const { message, type } = getAuthErrorMessage(error, t);
+      useUIStore.getState().showToast(message, type);
       return;
     }
 
@@ -583,21 +582,21 @@ export default function WelcomeScreen() {
     // Validate name
     const nameValidation = validateName(registerName, t);
     if (!nameValidation.isValid) {
-      Alert.alert(t('common.error'), nameValidation.message);
+      useUIStore.getState().showToast(nameValidation.message, 'warning');
       return;
     }
 
     // Validate email
     const emailValidation = validateEmail(registerEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert(t('common.error'), emailValidation.message);
+      useUIStore.getState().showToast(emailValidation.message, 'warning');
       return;
     }
 
     // Validate password strength
     const passwordValidation = validatePassword(registerPassword, t);
     if (!passwordValidation.isValid) {
-      Alert.alert(t('common.error'), passwordValidation.message);
+      useUIStore.getState().showToast(passwordValidation.message, 'warning');
       return;
     }
 
@@ -605,8 +604,8 @@ export default function WelcomeScreen() {
     const { error } = await signUp(registerEmail.trim(), registerPassword, registerName.trim());
     setRegisterLoading(false);
     if (error) {
-      const maskedError = maskError(error, 'Register');
-      Alert.alert(t('auth.registerErrorTitle'), maskedError.message);
+      const { message, type } = getAuthErrorMessage(error, t);
+      useUIStore.getState().showToast(message, type);
     } else {
       setRegisterVisible(false);
       useUIStore.getState().showToast(t('auth.registerSuccess'), 'success');
@@ -635,7 +634,7 @@ export default function WelcomeScreen() {
     // Validate email
     const emailValidation = validateEmail(forgotEmail, t);
     if (!emailValidation.isValid) {
-      Alert.alert(t('common.error'), emailValidation.message);
+      useUIStore.getState().showToast(emailValidation.message, 'warning');
       return;
     }
 
@@ -651,7 +650,7 @@ export default function WelcomeScreen() {
         openResetCodeSheet();
       }, 300);
     } else if (result.error) {
-      Alert.alert(t('common.error'), result.error);
+      useUIStore.getState().showToast(result.error, 'error');
     }
   };
 
@@ -825,13 +824,13 @@ export default function WelcomeScreen() {
     // Validate password
     const passwordValidation = validatePassword(newPassword, t);
     if (!passwordValidation.isValid) {
-      Alert.alert(t('common.error'), passwordValidation.message);
+      useUIStore.getState().showToast(passwordValidation.message, 'warning');
       return;
     }
 
     // Check passwords match
     if (newPassword !== confirmNewPassword) {
-      Alert.alert(t('common.error'), t('passwordReset.passwordMismatch'));
+      useUIStore.getState().showToast(t('passwordReset.passwordMismatch'), 'warning');
       return;
     }
 
@@ -847,7 +846,7 @@ export default function WelcomeScreen() {
         setLoginVisible(true);
       }, 400);
     } else {
-      Alert.alert(t('common.error'), t('passwordReset.passwordUpdateFailed'));
+      useUIStore.getState().showToast(t('passwordReset.passwordUpdateFailed'), 'error');
     }
   };
 
@@ -1019,37 +1018,48 @@ export default function WelcomeScreen() {
           pointerEvents="none"
         />
         
-        {/* Language Button - Top Right */}
-        <TouchableOpacity
-          style={styles.languageButtonOverlay}
-          onPress={openLanguageModal}
-        >
-          <BlurView intensity={60} tint="dark" style={styles.languageButtonBlur}>
-            <Ionicons name="globe-outline" size={20} color="#fff" />
-          </BlurView>
-        </TouchableOpacity>
         
-        {/* Hero Text */}
-        <View style={styles.heroSection} pointerEvents="none">
-          <Text style={styles.heroTitle}>
-            {t('auth.heroTitle')}
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            {t('auth.heroSubtitle')}
-          </Text>
-          
-          {/* Slider Dots */}
-          <View style={styles.dotsContainer}>
-            {SLIDER_IMAGES.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.dot,
-                  currentSlide === index && styles.dotActive,
-                ]}
+        {/* Top Header - Theme Toggle, Brand Name, Language */}
+        <View style={styles.topHeaderOverlay}>
+          {/* Theme Toggle - Left */}
+          <TouchableOpacity
+            style={styles.themeToggleButton}
+            onPress={() => useThemeStore.getState().toggleDarkMode()}
+          >
+            <BlurView intensity={60} tint="dark" style={styles.languageButtonBlur}>
+              <Ionicons 
+                name={isDark ? 'sunny-outline' : 'moon-outline'} 
+                size={20} 
+                color="#fff" 
               />
-            ))}
-          </View>
+            </BlurView>
+          </TouchableOpacity>
+          
+          {/* Brand Name - Center */}
+          <Text style={styles.brandName}>Cpyrigo</Text>
+          
+          {/* Language Button - Right */}
+          <TouchableOpacity
+            style={styles.languageToggleButton}
+            onPress={openLanguageModal}
+          >
+            <BlurView intensity={60} tint="dark" style={styles.languageButtonBlur}>
+              <Ionicons name="globe-outline" size={20} color="#fff" />
+            </BlurView>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Slider Dots - Bottom */}
+        <View style={styles.dotsContainerBottom}>
+          {SLIDER_IMAGES.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                currentSlide === index && styles.dotActive,
+              ]}
+            />
+          ))}
         </View>
       </View>
 
@@ -1681,8 +1691,8 @@ export default function WelcomeScreen() {
               </View>
 
               {/* Icon */}
-              <View style={[styles.twoFactorIconContainer, { backgroundColor: '#F03A52' + '15' }]}>
-                <Ionicons name="key" size={40} color="#F03A52" />
+              <View style={[styles.twoFactorIconContainer, { backgroundColor: '#F89C28' + '15' }]}>
+                <Ionicons name="key" size={40} color="#F89C28" />
               </View>
 
               {/* Title */}
@@ -1712,7 +1722,7 @@ export default function WelcomeScreen() {
                       {
                         backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                         borderColor: resetCode[index] 
-                          ? '#F03A52'
+                          ? '#F89C28'
                           : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'),
                       },
                     ]}
@@ -1757,7 +1767,7 @@ export default function WelcomeScreen() {
               <TouchableOpacity
                 style={[
                   styles.twoFactorVerifyButton,
-                  { backgroundColor: '#F03A52' },
+                  { backgroundColor: '#F89C28' },
                   isResetLoading && { opacity: 0.6 },
                 ]}
                 onPress={() => handleVerifyResetCode()}
@@ -1779,7 +1789,7 @@ export default function WelcomeScreen() {
                 <Text
                   style={[
                     styles.twoFactorResendText,
-                    { color: resetResendCooldown > 0 ? colors.textSecondary : '#F03A52' },
+                    { color: resetResendCooldown > 0 ? colors.textSecondary : '#F89C28' },
                   ]}
                 >
                   {resetResendCooldown > 0
@@ -2016,7 +2026,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#F03A52',
+    backgroundColor: '#F89C28',
     borderRadius: 16,
     height: 56,
     justifyContent: 'center',
@@ -2064,6 +2074,38 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: -0.2,
   },
+  topHeaderOverlay: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  themeToggleButton: {
+    // Left button
+  },
+  languageToggleButton: {
+    // Right button
+  },
+  brandName: {
+    fontSize: 27,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    letterSpacing: -0.5,
+  },
+  dotsContainerBottom: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
   languageButtonOverlay: {
     position: 'absolute',
     top: 16,
@@ -2087,7 +2129,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     flex: 1,
-    backgroundColor: '#F03A52',
+    backgroundColor: '#F89C28',
     borderRadius: 28,
     height: 54,
     justifyContent: 'center',
@@ -2247,15 +2289,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sheetButton: {
-    backgroundColor: '#F03A52',
+    backgroundColor: '#F89C28',
     borderRadius: 12,
     height: 54,
-    minWidth: 160,
-    paddingHorizontal: 24,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    alignSelf: 'center',
   },
   sheetButtonText: {
     color: '#fff',
@@ -2272,7 +2312,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   sheetFooterLink: {
-    color: '#F03A52',
+    color: '#F89C28',
     fontSize: 14,
     fontWeight: '600',
   },
