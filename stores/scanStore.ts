@@ -7,7 +7,8 @@ import { analyzeImage, VisionAnalysisResult } from '@/lib/visionService';
 import { logger } from '@/lib/logger';
 
 // Free tier scan limit
-const FREE_SCAN_LIMIT = 1;
+const FREE_SCAN_LIMIT = 10;
+const COOLDOWN_HOURS = 24;
 
 interface ScanState {
   // Current scan state
@@ -17,8 +18,8 @@ interface ScanState {
   error: string | null;
   
   // Scan usage tracking
-  dailyScanCount: number;
-  lastScanDate: string | null;
+  scanCount: number;
+  lastScanTimestamp: number | null; // Unix timestamp of first scan in current period
   
   // Scan history
   scanHistory: Array<{
@@ -30,12 +31,14 @@ interface ScanState {
   
   // Actions
   setImageUri: (uri: string | null) => void;
-  analyzeCurrentImage: (provider?: 'openai' | 'anthropic') => Promise<void>;
+  analyzeCurrentImage: (provider?: 'gemini' | 'openai' | 'anthropic') => Promise<void>;
   clearAnalysis: () => void;
   clearHistory: () => void;
   removeScanFromHistory: (id: string) => void;
   canScan: (isPremium: boolean) => boolean;
   getRemainingScans: (isPremium: boolean) => number;
+  getCooldownRemaining: () => number; // Returns remaining cooldown in milliseconds
+  resetIfCooldownExpired: () => void;
 }
 
 export const useScanStore = create<ScanState>((set, get) => ({
@@ -44,8 +47,8 @@ export const useScanStore = create<ScanState>((set, get) => ({
   isAnalyzing: false,
   analysisResult: null,
   error: null,
-  dailyScanCount: 0,
-  lastScanDate: null,
+  scanCount: 0,
+  lastScanTimestamp: null,
   scanHistory: [],
 
   // Set current image URI
@@ -53,21 +56,17 @@ export const useScanStore = create<ScanState>((set, get) => ({
     set({ imageUri: uri, analysisResult: null, error: null });
   },
 
-  // Analyze the current image
-  analyzeCurrentImage: async (provider = 'openai') => {
-    const { imageUri, dailyScanCount, lastScanDate } = get();
+  // Analyze the current image (default: gemini - most cost-effective)
+  analyzeCurrentImage: async (provider = 'gemini') => {
+    const { imageUri } = get();
     
     if (!imageUri) {
       set({ error: 'No image selected' });
       return;
     }
 
-    // Reset daily count if new day
-    const today = new Date().toDateString();
-    let currentCount = dailyScanCount;
-    if (lastScanDate !== today) {
-      currentCount = 0;
-    }
+    // Reset if cooldown expired
+    get().resetIfCooldownExpired();
 
     set({ isAnalyzing: true, error: null });
 
@@ -94,14 +93,18 @@ export const useScanStore = create<ScanState>((set, get) => ({
           timestamp: new Date(),
         };
         
-        const today = new Date().toDateString();
-        set((state) => ({
-          analysisResult: result,
-          isAnalyzing: false,
-          dailyScanCount: state.lastScanDate === today ? state.dailyScanCount + 1 : 1,
-          lastScanDate: today,
-          scanHistory: [historyItem, ...state.scanHistory].slice(0, 20), // Keep last 20
-        }));
+        const now = Date.now();
+        set((state) => {
+          // If this is the first scan in a new period, set the timestamp
+          const newTimestamp = state.lastScanTimestamp === null ? now : state.lastScanTimestamp;
+          return {
+            analysisResult: result,
+            isAnalyzing: false,
+            scanCount: state.scanCount + 1,
+            lastScanTimestamp: newTimestamp,
+            scanHistory: [historyItem, ...state.scanHistory].slice(0, 20), // Keep last 20
+          };
+        });
       } else {
         set({
           analysisResult: result,
@@ -141,30 +144,53 @@ export const useScanStore = create<ScanState>((set, get) => ({
     }));
   },
 
+  // Check if cooldown has expired and reset if needed
+  resetIfCooldownExpired: () => {
+    const { lastScanTimestamp } = get();
+    if (lastScanTimestamp === null) return;
+    
+    const now = Date.now();
+    const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000;
+    
+    if (now - lastScanTimestamp >= cooldownMs) {
+      set({ scanCount: 0, lastScanTimestamp: null });
+    }
+  },
+
+  // Get remaining cooldown time in milliseconds
+  getCooldownRemaining: () => {
+    const { lastScanTimestamp, scanCount } = get();
+    
+    // No cooldown if haven't used all scans
+    if (scanCount < FREE_SCAN_LIMIT || lastScanTimestamp === null) return 0;
+    
+    const now = Date.now();
+    const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000;
+    const elapsed = now - lastScanTimestamp;
+    
+    return Math.max(0, cooldownMs - elapsed);
+  },
+
   // Check if user can scan
   canScan: (isPremium: boolean) => {
     if (isPremium) return true;
     
-    const { dailyScanCount, lastScanDate } = get();
-    const today = new Date().toDateString();
+    // Reset if cooldown expired
+    get().resetIfCooldownExpired();
     
-    // Reset count if new day
-    if (lastScanDate !== today) return true;
-    
-    return dailyScanCount < FREE_SCAN_LIMIT;
+    const { scanCount } = get();
+    return scanCount < FREE_SCAN_LIMIT;
   },
 
   // Get remaining scans for free users
   getRemainingScans: (isPremium: boolean) => {
     if (isPremium) return Infinity;
     
-    const { dailyScanCount, lastScanDate } = get();
-    const today = new Date().toDateString();
+    // Reset if cooldown expired
+    get().resetIfCooldownExpired();
     
-    // Reset count if new day
-    if (lastScanDate !== today) return FREE_SCAN_LIMIT;
-    
-    return Math.max(0, FREE_SCAN_LIMIT - dailyScanCount);
+    const { scanCount } = get();
+    return Math.max(0, FREE_SCAN_LIMIT - scanCount);
   },
 }));
 

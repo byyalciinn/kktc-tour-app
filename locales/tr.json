@@ -32,6 +32,7 @@
     "disable": "Devre Dışı Bırak",
     "copied": "Kopyalandı",
     "soon": "Yakında",
+    "comingSoon": "Bu özellik yakında eklenecek",
     "info": "Bilgi"
   },
   "auth": {
@@ -204,6 +205,22 @@
       "monument": "Anıt",
       "museum": "Müze",
       "unknown": "Bilinmiyor"
+    },
+    "remainingScans": "{{count}} taratma hakkı kaldı",
+    "cooldownActive": "{{time}} sonra kullanılabilir",
+    "limitReached": "Taratma Hakkı Doldu",
+    "waitCooldown": "Tekrar taratmak için {{time}} beklemeniz gerekiyor.",
+    "tryAgainLater": "Lütfen daha sonra tekrar deneyin.",
+    "hours": " saat",
+    "minutes": " dk",
+    "errors": {
+      "systemBusy": "Sistem şu an meşgul. Lütfen biraz sonra tekrar deneyin.",
+      "networkError": "Bağlantı hatası. İnternet bağlantınızı kontrol edin.",
+      "authError": "Bu özelliği kullanmak için giriş yapın.",
+      "serviceUnavailable": "Servis geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+      "serverError": "Sunucu hatası oluştu. Lütfen tekrar deneyin.",
+      "analysisError": "Görsel analiz edilemedi. Lütfen tekrar deneyin.",
+      "analysisFailed": "Analiz Başarısız"
     }
   },
   "profile": {

@@ -32,6 +32,7 @@
     "disable": "Disable",
     "copied": "Copied",
     "soon": "Soon",
+    "comingSoon": "This feature is coming soon",
     "info": "Info"
   },
   "auth": {
@@ -204,6 +205,22 @@
       "monument": "Monument",
       "museum": "Museum",
       "unknown": "Unknown"
+    },
+    "remainingScans": "{{count}} scans remaining",
+    "cooldownActive": "Available in {{time}}",
+    "limitReached": "Scan Limit Reached",
+    "waitCooldown": "Please wait {{time}} to scan again.",
+    "tryAgainLater": "Please try again later.",
+    "hours": "h",
+    "minutes": "m",
+    "errors": {
+      "systemBusy": "The system is currently busy. Please try again in a moment.",
+      "networkError": "Connection error. Please check your internet connection.",
+      "authError": "Please log in to use this feature.",
+      "serviceUnavailable": "Service is temporarily unavailable. Please try again later.",
+      "serverError": "A server error occurred. Please try again.",
+      "analysisError": "Unable to analyze the image. Please try again.",
+      "analysisFailed": "Analysis Failed"
     }
   },
   "profile": {

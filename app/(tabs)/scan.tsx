@@ -28,7 +28,6 @@ import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/Colors';
 import { useThemeStore, useAuthStore } from '@/stores';
 import { useScanStore } from '@/stores/scanStore';
-import { PaywallSheet } from '@/components/ui';
 
 const { width, height } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.72;
@@ -56,14 +55,16 @@ export default function ScanScreen() {
     clearAnalysis,
     canScan,
     getRemainingScans,
+    getCooldownRemaining,
   } = useScanStore();
 
   // Auth for premium check
   const { profile } = useAuthStore();
   const isPremium = profile?.member_class !== 'Normal';
   
-  // Paywall state
-  const [showPaywall, setShowPaywall] = useState(false);
+  // Remaining scans and cooldown
+  const remainingScans = getRemainingScans(isPremium);
+  const [cooldownText, setCooldownText] = useState<string | null>(null);
 
   // Animations
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -86,6 +87,24 @@ export default function ScanScreen() {
       requestPermission();
     }
   }, [permission, requestPermission]);
+
+  // Cooldown timer
+  useEffect(() => {
+    const updateCooldown = () => {
+      const remaining = getCooldownRemaining();
+      if (remaining > 0) {
+        const hours = Math.floor(remaining / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        setCooldownText(`${hours}${t('scan.hours')} ${minutes}${t('scan.minutes')}`);
+      } else {
+        setCooldownText(null);
+      }
+    };
+
+    updateCooldown();
+    const interval = setInterval(updateCooldown, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [getCooldownRemaining, t]);
 
   // Camera scanning line animation
   useEffect(() => {
@@ -185,12 +204,21 @@ export default function ScanScreen() {
     }
   }, [isAnalyzing]);
 
-  // Navigate to result
+  // Navigate to result or show error
   useEffect(() => {
-    if (analysisResult && analysisResult.success && !isAnalyzing) {
-      router.push('/scan-result' as any);
+    if (analysisResult && !isAnalyzing) {
+      if (analysisResult.success) {
+        router.push('/scan-result' as any);
+      } else if (analysisResult.error) {
+        // Show user-friendly error message
+        Alert.alert(
+          t('common.error'),
+          analysisResult.error,
+          [{ text: t('common.done'), onPress: clearAnalysis }]
+        );
+      }
     }
-  }, [analysisResult, isAnalyzing]);
+  }, [analysisResult, isAnalyzing, t, clearAnalysis]);
 
   // Take photo
   const handleCapture = useCallback(async () => {
@@ -198,7 +226,10 @@ export default function ScanScreen() {
 
     // Check scan limit for free users
     if (!canScan(isPremium)) {
-      setShowPaywall(true);
+      Alert.alert(
+        t('scan.limitReached'),
+        cooldownText ? t('scan.waitCooldown', { time: cooldownText }) : t('scan.tryAgainLater')
+      );
       return;
     }
 
@@ -210,18 +241,21 @@ export default function ScanScreen() {
 
       if (photo?.uri) {
         setImageUri(photo.uri);
-        setTimeout(() => analyzeCurrentImage('openai'), 300);
+        setTimeout(() => analyzeCurrentImage('gemini'), 300);
       }
     } catch (error) {
       Alert.alert(t('common.error'), t('permissions.cameraError'));
     }
-  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium]);
+  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium, cooldownText]);
 
   // Gallery
   const handleGallery = useCallback(async () => {
     // Check scan limit for free users
     if (!canScan(isPremium)) {
-      setShowPaywall(true);
+      Alert.alert(
+        t('scan.limitReached'),
+        cooldownText ? t('scan.waitCooldown', { time: cooldownText }) : t('scan.tryAgainLater')
+      );
       return;
     }
 
@@ -241,15 +275,18 @@ export default function ScanScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
-        setTimeout(() => analyzeCurrentImage('openai'), 300);
+        setTimeout(() => analyzeCurrentImage('gemini'), 300);
       }
     } catch (error) {
       Alert.alert(t('common.error'), t('permissions.galleryRequired'));
     }
-  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium]);
+  }, [setImageUri, analyzeCurrentImage, t, canScan, isPremium, cooldownText]);
 
   const toggleFlash = useCallback(() => setFlash((prev) => !prev), []);
-  const handleClose = useCallback(() => clearAnalysis(), [clearAnalysis]);
+  const handleClose = useCallback(() => {
+    clearAnalysis();
+    router.replace('/(tabs)/explore');
+  }, [clearAnalysis]);
 
   // Corner brackets for camera
   const renderCorner = (position: 'tl' | 'tr' | 'bl' | 'br', color: string = '#FFF') => {
@@ -405,6 +442,20 @@ export default function ScanScreen() {
             <BlurView intensity={50} tint="dark" style={styles.instructionBlur}>
               <Text style={styles.instructionText}>{t('scan.placeInFrame')}</Text>
             </BlurView>
+            {/* Remaining scans indicator */}
+            {!isPremium && (
+              <View style={styles.remainingScansContainer}>
+                <BlurView intensity={50} tint="dark" style={styles.remainingScansBlur}>
+                  <Ionicons name="scan-outline" size={16} color="#FFF" />
+                  <Text style={styles.remainingScansText}>
+                    {cooldownText 
+                      ? t('scan.cooldownActive', { time: cooldownText })
+                      : t('scan.remainingScans', { count: remainingScans })
+                    }
+                  </Text>
+                </BlurView>
+              </View>
+            )}
           </View>
         </View>
 
@@ -463,12 +514,6 @@ export default function ScanScreen() {
         </View>
       </View>
 
-      {/* Paywall Sheet */}
-      <PaywallSheet
-        visible={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        trigger="scan"
-      />
     </View>
   );
 }
@@ -516,6 +561,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 24,
     overflow: 'hidden',
+  },
+  remainingScansContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  remainingScansBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    gap: 6,
+  },
+  remainingScansText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
   instructionText: {
     color: '#FFF',

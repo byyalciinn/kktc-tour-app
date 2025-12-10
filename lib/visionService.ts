@@ -9,6 +9,42 @@
 
 import { logger } from './logger';
 import { supabase } from './supabase';
+import i18n from 'i18next';
+
+/**
+ * Maps API error messages to user-friendly localized messages
+ */
+function getUserFriendlyError(errorMessage: string): string {
+  const lowerMessage = errorMessage.toLowerCase();
+  
+  // Overloaded / Rate limit errors
+  if (lowerMessage.includes('overloaded') || lowerMessage.includes('rate limit') || lowerMessage.includes('too many requests')) {
+    return i18n.t('scan.errors.systemBusy');
+  }
+  
+  // Network errors
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch') || lowerMessage.includes('timeout')) {
+    return i18n.t('scan.errors.networkError');
+  }
+  
+  // Authentication errors
+  if (lowerMessage.includes('unauthorized') || lowerMessage.includes('auth')) {
+    return i18n.t('scan.errors.authError');
+  }
+  
+  // API key errors
+  if (lowerMessage.includes('api key') || lowerMessage.includes('invalid key')) {
+    return i18n.t('scan.errors.serviceUnavailable');
+  }
+  
+  // Generic server errors
+  if (lowerMessage.includes('server') || lowerMessage.includes('500') || lowerMessage.includes('503')) {
+    return i18n.t('scan.errors.serverError');
+  }
+  
+  // Default error
+  return i18n.t('scan.errors.analysisError');
+}
 
 export interface VisionAnalysisResult {
   success: boolean;
@@ -160,11 +196,16 @@ function parseVisionResponse(content: string): VisionAnalysisResult {
  * Main function to analyze an image
  * SECURITY: Now uses Supabase Edge Function to keep API keys server-side
  * @param imageUri - URI of the image to analyze
- * @param provider - LLM provider to use ('openai' or 'anthropic')
+ * @param provider - LLM provider to use ('gemini', 'openai', or 'anthropic')
+ * 
+ * Provider comparison (cost per 1M tokens):
+ * - Gemini 2.0 Flash: FREE (experimental) / $0.075 input, $0.30 output (stable)
+ * - GPT-4o-mini: $0.15 input, $0.60 output
+ * - Claude 3 Haiku: $0.25 input, $1.25 output
  */
 export async function analyzeImage(
   imageUri: string,
-  provider: 'openai' | 'anthropic' = 'openai'
+  provider: 'gemini' | 'openai' | 'anthropic' = 'gemini'
 ): Promise<VisionAnalysisResult> {
   try {
     logger.info('Starting image analysis via Edge Function', { provider });
@@ -187,15 +228,36 @@ export async function analyzeImage(
       throw new Error(error.message);
     }
 
+    // Debug: Log raw response to understand structure
+    logger.info('Raw API response:', JSON.stringify(data, null, 2));
+
+    // Check for API error in response
+    if (data?.error) {
+      logger.error('API error:', data.error);
+      const friendlyError = getUserFriendlyError(data.error.message || '');
+      throw new Error(friendlyError);
+    }
+
     // Parse response based on provider
     let content: string;
-    if (provider === 'openai') {
-      content = data?.choices?.[0]?.message?.content;
-    } else {
-      content = data?.content?.[0]?.text;
+    switch (provider) {
+      case 'gemini':
+        // Gemini returns candidates[0].content.parts[0].text
+        // Also check for direct text response when responseMimeType is set
+        content = data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.text;
+        break;
+      case 'openai':
+        content = data?.choices?.[0]?.message?.content;
+        break;
+      case 'anthropic':
+        content = data?.content?.[0]?.text;
+        break;
+      default:
+        content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
     if (!content) {
+      logger.error('No content found in response. Data structure:', Object.keys(data || {}));
       throw new Error('No response from AI provider');
     }
 
@@ -204,16 +266,19 @@ export async function analyzeImage(
     return result;
   } catch (error) {
     logger.error('Image analysis failed', error);
+    const errorMessage = error instanceof Error ? error.message : '';
+    const friendlyError = getUserFriendlyError(errorMessage);
+    
     return {
       success: false,
-      placeName: 'Analysis Failed',
+      placeName: i18n.t('scan.errors.analysisFailed'),
       category: 'unknown',
       confidence: 0,
-      description: 'Unable to analyze the image. Please try again.',
+      description: friendlyError,
       significance: '',
       funFacts: [],
       visitTips: [],
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: friendlyError,
     };
   }
 }
