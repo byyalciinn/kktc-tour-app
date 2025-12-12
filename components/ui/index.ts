@@ -26,6 +26,8 @@ export { ErrorBoundary } from './ErrorBoundary';
 
 export { LoadingScreen } from './LoadingScreen';
 
+export { default as AnimatedFab } from './AnimatedFab';
+export type { AnimatedFabItemProps } from './AnimatedFab';
 export { default as CachedImage } from './CachedImage';
 export { CachedAvatar, CachedTourImage, CachedThumbnail } from './CachedImage';
 

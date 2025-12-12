@@ -27,6 +27,7 @@ import { CommunityPost, CommunityPostType } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
 import { CreatePostSheet, PostDetailSheet, ProfileSheet } from '@/components/sheets';
+import { AnimatedFab, AnimatedFabItemProps } from '@/components/ui';
 import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 
 const { width } = Dimensions.get('window');
@@ -85,6 +86,7 @@ export default function CommunityScreen() {
   const [isDetailSheetVisible, setIsDetailSheetVisible] = useState(false);
   const [selectedPostForDetail, setSelectedPostForDetail] = useState<CommunityPost | null>(null);
   const [isProfileSheetVisible, setIsProfileSheetVisible] = useState(false);
+  const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
 
   // Spin animation for refresh
   useEffect(() => {
@@ -143,8 +145,38 @@ export default function CommunityScreen() {
   }, [user, toggleLike]);
 
   const handleCreatePress = useCallback(() => {
+    setIsFabMenuOpen(false);
     setIsCreateSheetVisible(true);
   }, []);
+
+  // FAB menu items
+  const fabMenuItems: AnimatedFabItemProps[] = useMemo(() => [
+    {
+      id: 'photo',
+      icon: 'camera-outline',
+      label: t('community.fabMenu.sharePhoto'),
+      description: t('community.fabMenu.sharePhotoDesc'),
+      onPress: handleCreatePress,
+    },
+    {
+      id: 'review',
+      icon: 'star-outline',
+      label: t('community.fabMenu.writeReview'),
+      description: t('community.fabMenu.writeReviewDesc'),
+      onPress: () => {},
+      disabled: true,
+      badge: t('common.soon'),
+    },
+    {
+      id: 'suggestion',
+      icon: 'bulb-outline',
+      label: t('community.fabMenu.makeSuggestion'),
+      description: t('community.fabMenu.makeSuggestionDesc'),
+      onPress: () => {},
+      disabled: true,
+      badge: t('common.soon'),
+    },
+  ], [t, handleCreatePress]);
 
   const handlePostCreated = useCallback(() => {
     setIsCreateSheetVisible(false);
@@ -405,21 +437,18 @@ export default function CommunityScreen() {
         {...listProps}
       />
 
-      {/* Floating Action Button */}
+      {/* Animated Floating Action Button */}
       {user && (
-        <TouchableOpacity
-          style={[
-            styles.fab,
-            { 
-              backgroundColor: colors.primary,
-              bottom: insets.bottom + 90,
-            },
-          ]}
-          onPress={handleCreatePress}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="add" size={28} color="#FFF" />
-        </TouchableOpacity>
+        <View style={[styles.fabContainer, { bottom: insets.bottom + 90 }]}>
+          <AnimatedFab
+            isFabOpen={isFabMenuOpen}
+            handleFabPress={() => setIsFabMenuOpen(!isFabMenuOpen)}
+            onClickOutside={() => setIsFabMenuOpen(false)}
+            items={fabMenuItems}
+            fabIcon="add"
+            backgroundColor={colors.primary}
+          />
+        </View>
       )}
 
       {/* Create Post Sheet */}
@@ -585,20 +614,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: 'center',
   },
-  // FAB
-  fab: {
+  // FAB Container
+  fabContainer: {
     position: 'absolute',
-    right: 20,
-    width: 56,
+    right: 0,
+    left: 0,
     height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
   },
   // Premium Paywall Styles
   premiumPostWrapper: {

@@ -33,7 +33,8 @@
     "copied": "Copied",
     "soon": "Soon",
     "comingSoon": "This feature is coming soon",
-    "info": "Info"
+    "info": "Info",
+    "understood": "Understood"
   },
   "auth": {
     "login": "Login",
@@ -87,6 +88,11 @@
     "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
     "passwordNeedsNumber": "Password must contain at least one number",
     "agreeToTerms": "By continuing, you agree to our",
+    "accountBanned": "Your account has been banned",
+    "accountBannedTitle": "Account Banned",
+    "accountBannedDescription": "Your account has been banned by administrators and you cannot log in to the system.",
+    "banReason": "Ban Reason",
+    "banContactSupport": "If you believe this is a mistake, please contact support.",
     "errors": {
       "userNotFound": "No account found with this email",
       "invalidCredentials": "Invalid email or password",
@@ -709,6 +715,14 @@
       "reviews": "Reviews",
       "suggestions": "Suggestions"
     },
+    "fabMenu": {
+      "sharePhoto": "Share Photo",
+      "sharePhotoDesc": "Share photos from places you've visited and immortalize your memories.",
+      "writeReview": "Write Review",
+      "writeReviewDesc": "Share your experiences and guide other travelers.",
+      "makeSuggestion": "Make Suggestion",
+      "makeSuggestionDesc": "Share the hidden gem you discovered with the community."
+    },
     "empty": {
       "title": "No Posts Yet",
       "subtitle": "There are no posts in the community yet. Be the first to share!"
@@ -878,5 +892,35 @@
     "mapMarker": "Location marker for {{name}}",
     "rating": "Rating: {{rating}} out of 5 stars",
     "price": "Price: {{price}} {{currency}}"
+  },
+  "welcome": {
+    "tagline": "Your Journey Begins",
+    "title": "Discover North Cyprus",
+    "subtitle": "Explore unique beauties,\ncreate unforgettable memories",
+    "features": {
+      "routes": "Unique routes",
+      "experiences": "Local experiences",
+      "recommendations": "Personalized recommendations"
+    },
+    "cta": "Start Exploring",
+    "footer": "Ready for adventure"
+  },
+  "intro": {
+    "skip": "Skip",
+    "startExploring": "Start Exploring",
+    "slides": {
+      "1": {
+        "title": "Create Your Route",
+        "description": "Discover the most beautiful places, design your ideal route and enjoy a seamless travel experience."
+      },
+      "2": {
+        "title": "Start Exploring",
+        "description": "Ancient castles, pristine beaches and breathtaking views. Discover the treasures of North Cyprus."
+      },
+      "3": {
+        "title": "Get More Done Together",
+        "description": "Create personalized routes, save your favorites and share unforgettable memories with other travelers."
+      }
+    }
   }
 }

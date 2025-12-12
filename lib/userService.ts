@@ -24,6 +24,9 @@ export interface UserProfile {
   member_number: string | null;
   role: 'user' | 'admin';
   is_active: boolean;
+  is_banned: boolean;
+  ban_reason: string | null;
+  banned_at: string | null;
   created_at: string;
   updated_at: string;
   last_sign_in_at: string | null;
@@ -346,6 +349,88 @@ export const checkExpiredMemberships = async (): Promise<void> => {
       .lt('membership_expires_at', now);
   } catch (error) {
     console.error('Check expired memberships error:', error);
+  }
+};
+
+/**
+ * Ban user
+ */
+export const banUser = async (
+  userId: string,
+  reason: string
+): Promise<{ success: boolean; error: string | null }> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        is_banned: true,
+        ban_reason: reason,
+        banned_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Unban user
+ */
+export const unbanUser = async (
+  userId: string
+): Promise<{ success: boolean; error: string | null }> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        is_banned: false,
+        ban_reason: null,
+        banned_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Check if user is banned
+ */
+export const checkUserBanned = async (
+  userId: string
+): Promise<{ isBanned: boolean; reason: string | null; error: string | null }> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('is_banned, ban_reason')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      return { isBanned: false, reason: null, error: error.message };
+    }
+    
+    return { 
+      isBanned: data?.is_banned || false, 
+      reason: data?.ban_reason || null, 
+      error: null 
+    };
+  } catch (error: any) {
+    return { isBanned: false, reason: null, error: error.message };
   }
 };
 

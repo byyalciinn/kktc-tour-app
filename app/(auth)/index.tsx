@@ -493,6 +493,10 @@ export default function WelcomeScreen() {
     }
   };
 
+  // Banned user modal state
+  const [bannedModalVisible, setBannedModalVisible] = useState(false);
+  const [bannedReason, setBannedReason] = useState('');
+
   const handleLogin = async () => {
     console.log('[handleLogin] Starting login process...');
     
@@ -515,8 +519,19 @@ export default function WelcomeScreen() {
     console.log('[handleLogin] Setting isCheckingRequired = true');
     useTwoFactorStore.getState().setCheckingRequired(true);
     
-    const { error } = await signIn(loginEmail.trim(), loginPassword);
+    const result = await signIn(loginEmail.trim(), loginPassword);
+    const { error } = result;
     console.log('[handleLogin] signIn result:', { error: error?.message });
+    
+    // Check if user is banned
+    if ((result as any).isBanned) {
+      console.log('[handleLogin] User is banned');
+      useTwoFactorStore.getState().setCheckingRequired(false);
+      setLoginLoading(false);
+      setBannedReason((result as any).banReason || t('auth.accountBanned'));
+      setBannedModalVisible(true);
+      return;
+    }
     
     if (error) {
       console.log('[handleLogin] Login failed, clearing 2FA state');
@@ -1947,6 +1962,47 @@ export default function WelcomeScreen() {
           </Animated.View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Banned User Modal */}
+      <Modal
+        visible={bannedModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBannedModalVisible(false)}
+      >
+        <View style={styles.bannedModalOverlay}>
+          <View style={[styles.bannedModalContent, { backgroundColor: isDark ? '#2D2D2D' : '#FFF' }]}>
+            <View style={styles.bannedModalHeader}>
+              <View style={[styles.bannedIconContainer, { backgroundColor: '#EF444415' }]}>
+                <Ionicons name="ban" size={48} color="#EF4444" />
+              </View>
+              <Text style={[styles.bannedModalTitle, { color: colors.text }]}>
+                {t('auth.accountBannedTitle')}
+              </Text>
+            </View>
+            <Text style={[styles.bannedModalDescription, { color: colors.textSecondary }]}>
+              {t('auth.accountBannedDescription')}
+            </Text>
+            <View style={[styles.bannedReasonBox, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#FEF2F2' }]}>
+              <Text style={[styles.bannedReasonLabel, { color: '#EF4444' }]}>
+                {t('auth.banReason')}
+              </Text>
+              <Text style={[styles.bannedReasonText, { color: colors.text }]}>
+                {bannedReason}
+              </Text>
+            </View>
+            <Text style={[styles.bannedContactText, { color: colors.textSecondary }]}>
+              {t('auth.banContactSupport')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.bannedModalButton, { backgroundColor: colors.primary }]}
+              onPress={() => setBannedModalVisible(false)}
+            >
+              <Text style={styles.bannedModalButtonText}>{t('common.understood')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -2550,6 +2606,83 @@ const styles = StyleSheet.create({
   twoFactorCancelText: {
     fontSize: 15,
     fontWeight: '400',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  // Banned user modal styles
+  bannedModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  bannedModalContent: {
+    width: '100%',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+  },
+  bannedModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  bannedIconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  bannedModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    textAlign: 'center',
+  },
+  bannedModalDescription: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  bannedReasonBox: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  bannedReasonLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bannedReasonText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    lineHeight: 22,
+  },
+  bannedContactText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  bannedModalButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bannedModalButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
   },
 });

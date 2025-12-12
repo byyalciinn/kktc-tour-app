@@ -180,6 +180,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       password,
     });
 
+    // Check if user is banned after successful login
+    if (!error && data.user) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('is_banned, ban_reason')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileData?.is_banned) {
+        // Sign out the banned user
+        await supabase.auth.signOut();
+        set({ loading: false, user: null, session: null, profile: null });
+        
+        // Return custom error for banned user
+        return { 
+          error: {
+            message: profileData.ban_reason || 'Hesabınız yasaklanmıştır.',
+            name: 'UserBannedError',
+            status: 403,
+          } as any,
+          isBanned: true,
+          banReason: profileData.ban_reason,
+        };
+      }
+    }
+
     set({ loading: false });
     return { error };
   },

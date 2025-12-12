@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DestinationSearch, ProfileSheet, TourDetailSheet, NotificationSheet } from '@/components/sheets';
 import { useTranslation } from 'react-i18next';
 import { HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/components/ui';
+import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
 import { useTourStore, useUIStore, useAuthStore, useThemeStore } from '@/stores';
@@ -50,10 +51,19 @@ export default function HomeScreen() {
     selectedCategoryId, 
     isLoading, 
     isRefreshing,
+    isLoadingMore,
+    hasMore,
     fetchTours, 
     fetchCategories, 
     setSelectedCategory,
+    loadMoreTours,
   } = useTourStore();
+
+  // Optimized list configuration for infinite scroll
+  const { listProps } = useOptimizedList({
+    itemHeight: 300, // 280 card + 20 gap
+    ...LIST_PRESETS.cards,
+  });
 
   const {
     isSearchVisible,
@@ -241,6 +251,25 @@ export default function HomeScreen() {
       setUnreadNotificationCount(count);
     }
   }, [user?.id, setUnreadNotificationCount]);
+
+  // Infinite scroll - load more tours when reaching end of list
+  const handleLoadMore = useCallback(() => {
+    if (isLoadingMore || !hasMore) return;
+    loadMoreTours();
+  }, [isLoadingMore, hasMore, loadMoreTours]);
+
+  // Footer component showing loading indicator when loading more
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.footerLoaderText, { color: colors.textSecondary }]}>
+          {t('home.loadingMore', { defaultValue: 'Daha fazla tur yükleniyor...' })}
+        </Text>
+      </View>
+    );
+  }, [isLoadingMore, colors.primary, colors.textSecondary, t]);
 
   const handleTourPress = (tour: Tour) => {
     openTourDetail(tour);
@@ -476,6 +505,7 @@ export default function HomeScreen() {
         renderItem={renderTourCard}
         keyExtractor={keyExtractor}
         ListHeaderComponent={ListHeader}
+        ListFooterComponent={renderFooter}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 100 },
@@ -492,16 +522,11 @@ export default function HomeScreen() {
             style={{ opacity: 0, height: 0 }}
           />
         }
-        // Performance optimizations
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={5}
-        windowSize={5}
-        initialNumToRender={3}
-        getItemLayout={(_, index) => ({
-          length: 300, // tripCard height (280) + gap (20)
-          offset: 300 * index,
-          index,
-        })}
+        // Infinite scroll
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        // Performance optimizations from useOptimizedList
+        {...listProps}
         ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
         scrollIndicatorInsets={{ right: 1 }}
       />
@@ -800,6 +825,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+  },
+  // Footer loader for infinite scroll
+  footerLoader: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  footerLoaderText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
   },
 });

@@ -33,7 +33,8 @@
     "copied": "Kopyalandı",
     "soon": "Yakında",
     "comingSoon": "Bu özellik yakında eklenecek",
-    "info": "Bilgi"
+    "info": "Bilgi",
+    "understood": "Anladım"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -87,6 +88,11 @@
     "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
     "passwordNeedsNumber": "Şifre en az bir rakam içermelidir",
     "agreeToTerms": "Devam ederek kabul etmiş olursunuz:",
+    "accountBanned": "Hesabınız yasaklanmıştır",
+    "accountBannedTitle": "Hesap Yasaklandı",
+    "accountBannedDescription": "Hesabınız yöneticiler tarafından yasaklanmıştır ve sisteme giriş yapamazsınız.",
+    "banReason": "Yasaklama Nedeni",
+    "banContactSupport": "Bu durumun hatalı olduğunu düşünüyorsanız destek ekibiyle iletişime geçin.",
     "errors": {
       "userNotFound": "Bu e-posta adresi ile kayıtlı hesap bulunamadı",
       "invalidCredentials": "E-posta veya şifre hatalı",
@@ -709,6 +715,14 @@
       "reviews": "Değerlendirmeler",
       "suggestions": "Öneriler"
     },
+    "fabMenu": {
+      "sharePhoto": "Fotoğraf Paylaş",
+      "sharePhotoDesc": "Gezdiğin yerlerden fotoğraflar paylaş ve anılarını ölümsüzleştir.",
+      "writeReview": "Değerlendirme Yaz",
+      "writeReviewDesc": "Deneyimlerini paylaş ve diğer gezginlere yol göster.",
+      "makeSuggestion": "Öneri Yap",
+      "makeSuggestionDesc": "Keşfettiğin gizli cenneti toplulukla paylaş."
+    },
     "empty": {
       "title": "Henüz Paylaşım Yok",
       "subtitle": "Toplulukta henüz paylaşım bulunmuyor. İlk paylaşımı yapan siz olun!"
@@ -878,5 +892,35 @@
     "mapMarker": "{{name}} için konum işareti",
     "rating": "Puan: 5 üzerinden {{rating}} yıldız",
     "price": "Fiyat: {{price}} {{currency}}"
+  },
+  "welcome": {
+    "tagline": "Yolculuğun Başlıyor",
+    "title": "Kuzey Kıbrıs'ı Keşfet",
+    "subtitle": "Eşsiz güzellikleri keşfet,\nunutulmaz anılar biriktir",
+    "features": {
+      "routes": "Benzersiz rotalar",
+      "experiences": "Yerel deneyimler",
+      "recommendations": "Kişiselleştirilmiş öneriler"
+    },
+    "cta": "Keşfetmeye Başla",
+    "footer": "Maceraya hazır ol"
+  },
+  "intro": {
+    "skip": "Atla",
+    "startExploring": "Keşfetmeye Başla",
+    "slides": {
+      "1": {
+        "title": "Rotanı Oluştur",
+        "description": "En güzel yerleri keşfet, ideal rotanı tasarla ve sorunsuz bir seyahat deneyiminin tadını çıkar."
+      },
+      "2": {
+        "title": "Keşfetmeye Başla",
+        "description": "Antik kaleler, bozulmamış plajlar ve nefes kesen manzaralar. Kuzey Kıbrıs'ın hazinelerini keşfet."
+      },
+      "3": {
+        "title": "Birlikte Daha Fazlasını Yap",
+        "description": "Kişiselleştirilmiş rotalar oluştur, favorilerini kaydet ve diğer gezginlerle unutulmaz anıları paylaş."
+      }
+    }
   }
 }

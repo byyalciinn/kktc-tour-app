@@ -955,39 +955,83 @@ export default function RoutesTab({ colors, isDark, insets }: RoutesTabProps) {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Season Picker Modal */}
+      {/* Season Picker Sheet */}
       <Modal
         visible={showSeasonPicker}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowSeasonPicker(false)}
       >
-        <TouchableOpacity 
-          style={styles.pickerOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowSeasonPicker(false)}
-        >
-          <View style={[styles.pickerContent, { backgroundColor: isDark ? '#2D2D2D' : '#fff' }]}>
-            <Text style={[styles.pickerTitle, { color: colors.text }]}>Sezon Seçin</Text>
-            {SEASON_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[styles.pickerOption, bestSeason === option.value && { backgroundColor: colors.primary + '15' }]}
-                onPress={() => {
-                  setBestSeason(option.value);
-                  setShowSeasonPicker(false);
-                }}
-              >
-                <Text style={[styles.pickerOptionText, { color: bestSeason === option.value ? colors.primary : colors.text }]}>
-                  {option.label}
-                </Text>
-                {bestSeason === option.value && (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
-                )}
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity 
+            style={styles.sheetBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setShowSeasonPicker(false)}
+          />
+          <View style={[styles.sheetContainer, { backgroundColor: isDark ? '#1C1C1E' : '#fff' }]}>
+            {/* Handle */}
+            <View style={styles.sheetHandleContainer}>
+              <View style={[styles.sheetHandle, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }]} />
+            </View>
+            
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>En İyi Sezon</Text>
+              <TouchableOpacity onPress={() => setShowSeasonPicker(false)}>
+                <Ionicons name="close-circle" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
-            ))}
+            </View>
+            
+            {/* Options */}
+            <ScrollView style={styles.sheetContent} showsVerticalScrollIndicator={false}>
+              {SEASON_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.sheetOption,
+                    { 
+                      backgroundColor: bestSeason === option.value 
+                        ? colors.primary + '15' 
+                        : isDark ? 'rgba(255,255,255,0.06)' : '#F8F8F8',
+                      borderColor: bestSeason === option.value 
+                        ? colors.primary 
+                        : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                    }
+                  ]}
+                  onPress={() => {
+                    setBestSeason(option.value);
+                    setShowSeasonPicker(false);
+                  }}
+                >
+                  <View style={styles.sheetOptionContent}>
+                    <Text style={[
+                      styles.sheetOptionText, 
+                      { color: bestSeason === option.value ? colors.primary : colors.text }
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </View>
+                  {bestSeason === option.value && (
+                    <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+              
+              {/* Clear selection */}
+              {bestSeason && (
+                <TouchableOpacity
+                  style={[styles.sheetClearButton, { borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}
+                  onPress={() => {
+                    setBestSeason('');
+                    setShowSeasonPicker(false);
+                  }}
+                >
+                  <Text style={[styles.sheetClearText, { color: colors.textSecondary }]}>Seçimi Temizle</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </>
   );
@@ -1078,4 +1122,18 @@ const styles = StyleSheet.create({
   pickerTitle: { fontSize: 18, fontWeight: '600', marginBottom: 16, textAlign: 'center' },
   pickerOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 10, marginBottom: 4 },
   pickerOptionText: { fontSize: 16 },
+  // Sheet styles for season picker
+  sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  sheetContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '60%' },
+  sheetHandleContainer: { alignItems: 'center', paddingVertical: 12 },
+  sheetHandle: { width: 40, height: 5, borderRadius: 3 },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16 },
+  sheetTitle: { fontSize: 20, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif' },
+  sheetContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  sheetOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 14, borderWidth: 1, marginBottom: 10 },
+  sheetOptionContent: { flex: 1 },
+  sheetOptionText: { fontSize: 16, fontWeight: '500', fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif' },
+  sheetClearButton: { alignItems: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1, marginTop: 8 },
+  sheetClearText: { fontSize: 15, fontWeight: '500', fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif' },
 });

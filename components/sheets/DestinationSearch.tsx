@@ -485,8 +485,12 @@ export default function DestinationSearch({
                           styles.resultCard,
                           { 
                             backgroundColor: isDark 
-                              ? 'rgba(255,255,255,0.08)' 
-                              : 'rgba(255,255,255,0.9)',
+                              ? 'rgba(45,45,48,0.95)' 
+                              : 'rgba(255,255,255,0.95)',
+                            borderWidth: 1,
+                            borderColor: isDark 
+                              ? 'rgba(255,255,255,0.12)' 
+                              : 'rgba(0,0,0,0.06)',
                           }
                         ]}
                         onPress={() => handleSelectTour(tour)}
@@ -507,9 +511,9 @@ export default function DestinationSearch({
                             <Ionicons 
                               name="location-outline" 
                               size={13} 
-                              color={colors.textSecondary} 
+                              color={isDark ? colors.primary : colors.textSecondary} 
                             />
-                            <Text style={[styles.resultLocation, { color: colors.textSecondary }]}>
+                            <Text style={[styles.resultLocation, { color: isDark ? 'rgba(255,255,255,0.7)' : colors.textSecondary }]}>
                               {tour.location}
                             </Text>
                           </View>
@@ -521,12 +525,12 @@ export default function DestinationSearch({
                         </View>
                         <View style={[
                           styles.resultArrow,
-                          { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                          { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)' }
                         ]}>
                           <Ionicons 
                             name="chevron-forward" 
                             size={18} 
-                            color={colors.textSecondary} 
+                            color={isDark ? '#FFFFFF' : colors.textSecondary} 
                           />
                         </View>
                       </TouchableOpacity>

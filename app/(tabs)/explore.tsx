@@ -318,12 +318,22 @@ export default function ExploreScreen() {
   const currentHeight = useRef(SHEET_MIN_HEIGHT);
   const isDragging = useRef(false);
   
+  // Animated position for my location button (moves up when sheet expands)
+  const myLocationBottom = useRef(new Animated.Value(SHEET_MIN_HEIGHT + 20)).current;
+  const myLocationOpacity = useRef(new Animated.Value(1)).current;
+  
+  // Animated position for tour preview card
+  const previewCardBottom = useRef(new Animated.Value(SHEET_MIN_HEIGHT + 80)).current;
+  const previewCardOpacity = useRef(new Animated.Value(1)).current;
+  
   // Track if data is ready to prevent UI blocking
   const [isDataReady, setIsDataReady] = useState(false);
 
   // Snap to a specific height with animation
   const snapToHeight = useCallback((targetHeight: number) => {
     currentHeight.current = targetHeight;
+    
+    // Animate sheet height
     Animated.spring(sheetHeight, {
       toValue: targetHeight,
       useNativeDriver: false,
@@ -331,7 +341,41 @@ export default function ExploreScreen() {
       stiffness: 250,
       mass: 0.8,
     }).start();
-  }, [sheetHeight]);
+    
+    // Animate my location button - hide when sheet is expanded
+    const shouldHideButtons = targetHeight > SHEET_MID_HEIGHT;
+    
+    Animated.parallel([
+      Animated.spring(myLocationBottom, {
+        toValue: targetHeight + 20,
+        useNativeDriver: false,
+        damping: 25,
+        stiffness: 250,
+        mass: 0.8,
+      }),
+      Animated.timing(myLocationOpacity, {
+        toValue: shouldHideButtons ? 0 : 1,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+    
+    // Animate preview card - hide when sheet is expanded
+    Animated.parallel([
+      Animated.spring(previewCardBottom, {
+        toValue: targetHeight + 80,
+        useNativeDriver: false,
+        damping: 25,
+        stiffness: 250,
+        mass: 0.8,
+      }),
+      Animated.timing(previewCardOpacity, {
+        toValue: shouldHideButtons ? 0 : 1,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [sheetHeight, myLocationBottom, previewCardBottom]);
 
   // Track if sheet is at max height to allow ScrollView to scroll
   const isSheetExpanded = useRef(false);
@@ -348,6 +392,13 @@ export default function ExploreScreen() {
         const newHeight = currentHeight.current - gestureState.dy;
         const clampedHeight = Math.max(SHEET_MIN_HEIGHT, Math.min(SHEET_MAX_HEIGHT, newHeight));
         sheetHeight.setValue(clampedHeight);
+        // Also move the buttons during drag
+        myLocationBottom.setValue(clampedHeight + 20);
+        previewCardBottom.setValue(clampedHeight + 80);
+        // Fade out buttons when dragging past mid height
+        const opacity = clampedHeight > SHEET_MID_HEIGHT ? Math.max(0, 1 - (clampedHeight - SHEET_MID_HEIGHT) / (SHEET_MAX_HEIGHT - SHEET_MID_HEIGHT)) : 1;
+        myLocationOpacity.setValue(opacity);
+        previewCardOpacity.setValue(opacity);
       },
       onPanResponderRelease: (_, gestureState) => {
         isDragging.current = false;
@@ -693,19 +744,25 @@ export default function ExploreScreen() {
           </View>
         </View>
 
-        {/* My Location Button - Bottom Right */}
-        <View style={[styles.myLocationFloating, { bottom: SHEET_MIN_HEIGHT + 20 }]}>
+        {/* My Location Button - Bottom Right (Animated with fade) */}
+        <Animated.View 
+          style={[styles.myLocationFloating, { bottom: myLocationBottom, opacity: myLocationOpacity }]}
+          pointerEvents={currentHeight.current > SHEET_MID_HEIGHT ? 'none' : 'auto'}
+        >
           <MapControlButton
             icon="navigate"
             onPress={handleMyLocation}
             colors={colors}
             isDark={isDark}
           />
-        </View>
+        </Animated.View>
 
-        {/* Tour Preview Card - Shows when pin is tapped */}
+        {/* Tour Preview Card - Shows when pin is tapped (Animated with fade) */}
         {previewTour && (
-          <View style={[styles.tourPreviewContainer, { bottom: SHEET_MIN_HEIGHT + 80 }]}>
+          <Animated.View 
+            style={[styles.tourPreviewContainer, { bottom: previewCardBottom, opacity: previewCardOpacity }]}
+            pointerEvents={currentHeight.current > SHEET_MID_HEIGHT ? 'none' : 'auto'}
+          >
             <TourPreviewCard
               tour={previewTour}
               onPress={openTourFromPreview}
@@ -713,7 +770,7 @@ export default function ExploreScreen() {
               colors={colors}
               isDark={isDark}
             />
-          </View>
+          </Animated.View>
         )}
       </View>
 

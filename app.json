@@ -85,7 +85,10 @@
         {
           "faceIDPermission": "Cyprigo uses Face ID for secure authentication."
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-secure-store",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

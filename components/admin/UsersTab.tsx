@@ -34,6 +34,8 @@ import {
   updateUserMemberClass,
   toggleUserStatus,
   getUserStats,
+  banUser,
+  unbanUser,
   UserProfile,
   UserFilters,
   MembershipDuration,
@@ -93,6 +95,10 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
   // Gold duration selection
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<MembershipDuration>('1_month');
+  
+  // Ban modal state
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [banReason, setBanReason] = useState('');
   
   // Filters
   const [filters, setFilters] = useState<UserFilters>({
@@ -266,6 +272,65 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
     );
   };
 
+  // Handle ban user
+  const handleBanUser = () => {
+    if (!selectedUser) return;
+    setBanReason('');
+    setShowBanModal(true);
+  };
+
+  const submitBan = async () => {
+    if (!selectedUser || !banReason.trim()) {
+      Alert.alert('Hata', 'Lütfen yasaklama nedenini girin');
+      return;
+    }
+
+    setIsUpdating(true);
+    const { success, error } = await banUser(selectedUser.id, banReason.trim());
+    setIsUpdating(false);
+    setShowBanModal(false);
+
+    if (success) {
+      setUsers(prev => prev.map(u => 
+        u.id === selectedUser.id ? { ...u, is_banned: true, ban_reason: banReason.trim(), banned_at: new Date().toISOString() } : u
+      ));
+      setSelectedUser(prev => prev ? { ...prev, is_banned: true, ban_reason: banReason.trim(), banned_at: new Date().toISOString() } : null);
+      Alert.alert('Başarılı', 'Kullanıcı yasaklandı');
+    } else {
+      Alert.alert('Hata', error || 'İşlem başarısız');
+    }
+  };
+
+  const handleUnbanUser = async () => {
+    if (!selectedUser) return;
+
+    Alert.alert(
+      'Yasağı Kaldır',
+      'Bu kullanıcının yasağını kaldırmak istediğinize emin misiniz?',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Yasağı Kaldır',
+          onPress: async () => {
+            setIsUpdating(true);
+            const { success, error } = await unbanUser(selectedUser.id);
+            setIsUpdating(false);
+
+            if (success) {
+              setUsers(prev => prev.map(u => 
+                u.id === selectedUser.id ? { ...u, is_banned: false, ban_reason: null, banned_at: null } : u
+              ));
+              setSelectedUser(prev => prev ? { ...prev, is_banned: false, ban_reason: null, banned_at: null } : null);
+              Alert.alert('Başarılı', 'Kullanıcının yasağı kaldırıldı');
+            } else {
+              Alert.alert('Hata', error || 'İşlem başarısız');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', {
       day: 'numeric',
@@ -385,9 +450,9 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                   <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
                     {user.full_name || 'İsimsiz Kullanıcı'}
                   </Text>
-                  {!user.is_active && (
+                  {user.is_banned && (
                     <View style={[styles.inactiveBadge, { backgroundColor: '#EF444420' }]}>
-                      <Text style={[styles.inactiveBadgeText, { color: '#EF4444' }]}>Pasif</Text>
+                      <Text style={[styles.inactiveBadgeText, { color: '#EF4444' }]}>Yasaklı</Text>
                     </View>
                   )}
                 </View>
@@ -429,7 +494,7 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
         )}
       </ScrollView>
 
-      {/* User Detail Modal */}
+      {/* User Detail Modal - Modern Design */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -450,10 +515,17 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
               {/* User Profile Header */}
               <View style={styles.profileHeader}>
-                <Image
-                  source={{ uri: getAvatarUrl(selectedUser.avatar_url, selectedUser.id) }}
-                  style={styles.profileAvatar}
-                />
+                <View style={styles.avatarContainer}>
+                  <Image
+                    source={{ uri: getAvatarUrl(selectedUser.avatar_url, selectedUser.id) }}
+                    style={styles.profileAvatar}
+                  />
+                  {selectedUser.is_banned && (
+                    <View style={styles.bannedOverlay}>
+                      <Ionicons name="ban" size={32} color="#EF4444" />
+                    </View>
+                  )}
+                </View>
                 <Text style={[styles.profileName, { color: colors.text }]}>
                   {selectedUser.full_name || 'İsimsiz Kullanıcı'}
                 </Text>
@@ -465,32 +537,79 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                   <View style={[styles.profileBadge, { backgroundColor: memberClassColors[selectedUser.member_class] }]}>
                     <Text style={styles.profileBadgeText}>{selectedUser.member_class}</Text>
                   </View>
-                  {!selectedUser.is_active && (
+                  <View style={[styles.profileBadge, { backgroundColor: roleColors[selectedUser.role] }]}>
+                    <Text style={styles.profileBadgeText}>{selectedUser.role === 'admin' ? 'Admin' : 'Kullanıcı'}</Text>
+                  </View>
+                  {selectedUser.is_banned && (
                     <View style={[styles.profileBadge, { backgroundColor: '#EF4444' }]}>
-                      <Text style={styles.profileBadgeText}>Pasif</Text>
+                      <Text style={styles.profileBadgeText}>Yasaklı</Text>
                     </View>
                   )}
                 </View>
               </View>
 
+              {/* Ban Warning */}
+              {selectedUser.is_banned && (
+                <View style={[styles.banWarning, { backgroundColor: '#EF444415' }]}>
+                  <Ionicons name="warning" size={20} color="#EF4444" />
+                  <View style={styles.banWarningContent}>
+                    <Text style={[styles.banWarningTitle, { color: '#EF4444' }]}>Bu kullanıcı yasaklı</Text>
+                    <Text style={[styles.banWarningReason, { color: colors.textSecondary }]}>
+                      Neden: {selectedUser.ban_reason || 'Belirtilmemiş'}
+                    </Text>
+                    {selectedUser.banned_at && (
+                      <Text style={[styles.banWarningDate, { color: colors.textSecondary }]}>
+                        Tarih: {formatDate(selectedUser.banned_at)}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {/* User ID Card */}
+              <View style={[styles.idCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>KULLANICI ID</Text>
+                <Text style={[styles.idValue, { color: colors.text }]} selectable>
+                  {selectedUser.id}
+                </Text>
+              </View>
+
               {/* Info Section */}
               <View style={[styles.infoSection, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
                 <View style={[styles.infoRow, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Kayıt Tarihi</Text>
+                  <View style={styles.infoRowLeft}>
+                    <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Kayıt Tarihi</Text>
+                  </View>
                   <Text style={[styles.infoValue, { color: colors.text }]}>
                     {formatDate(selectedUser.created_at)}
                   </Text>
                 </View>
                 <View style={[styles.infoRow, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Telefon</Text>
+                  <View style={styles.infoRowLeft}>
+                    <Ionicons name="call-outline" size={18} color={colors.textSecondary} />
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Telefon</Text>
+                  </View>
                   <Text style={[styles.infoValue, { color: colors.text }]}>
                     {selectedUser.phone || '-'}
                   </Text>
                 </View>
+                <View style={[styles.infoRow, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                  <View style={styles.infoRowLeft}>
+                    <Ionicons name="mail-outline" size={18} color={colors.textSecondary} />
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>E-posta</Text>
+                  </View>
+                  <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={1}>
+                    {selectedUser.email || '-'}
+                  </Text>
+                </View>
                 <View style={styles.infoRow}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Durum</Text>
-                  <Text style={[styles.infoValue, { color: selectedUser.is_active ? '#22C55E' : '#EF4444' }]}>
-                    {selectedUser.is_active ? 'Aktif' : 'Pasif'}
+                  <View style={styles.infoRowLeft}>
+                    <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Son Güncelleme</Text>
+                  </View>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {formatDate(selectedUser.updated_at)}
                   </Text>
                 </View>
               </View>
@@ -618,41 +737,114 @@ export default function UsersTab({ colors, isDark, insets }: UsersTabProps) {
                 </View>
               )}
 
-              {/* Status Toggle */}
+              {/* Ban/Unban Button */}
               <TouchableOpacity
                 style={[
-                  styles.statusButton,
+                  styles.banButton,
                   {
-                    backgroundColor: selectedUser.is_active ? '#EF444415' : '#22C55E15',
+                    backgroundColor: selectedUser.is_banned === true ? '#22C55E15' : '#EF444410',
+                    borderColor: selectedUser.is_banned === true ? '#22C55E30' : '#EF444430',
                   },
                 ]}
-                onPress={handleToggleStatus}
+                onPress={() => {
+                  if (selectedUser.is_banned === true) {
+                    handleUnbanUser();
+                  } else {
+                    handleBanUser();
+                  }
+                }}
                 disabled={isUpdating}
               >
-                {isUpdating ? (
-                  <ActivityIndicator size="small" color={selectedUser.is_active ? '#EF4444' : '#22C55E'} />
+                {isUpdating && !showBanModal ? (
+                  <ActivityIndicator size="small" color={selectedUser.is_banned === true ? '#22C55E' : '#EF4444'} />
                 ) : (
                   <>
                     <Ionicons
-                      name={selectedUser.is_active ? 'close-circle' : 'checkmark-circle'}
+                      name={selectedUser.is_banned === true ? 'checkmark-circle' : 'ban'}
                       size={20}
-                      color={selectedUser.is_active ? '#EF4444' : '#22C55E'}
+                      color={selectedUser.is_banned === true ? '#22C55E' : '#EF4444'}
                     />
                     <Text
                       style={[
-                        styles.statusButtonText,
-                        { color: selectedUser.is_active ? '#EF4444' : '#22C55E' },
+                        styles.banButtonText,
+                        { color: selectedUser.is_banned === true ? '#22C55E' : '#EF4444' },
                       ]}
                     >
-                      {selectedUser.is_active ? 'Kullanıcıyı Devre Dışı Bırak' : 'Kullanıcıyı Aktifleştir'}
+                      {selectedUser.is_banned === true ? 'Yasağı Kaldır' : 'Kullanıcıyı Yasakla'}
                     </Text>
                   </>
                 )}
               </TouchableOpacity>
+
+              {/* Inline Ban Sheet */}
+              {showBanModal && (
+                <View style={[styles.inlineBanSheet, { backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : '#FEF2F2', borderColor: isDark ? 'rgba(239,68,68,0.2)' : '#FECACA' }]}>
+                  {/* Header */}
+                  <View style={styles.inlineBanHeader}>
+                    <View style={[styles.inlineBanIconContainer, { backgroundColor: '#EF444420' }]}>
+                      <Ionicons name="ban" size={24} color="#EF4444" />
+                    </View>
+                    <View style={styles.inlineBanHeaderText}>
+                      <Text style={[styles.inlineBanTitle, { color: colors.text }]}>Kullanıcıyı Yasakla</Text>
+                      <Text style={[styles.inlineBanSubtitle, { color: colors.textSecondary }]}>
+                        Bu kullanıcı sisteme giriş yapamayacak
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {/* Input */}
+                  <Text style={[styles.inlineBanLabel, { color: colors.textSecondary }]}>YASAKLAMA NEDENİ</Text>
+                  <TextInput
+                    style={[
+                      styles.inlineBanInput, 
+                      { 
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#fff', 
+                        color: colors.text,
+                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      }
+                    ]}
+                    placeholder="Örn: Topluluk kurallarını ihlal etti..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={banReason}
+                    onChangeText={setBanReason}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                  
+                  {/* Actions */}
+                  <View style={styles.inlineBanActions}>
+                    <TouchableOpacity
+                      style={[styles.inlineBanCancelBtn, { borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]}
+                      onPress={() => {
+                        setShowBanModal(false);
+                        setBanReason('');
+                      }}
+                    >
+                      <Text style={[styles.inlineBanCancelText, { color: colors.text }]}>İptal</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.inlineBanConfirmBtn, { opacity: isUpdating || !banReason.trim() ? 0.6 : 1 }]}
+                      onPress={submitBan}
+                      disabled={isUpdating || !banReason.trim()}
+                    >
+                      {isUpdating ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="ban" size={16} color="#fff" />
+                          <Text style={styles.inlineBanConfirmText}>Yasakla</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </ScrollView>
           )}
         </View>
       </Modal>
+
     </>
   );
 }
@@ -1000,6 +1192,317 @@ const styles = StyleSheet.create({
   },
   statusButtonText: {
     fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+  },
+  // New modern styles
+  avatarContainer: {
+    position: 'relative',
+  },
+  bannedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  banWarning: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    gap: 12,
+  },
+  banWarningContent: {
+    flex: 1,
+  },
+  banWarningTitle: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  banWarningReason: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  banWarningDate: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    marginTop: 4,
+  },
+  idCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  idValue: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    letterSpacing: 0.3,
+  },
+  infoRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  banButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  banButtonText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+  },
+  // Inline Ban Sheet styles
+  inlineBanSheet: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+  },
+  inlineBanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  inlineBanIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inlineBanHeaderText: {
+    flex: 1,
+  },
+  inlineBanTitle: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  inlineBanSubtitle: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+  },
+  inlineBanLabel: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  inlineBanInput: {
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    minHeight: 80,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  inlineBanActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  inlineBanCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  inlineBanCancelText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+  },
+  inlineBanConfirmBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#EF4444',
+  },
+  inlineBanConfirmText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // Ban sheet styles (legacy - can be removed)
+  banSheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  banSheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  banSheetContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  banSheetHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  banSheetHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+  },
+  banSheetHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+  banSheetIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  banSheetTitle: {
+    fontSize: 22,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  banSheetSubtitle: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  banSheetContent: {
+    paddingHorizontal: 24,
+  },
+  banSheetLabel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  banSheetInput: {
+    padding: 16,
+    borderRadius: 14,
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    minHeight: 120,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  banSheetActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  banSheetCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  banSheetCancelText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+  },
+  banSheetConfirmBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+  },
+  banSheetConfirmText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // Legacy ban modal styles (kept for reference)
+  banModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  banModalContent: {
+    borderRadius: 20,
+    padding: 24,
+  },
+  banModalHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  banModalTitle: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '700',
+  },
+  banModalSubtitle: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  banReasonInput: {
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  banModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  banModalBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  banModalBtnText: {
+    fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
   },

@@ -21,6 +21,8 @@ import {
   Platform,
   RefreshControl,
   Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { EdgeInsets } from 'react-native-safe-area-context';
@@ -28,7 +30,7 @@ import { EdgeInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { useCommunityStore, useAuthStore } from '@/stores';
-import { CommunityPost } from '@/types';
+import { CommunityPost, CommunityComment } from '@/types';
 
 interface PostsTabProps {
   colors: typeof Colors.light;
@@ -73,6 +75,10 @@ export default function PostsTab({ colors, isDark, insets }: PostsTabProps) {
   const [processing, setProcessing] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [postComments, setPostComments] = useState<CommunityComment[]>([]);
   
   // Stats
   const [stats, setStats] = useState({
@@ -130,11 +136,27 @@ export default function PostsTab({ colors, isDark, insets }: PostsTabProps) {
       );
   };
 
+  // Fetch comments for selected post
+  const { fetchComments, comments } = useCommunityStore();
+
   // Actions
-  const handlePostPress = (post: CommunityPost) => {
+  const handlePostPress = async (post: CommunityPost) => {
     setSelectedPost(post);
+    setEditTitle(post.title || '');
+    setEditContent(post.content || '');
+    setIsEditMode(false);
     setIsModalVisible(true);
+    
+    // Fetch comments for this post
+    await fetchComments(post.id);
   };
+
+  // Update postComments when comments change
+  useEffect(() => {
+    if (selectedPost) {
+      setPostComments(comments);
+    }
+  }, [comments, selectedPost]);
 
   const handleApprove = async (post: CommunityPost) => {
     if (!user) return;
@@ -407,83 +429,212 @@ export default function PostsTab({ colors, isDark, insets }: PostsTabProps) {
         )}
       </ScrollView>
 
-      {/* Post Detail Modal */}
+      {/* Post Detail Modal - Modern Design */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setIsModalVisible(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <KeyboardAvoidingView 
+          style={[styles.modalContainer, { backgroundColor: colors.background }]}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           {/* Modal Header */}
           <View style={[styles.modalHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}>
-            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+            <TouchableOpacity onPress={() => {
+              setIsModalVisible(false);
+              setIsEditMode(false);
+            }}>
               <Text style={[styles.modalCancel, { color: colors.primary }]}>Kapat</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Paylaşım Detayı</Text>
-            <View style={{ width: 50 }} />
+            <TouchableOpacity onPress={() => setIsEditMode(!isEditMode)}>
+              <Ionicons 
+                name={isEditMode ? 'checkmark' : 'create-outline'} 
+                size={22} 
+                color={colors.primary} 
+              />
+            </TouchableOpacity>
           </View>
 
           {selectedPost && (
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              {/* User Info */}
-              <View style={styles.modalUserSection}>
-                <Image
-                  source={{ uri: getAvatarUrl(selectedPost.user?.avatarUrl, selectedPost.userId) }}
-                  style={styles.modalAvatar}
-                />
-                <View style={styles.modalUserInfo}>
-                  <Text style={[styles.modalUserName, { color: colors.text }]}>
-                    {selectedPost.user?.fullName || 'Anonim'}
-                  </Text>
-                  <Text style={[styles.modalDate, { color: colors.textSecondary }]}>
-                    {formatDate(selectedPost.createdAt)}
-                  </Text>
-                </View>
+              {/* Status Badge - Top */}
+              <View style={styles.modalStatusRow}>
                 <View style={[styles.modalStatusBadge, { backgroundColor: statusInfo[selectedPost.status]?.color + '20' }]}>
+                  <View style={[styles.statusDot, { backgroundColor: statusInfo[selectedPost.status]?.color }]} />
                   <Text style={[styles.modalStatusText, { color: statusInfo[selectedPost.status]?.color }]}>
                     {statusInfo[selectedPost.status]?.label}
                   </Text>
                 </View>
+                <View style={[styles.typeBadgeLarge, { backgroundColor: postTypeInfo[selectedPost.type]?.color + '20' }]}>
+                  <Ionicons name={postTypeInfo[selectedPost.type]?.icon as any} size={14} color={postTypeInfo[selectedPost.type]?.color} />
+                  <Text style={[styles.typeBadgeText, { color: postTypeInfo[selectedPost.type]?.color }]}>
+                    {postTypeInfo[selectedPost.type]?.label}
+                  </Text>
+                </View>
               </View>
 
-              {/* Content */}
-              {selectedPost.title && (
-                <Text style={[styles.modalPostTitle, { color: colors.text }]}>
-                  {selectedPost.title}
-                </Text>
-              )}
-              {selectedPost.content && (
-                <Text style={[styles.modalPostContent, { color: colors.text }]}>
-                  {selectedPost.content}
-                </Text>
-              )}
+              {/* Stats Cards */}
+              <View style={styles.detailStatsRow}>
+                <View style={[styles.detailStatCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                  <Ionicons name="heart" size={20} color="#FF6B6B" />
+                  <Text style={[styles.detailStatValue, { color: colors.text }]}>{selectedPost.likesCount || 0}</Text>
+                  <Text style={[styles.detailStatLabel, { color: colors.textSecondary }]}>Beğeni</Text>
+                </View>
+                <View style={[styles.detailStatCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                  <Ionicons name="chatbubble" size={20} color="#4A90D9" />
+                  <Text style={[styles.detailStatValue, { color: colors.text }]}>{postComments.length}</Text>
+                  <Text style={[styles.detailStatLabel, { color: colors.textSecondary }]}>Yorum</Text>
+                </View>
+                <View style={[styles.detailStatCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                  <Ionicons name="images" size={20} color="#50C878" />
+                  <Text style={[styles.detailStatValue, { color: colors.text }]}>{selectedPost.images?.length || 0}</Text>
+                  <Text style={[styles.detailStatLabel, { color: colors.textSecondary }]}>Fotoğraf</Text>
+                </View>
+              </View>
+
+              {/* User Info Card */}
+              <View style={[styles.userInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>EKLEYEN KULLANICI</Text>
+                <View style={styles.userInfoRow}>
+                  <Image
+                    source={{ uri: getAvatarUrl(selectedPost.user?.avatarUrl, selectedPost.userId) }}
+                    style={styles.modalAvatar}
+                  />
+                  <View style={styles.modalUserInfo}>
+                    <Text style={[styles.modalUserName, { color: colors.text }]}>
+                      {selectedPost.user?.fullName || 'Anonim'}
+                    </Text>
+                    <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+                      ID: {selectedPost.userId.slice(0, 8)}...
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Date Info */}
+              <View style={[styles.dateInfoCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                <View style={styles.dateInfoItem}>
+                  <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                  <View>
+                    <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Eklenen Tarih</Text>
+                    <Text style={[styles.dateValue, { color: colors.text }]}>{formatDate(selectedPost.createdAt)}</Text>
+                  </View>
+                </View>
+                {selectedPost.updatedAt && selectedPost.updatedAt !== selectedPost.createdAt && (
+                  <View style={styles.dateInfoItem}>
+                    <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                    <View>
+                      <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Son Güncelleme</Text>
+                      <Text style={[styles.dateValue, { color: colors.text }]}>{formatDate(selectedPost.updatedAt)}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Content Section */}
+              <View style={styles.contentSection}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>İÇERİK</Text>
+                
+                {isEditMode ? (
+                  <>
+                    <TextInput
+                      style={[styles.editInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5', color: colors.text }]}
+                      value={editTitle}
+                      onChangeText={setEditTitle}
+                      placeholder="Başlık"
+                      placeholderTextColor={colors.textSecondary}
+                    />
+                    <TextInput
+                      style={[styles.editInput, styles.editContentInput, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5', color: colors.text }]}
+                      value={editContent}
+                      onChangeText={setEditContent}
+                      placeholder="İçerik"
+                      placeholderTextColor={colors.textSecondary}
+                      multiline
+                      numberOfLines={4}
+                    />
+                  </>
+                ) : (
+                  <>
+                    {selectedPost.title && (
+                      <Text style={[styles.modalPostTitle, { color: colors.text }]}>
+                        {selectedPost.title}
+                      </Text>
+                    )}
+                    {selectedPost.content && (
+                      <Text style={[styles.modalPostContent, { color: colors.text }]}>
+                        {selectedPost.content}
+                      </Text>
+                    )}
+                  </>
+                )}
+              </View>
 
               {/* Images */}
               {selectedPost.images && selectedPost.images.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalImages}>
-                  {selectedPost.images.map((img, idx) => (
-                    <Image key={idx} source={{ uri: img }} style={styles.modalImage} />
-                  ))}
-                </ScrollView>
+                <View style={styles.imagesSection}>
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>FOTOĞRAFLAR ({selectedPost.images.length})</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modalImages}>
+                    {selectedPost.images.map((img, idx) => (
+                      <Image key={idx} source={{ uri: img }} style={styles.modalImage} />
+                    ))}
+                  </ScrollView>
+                </View>
               )}
 
               {/* Location */}
               {selectedPost.location && (
-                <View style={[styles.modalInfoRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5' }]}>
-                  <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.modalInfoText, { color: colors.text }]}>
+                <View style={[styles.locationCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F8F8F8' }]}>
+                  <Ionicons name="location" size={20} color={colors.primary} />
+                  <Text style={[styles.locationText, { color: colors.text }]}>
                     {selectedPost.location}
                   </Text>
                 </View>
               )}
 
+              {/* Comments Section */}
+              <View style={styles.commentsSection}>
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+                  YORUMLAR ({postComments.length})
+                </Text>
+                {postComments.length === 0 ? (
+                  <Text style={[styles.noComments, { color: colors.textSecondary }]}>
+                    Henüz yorum yapılmamış
+                  </Text>
+                ) : (
+                  postComments.map((comment) => (
+                    <View key={comment.id} style={[styles.commentCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FAFAFA' }]}>
+                      <Image
+                        source={{ uri: getAvatarUrl(comment.user?.avatarUrl, comment.userId) }}
+                        style={styles.commentAvatar}
+                      />
+                      <View style={styles.commentContent}>
+                        <View style={styles.commentHeader}>
+                          <Text style={[styles.commentUserName, { color: colors.text }]}>
+                            {comment.user?.fullName || 'Anonim'}
+                          </Text>
+                          <Text style={[styles.commentDate, { color: colors.textSecondary }]}>
+                            {formatDate(comment.createdAt)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.commentText, { color: colors.text }]}>
+                          {comment.content}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+
               {/* Actions */}
               <View style={styles.modalActions}>
                 {selectedPost.status === 'pending' && (
-                  <>
+                  <View style={styles.pendingActions}>
                     <TouchableOpacity
-                      style={[styles.modalActionBtn, { backgroundColor: '#EF444415' }]}
+                      style={[styles.modalActionBtn, styles.rejectBtn]}
                       onPress={() => handleReject(selectedPost)}
                       disabled={processing}
                     >
@@ -491,7 +642,7 @@ export default function PostsTab({ colors, isDark, insets }: PostsTabProps) {
                       <Text style={[styles.modalActionText, { color: '#EF4444' }]}>Reddet</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.modalActionBtn, { backgroundColor: colors.primary }]}
+                      style={[styles.modalActionBtn, { backgroundColor: colors.primary, flex: 1 }]}
                       onPress={() => handleApprove(selectedPost)}
                       disabled={processing}
                     >
@@ -504,21 +655,21 @@ export default function PostsTab({ colors, isDark, insets }: PostsTabProps) {
                         </>
                       )}
                     </TouchableOpacity>
-                  </>
+                  </View>
                 )}
                 
                 <TouchableOpacity
-                  style={[styles.deleteBtn, { backgroundColor: '#EF444415' }]}
+                  style={[styles.deleteBtn, { backgroundColor: '#EF444410', borderColor: '#EF444430', borderWidth: 1 }]}
                   onPress={() => handleDelete(selectedPost)}
                   disabled={processing}
                 >
                   <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                  <Text style={[styles.deleteBtnText, { color: '#EF4444' }]}>Paylaşımı Sil</Text>
+                  <Text style={[styles.deleteBtnText, { color: '#EF4444' }]}>Paylaşımı Kalıcı Olarak Sil</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
           )}
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Reject Reason Modal */}
@@ -916,5 +1067,175 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
+  },
+  // New modern modal styles
+  modalStatusRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  typeBadgeLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 6,
+  },
+  typeBadgeText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  detailStatsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  detailStatCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 6,
+  },
+  detailStatValue: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+  },
+  detailStatLabel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  userInfoCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  userEmail: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    marginTop: 2,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  dateInfoCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    gap: 16,
+  },
+  dateInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  dateValue: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  contentSection: {
+    marginBottom: 20,
+  },
+  editInput: {
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    marginTop: 12,
+  },
+  editContentInput: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  imagesSection: {
+    marginBottom: 20,
+  },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
+  locationText: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    flex: 1,
+  },
+  commentsSection: {
+    marginBottom: 20,
+  },
+  noComments: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  commentCard: {
+    flexDirection: 'row',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    gap: 10,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  commentContent: {
+    flex: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  commentUserName: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  commentDate: {
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  commentText: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    lineHeight: 20,
+  },
+  pendingActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  rejectBtn: {
+    backgroundColor: '#EF444415',
+    flex: 1,
   },
 });

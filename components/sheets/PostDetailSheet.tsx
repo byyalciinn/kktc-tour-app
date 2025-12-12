@@ -221,9 +221,13 @@ export default function PostDetailSheet({
     }
   };
 
-  // Handle delete comment
+  // Check if user is admin
+  const isAdmin = profile?.role === 'admin';
+
+  // Handle delete comment - allow for comment owner or admin
   const handleDeleteComment = (comment: CommunityComment) => {
-    if (comment.userId !== user?.id) return;
+    const canDelete = comment.userId === user?.id || isAdmin;
+    if (!canDelete) return;
 
     Alert.alert(
       t('community.deleteComment'),
@@ -251,13 +255,14 @@ export default function PostDetailSheet({
     });
   };
 
+  // Check if user can delete a comment
+  const canDeleteComment = (comment: CommunityComment) => {
+    return comment.userId === user?.id || isAdmin;
+  };
+
   // Render comment item
   const renderComment = ({ item }: { item: CommunityComment }) => (
-    <TouchableOpacity
-      style={styles.commentItem}
-      onLongPress={() => handleDeleteComment(item)}
-      activeOpacity={0.8}
-    >
+    <View style={styles.commentItem}>
       <Image
         source={{ uri: getAvatarUrl(item.user?.avatarUrl, item.userId) }}
         style={styles.commentAvatar}
@@ -267,15 +272,27 @@ export default function PostDetailSheet({
           <Text style={[styles.commentUserName, { color: colors.text }]}>
             {item.user?.fullName || t('community.anonymous')}
           </Text>
-          <Text style={[styles.commentTime, { color: colors.textSecondary }]}>
-            {formatDate(item.createdAt)}
-          </Text>
+          <View style={styles.commentHeaderRight}>
+            <Text style={[styles.commentTime, { color: colors.textSecondary }]}>
+              {formatDate(item.createdAt)}
+            </Text>
+            {/* Delete button for admin or comment owner */}
+            {canDeleteComment(item) && (
+              <TouchableOpacity
+                style={styles.commentDeleteButton}
+                onPress={() => handleDeleteComment(item)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <Text style={[styles.commentText, { color: colors.text }]}>
           {item.content}
         </Text>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   if (!post) return null;
@@ -735,6 +752,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  commentHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  commentDeleteButton: {
+    padding: 4,
   },
   commentUserName: {
     fontSize: 14,
