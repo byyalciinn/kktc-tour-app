@@ -62,20 +62,31 @@ export interface CreateNotificationInput {
 // NOTIFICATION CONFIGURATION
 // =============================================
 
-// Configure how notifications appear when app is in foreground
-// Wrapped in try-catch to prevent crashes on app startup in production
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch (error) {
-  console.warn('[Notifications] Failed to set notification handler:', error);
+// Lazy initialization flag to prevent multiple setups
+let notificationHandlerConfigured = false;
+
+/**
+ * Configure notification handler - call this before registering for push notifications
+ * This is lazy-loaded to prevent crashes on app startup
+ */
+export function configureNotificationHandler(): void {
+  if (notificationHandlerConfigured) return;
+  
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    notificationHandlerConfigured = true;
+    logger.info('[Notifications] Handler configured successfully');
+  } catch (error) {
+    logger.warn('[Notifications] Failed to set notification handler:', error);
+  }
 }
 
 // =============================================
@@ -218,6 +229,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * Register for push notifications with detailed status
  */
 export async function registerForPushNotificationsWithStatus(): Promise<NotificationRegistrationResult> {
+  // Configure notification handler first (lazy initialization)
+  configureNotificationHandler();
+  
   // Check if physical device
   if (!Device.isDevice) {
     logger.info('[Notifications] Push notifications require a physical device');

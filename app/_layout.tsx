@@ -1,22 +1,25 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore } from '@/stores';
 import { Toast, ErrorBoundary, LoadingScreen } from '@/components/ui';
-import { usePushNotifications } from '@/hooks';
 
-// Initialize i18n - wrapped in try-catch for safety
-try {
-  require('@/lib/i18n');
-} catch (error) {
-  console.warn('[_layout] Failed to initialize i18n:', error);
-}
+// Lazy load i18n to prevent startup crashes
+let i18nInitialized = false;
+const initI18n = () => {
+  if (i18nInitialized) return;
+  try {
+    require('@/lib/i18n');
+    i18nInitialized = true;
+  } catch (error) {
+    console.warn('[_layout] Failed to initialize i18n:', error);
+  }
+};
 
 export default function RootLayout() {
   const { colorScheme } = useThemeStore();
   const segments = useSegments();
-  const [isReady, setIsReady] = useState(false);
+  const [isAppReady, setIsAppReady] = useState(false);
   
   // Zustand auth store
   const { user, loading, initialized, initialize } = useAuthStore();
@@ -27,17 +30,38 @@ export default function RootLayout() {
   // 2FA store - check if 2FA verification is pending or being checked
   const { isPending: is2FAPending, isCheckingRequired: is2FAChecking } = useTwoFactorStore();
   
-  // Initialize push notifications - only after app is ready
-  usePushNotifications();
-  
-  // Mark app as ready after initial render
+  // Initialize i18n and push notifications after app is ready
   useEffect(() => {
-    // Small delay to ensure native modules are ready
+    // Initialize i18n first
+    initI18n();
+    
+    // Small delay to ensure native modules are fully ready before any native calls
     const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
+      setIsAppReady(true);
+    }, 50);
     return () => clearTimeout(timer);
   }, []);
+  
+  // Initialize push notifications only when app is ready and user exists
+  useEffect(() => {
+    if (!isAppReady || !user) return;
+    
+    // Dynamically import notification service to avoid early native module access
+    const initPushNotifications = async () => {
+      try {
+        const notificationService = await import('@/lib/notificationService');
+        const token = await notificationService.registerForPushNotifications();
+        if (token) {
+          await notificationService.savePushToken(user.id, token);
+          console.log('[_layout] Push notifications registered');
+        }
+      } catch (error) {
+        console.warn('[_layout] Failed to initialize push notifications:', error);
+      }
+    };
+    
+    initPushNotifications();
+  }, [isAppReady, user?.id]);
 
   // Initialize auth and intro status on mount
   useEffect(() => {
@@ -64,6 +88,12 @@ export default function RootLayout() {
       return;
     }
 
+    // Navigation state henüz hazır değilse bekle (auth state değişimi sırasında segments undefined olabilir)
+    if (segments[0] === undefined) {
+      console.log('[_layout] Segments not ready, waiting for navigation state...');
+      return;
+    }
+
     const inAuthGroup = segments[0] === '(auth)';
     const inIntro = segments[0] === 'intro';
 
@@ -87,14 +117,10 @@ export default function RootLayout() {
         return;
       }
       
-      // 2FA kontrolü yapılıyorsa, auth sayfasında kal (intro'ya düşmesin)
+      // 2FA kontrolü yapılıyorsa, navigasyonu tamamen askıya al
+      // Redirect yapmadan mevcut ekranda kal - handleLogin tamamlandığında yönlendirme yapılacak
       if (is2FAChecking) {
-        if (!inAuthGroup) {
-          console.log('[_layout] 2FA checking, redirecting to auth to prevent intro flash');
-          router.replace('/(auth)');
-        } else {
-          console.log('[_layout] 2FA checking, staying on auth...');
-        }
+        console.log('[_layout] 2FA checking in progress, suspending navigation...');
         return;
       }
       
@@ -127,7 +153,8 @@ export default function RootLayout() {
     }
   }, [user, loading, initialized, segments, hasSeenIntro, isCheckingIntro, is2FAPending, is2FAChecking]);
 
-  if (!initialized || loading || isCheckingIntro) {
+  // Loading ekranı göster: initialization, loading, intro check veya 2FA check sırasında
+  if (!initialized || loading || isCheckingIntro || is2FAChecking) {
     return <LoadingScreen />;
   }
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cyprigo",
     "slug": "cyprigo",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -14,9 +14,8 @@
       "backgroundColor": "#F3F2EE"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.cyprigo.app",
-      "buildNumber": "5",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
