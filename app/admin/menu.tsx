@@ -321,9 +321,16 @@ export default function AdminMenuScreen() {
     if (error) {
       Alert.alert('Hata', error);
     } else {
+      // Otomatik olarak gönder - realtime sync için gerekli
+      if (data?.id) {
+        const sendResult = await sendNotification(data.id);
+        if (!sendResult.success) {
+          console.warn('Bildirim gönderme hatası:', sendResult.error);
+        }
+      }
       await loadNotifications();
       setIsNotificationModalVisible(false);
-      Alert.alert('Başarılı', 'Bildirim oluşturuldu');
+      Alert.alert('Başarılı', 'Bildirim oluşturuldu ve gönderildi');
     }
 
     setIsSendingNotification(false);

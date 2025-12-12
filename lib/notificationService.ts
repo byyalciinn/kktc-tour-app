@@ -743,10 +743,13 @@ export function subscribeToNotifications(
 ) {
   console.log('[Notifications] Setting up realtime subscription for user:', userId);
   
+  // Track processed notification IDs to prevent duplicates
+  const processedIds = new Set<string>();
+  
   // Subscribe to notifications table for this user
   const channel = supabase
     .channel(`notifications:${userId}`)
-    // Listen for notifications targeted to all users
+    // Listen for notifications targeted to all users (INSERT)
     .on(
       'postgres_changes',
       {
@@ -756,13 +759,17 @@ export function subscribeToNotifications(
         filter: `target=eq.all`,
       },
       async (payload) => {
-        console.log('[Notifications] New broadcast notification:', payload.new);
-        if (payload.new && (payload.new as any).status === 'sent') {
-          onNewNotification(payload.new as NotificationData);
+        const newData = payload.new as any;
+        console.log('[Notifications] New broadcast notification INSERT:', newData);
+        
+        // If already sent on insert (single-step creation), process immediately
+        if (newData && newData.status === 'sent' && !processedIds.has(newData.id)) {
+          processedIds.add(newData.id);
+          onNewNotification(newData as NotificationData);
         }
       }
     )
-    // Listen for notifications targeted to this specific user
+    // Listen for notifications targeted to this specific user (INSERT)
     .on(
       'postgres_changes',
       {
@@ -772,13 +779,18 @@ export function subscribeToNotifications(
         filter: `target_user_id=eq.${userId}`,
       },
       async (payload) => {
-        console.log('[Notifications] New user notification:', payload.new);
-        if (payload.new && (payload.new as any).status === 'sent') {
-          onNewNotification(payload.new as NotificationData);
+        const newData = payload.new as any;
+        console.log('[Notifications] New user notification INSERT:', newData);
+        
+        // If already sent on insert, process immediately
+        if (newData && newData.status === 'sent' && !processedIds.has(newData.id)) {
+          processedIds.add(newData.id);
+          onNewNotification(newData as NotificationData);
         }
       }
     )
     // Listen for notification status updates (e.g., pending -> sent)
+    // This catches the case when notification is created first, then sent separately
     .on(
       'postgres_changes',
       {
@@ -788,14 +800,21 @@ export function subscribeToNotifications(
       },
       async (payload) => {
         const newData = payload.new as any;
-        const oldData = payload.old as any;
         
-        // If notification just became 'sent' and is for this user or all
-        if (newData.status === 'sent' && oldData.status !== 'sent') {
+        // Check if notification just became 'sent' and is for this user or all
+        // Note: We check newData.status === 'sent' without relying on oldData
+        // because REPLICA IDENTITY might not be set
+        if (newData && newData.status === 'sent' && !processedIds.has(newData.id)) {
           if (newData.target === 'all' || newData.target_user_id === userId) {
             console.log('[Notifications] Notification status changed to sent:', newData);
+            processedIds.add(newData.id);
             onNewNotification(newData as NotificationData);
           }
+        }
+        
+        // Call update callback if provided
+        if (onNotificationUpdate) {
+          onNotificationUpdate();
         }
       }
     )
@@ -806,6 +825,7 @@ export function subscribeToNotifications(
   // Return unsubscribe function
   return () => {
     console.log('[Notifications] Unsubscribing from realtime');
+    processedIds.clear();
     supabase.removeChannel(channel);
   };
 }

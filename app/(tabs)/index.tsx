@@ -169,9 +169,17 @@ export default function HomeScreen() {
       }
     );
 
-    // Cleanup subscription on unmount
+    // Polling fallback: Check for new notifications every 30 seconds
+    // This ensures notifications are synced even if realtime fails
+    const pollingInterval = setInterval(async () => {
+      const count = await getUnreadCount(user.id);
+      setUnreadNotificationCount(count);
+    }, 30000);
+
+    // Cleanup subscription and polling on unmount
     return () => {
       unsubscribe();
+      clearInterval(pollingInterval);
     };
   }, [user?.id, setUnreadNotificationCount, incrementUnreadNotificationCount]);
 
@@ -226,7 +234,13 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     const { refreshTours } = useTourStore.getState();
     await refreshTours();
-  }, []);
+    
+    // Also refresh notification count on pull-to-refresh
+    if (user?.id) {
+      const count = await getUnreadCount(user.id);
+      setUnreadNotificationCount(count);
+    }
+  }, [user?.id, setUnreadNotificationCount]);
 
   const handleTourPress = (tour: Tour) => {
     openTourDetail(tour);

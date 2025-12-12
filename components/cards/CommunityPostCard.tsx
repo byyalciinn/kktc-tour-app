@@ -127,22 +127,6 @@ function CommunityPostCardComponent({
     };
   }, []);
 
-  // Get post type icon and label
-  const getTypeInfo = () => {
-    switch (post.type) {
-      case 'photo':
-        return { icon: 'camera', label: t('community.types.photo'), color: '#4A90D9' };
-      case 'review':
-        return { icon: 'chatbubble', label: t('community.types.review'), color: '#50C878' };
-      case 'suggestion':
-        return { icon: 'bulb', label: t('community.types.suggestion'), color: '#FFB347' };
-      default:
-        return { icon: 'document', label: '', color: colors.primary };
-    }
-  };
-
-  const typeInfo = getTypeInfo();
-
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -325,10 +309,6 @@ function CommunityPostCardComponent({
               <View style={styles.postMeta}>
                 <Text style={[styles.postTime, { color: colors.textSecondary }]}>
                   {formatDate(post.createdAt)}
-                </Text>
-                <View style={[styles.typeDot, { backgroundColor: typeInfo.color }]} />
-                <Text style={[styles.typeText, { color: typeInfo.color }]}>
-                  {typeInfo.label}
                 </Text>
               </View>
             </View>
@@ -519,16 +499,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 2,
     gap: 6,
-  },
-  typeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  typeText: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '500',
   },
   menuButton: {
     width: 36,

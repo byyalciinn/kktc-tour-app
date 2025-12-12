@@ -207,8 +207,12 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       const enrichedData = await enrichPostsWithRelations(data || []);
       const newPosts = enrichedData.map(post => postDataToPost(post));
       
+      // Filter out duplicates
+      const existingIds = new Set(posts.map(p => p.id));
+      const uniqueNewPosts = newPosts.filter(p => !existingIds.has(p.id));
+      
       set({ 
-        posts: [...posts, ...newPosts],
+        posts: [...posts, ...uniqueNewPosts],
         isLoadingMore: false,
         hasMore: data.length === PAGE_SIZE,
         page: page + 1,

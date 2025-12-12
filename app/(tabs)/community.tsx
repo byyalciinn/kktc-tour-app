@@ -380,7 +380,7 @@ export default function CommunityScreen() {
       <FlatList
         data={visiblePosts}
         renderItem={renderPostItem}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+        keyExtractor={(item) => item.id}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}

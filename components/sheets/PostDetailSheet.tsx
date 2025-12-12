@@ -239,23 +239,6 @@ export default function PostDetailSheet({
     );
   };
 
-  // Get post type info
-  const getTypeInfo = () => {
-    if (!post) return { icon: 'document', label: '', color: colors.primary };
-    switch (post.type) {
-      case 'photo':
-        return { icon: 'camera', label: t('community.types.photo'), color: '#4A90D9' };
-      case 'review':
-        return { icon: 'chatbubble', label: t('community.types.review'), color: '#50C878' };
-      case 'suggestion':
-        return { icon: 'bulb', label: t('community.types.suggestion'), color: '#FFB347' };
-      default:
-        return { icon: 'document', label: '', color: colors.primary };
-    }
-  };
-
-  const typeInfo = getTypeInfo();
-
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -344,12 +327,7 @@ export default function PostDetailSheet({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="chevron-down" size={28} color={colors.text} />
           </TouchableOpacity>
-          <View style={[styles.typeBadge, { backgroundColor: `${typeInfo.color}20` }]}>
-            <Ionicons name={typeInfo.icon as any} size={14} color={typeInfo.color} />
-            <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>
-              {typeInfo.label}
-            </Text>
-          </View>
+          <View style={{ flex: 1 }} />
           <View style={{ width: 40 }} />
         </View>
 
@@ -601,19 +579,6 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  typeBadgeText: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
   },
   content: {
     flex: 1,
