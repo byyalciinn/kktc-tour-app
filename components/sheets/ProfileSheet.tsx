@@ -450,7 +450,7 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
 
             {/* App Version */}
             <Text style={[styles.versionText, { color: colors.textSecondary }]}>
-              Cyprigo 0.1.1
+              Cyprigo 1.0
             </Text>
           </ScrollView>
         </View>

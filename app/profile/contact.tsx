@@ -27,21 +27,21 @@ import { useTranslation } from 'react-i18next';
 const CONTACT_CHANNELS = [
   {
     id: 'phone',
-    value: '+90 392 123 45 67',
+    value: '0548 866 83 40',
     icon: 'call-outline',
-    action: 'tel:+903921234567',
+    action: 'tel:+905488668340',
   },
   {
     id: 'whatsapp',
-    value: '+90 533 123 45 67',
+    value: '0548 866 83 40',
     icon: 'logo-whatsapp',
-    action: 'https://wa.me/905331234567',
+    action: 'https://wa.me/905488668340',
   },
   {
     id: 'email',
-    value: 'destek@kktctour.com',
+    value: 'cyprurigo@gmail.com',
     icon: 'mail-outline',
-    action: 'mailto:destek@kktctour.com',
+    action: 'mailto:cyprurigo@gmail.com',
   },
 ] as const;
 
@@ -123,6 +123,24 @@ export default function ContactScreen() {
           </View>
           <Ionicons name="chevron-forward" size={22} color={colors.primary} />
         </TouchableOpacity>
+
+        {/* Info Section - Removal Request */}
+        <View
+          style={[
+            styles.infoSection,
+            {
+              backgroundColor: isDark ? colors.primary + '15' : colors.primary + '08',
+              borderColor: isDark ? colors.primary + '30' : colors.primary + '20',
+            },
+          ]}
+        >
+          <View style={[styles.infoIconContainer, { backgroundColor: colors.primary + '20' }]}>
+            <Ionicons name="information-circle-outline" size={26} color={colors.primary} />
+          </View>
+          <Text style={[styles.infoText, { color: colors.text }]}>
+            Listelerimizde yer almak istemeyen bir yer mi gördünüz? Desteğiniz için teşekkür ederiz. İlgili mekanın/bölgenin listeden çıkarılması için hemen şimdi bir destek bileti oluşturabilirsiniz.
+          </Text>
+        </View>
 
         {/* Quick Contact Section - Minimal design */}
         <View style={styles.section}>
@@ -277,6 +295,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     lineHeight: 18,
+  },
+  questionExtra: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    lineHeight: 18,
+    marginTop: 6,
+  },
+  infoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 14,
+    marginBottom: 24,
+  },
+  infoIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    lineHeight: 20,
   },
 
   // Sections

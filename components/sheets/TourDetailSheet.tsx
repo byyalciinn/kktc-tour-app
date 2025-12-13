@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -64,6 +64,16 @@ export default function TourDetailSheet({
       setCurrentTour(tour);
     }
   }, [tour]);
+
+  // Reset currentTour after sheet is fully closed (after animation delay)
+  useEffect(() => {
+    if (!visible) {
+      const timer = setTimeout(() => {
+        setCurrentTour(null);
+      }, 350); // Slightly longer than close animation
+      return () => clearTimeout(timer);
+    }
+  }, [visible]);
 
   // Related tours (same category, excluding current)
   const relatedTours = currentTour
@@ -153,53 +163,100 @@ export default function TourDetailSheet({
   };
 
   const handleClose = useCallback(() => {
+    // Stop any ongoing animations first
+    slideAnim.stopAnimation();
+    fadeAnim.stopAnimation();
+    
     Animated.parallel([
-      Animated.spring(slideAnim, {
+      Animated.timing(slideAnim, {
         toValue: height,
+        duration: 250,
         useNativeDriver: true,
-        damping: 25,
-        stiffness: 300,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 150,
+        duration: 200,
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      onClose();
+    ]).start((finished) => {
+      // Only call onClose if animation completed or was interrupted
+      if (finished.finished || !visible) {
+        onClose();
+      }
     });
-  }, [slideAnim, fadeAnim, onClose]);
+  }, [slideAnim, fadeAnim, onClose, visible]);
 
-  // Pan responder for drag to close
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return gestureState.dy > 10;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy > 0) {
-          slideAnim.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-          // Haptic feedback on sheet dismiss
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          handleClose();
-        } else {
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-            damping: 25,
-            stiffness: 300,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  // Ref to track if close is in progress to prevent double-close
+  const isClosingRef = useRef(false);
 
-  if (!currentTour) return null;
+  // Pan responder for drag to close - using useMemo to recreate when handleClose changes
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          // Only respond to downward gestures and not during close
+          return gestureState.dy > 10 && !isClosingRef.current;
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (gestureState.dy > 0 && !isClosingRef.current) {
+            slideAnim.setValue(gestureState.dy);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (isClosingRef.current) return;
+          
+          if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+            // Haptic feedback on sheet dismiss
+            isClosingRef.current = true;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleClose();
+          } else {
+            Animated.spring(slideAnim, {
+              toValue: 0,
+              useNativeDriver: true,
+              damping: 25,
+              stiffness: 300,
+            }).start();
+          }
+        },
+      }),
+    [handleClose, slideAnim]
+  );
+
+  // Reset closing ref when visibility changes
+  useEffect(() => {
+    if (visible) {
+      isClosingRef.current = false;
+    }
+  }, [visible]);
+
+  // Reset animations when sheet is closed
+  useEffect(() => {
+    if (!visible) {
+      // Reset animation values for next open
+      slideAnim.setValue(height);
+      fadeAnim.setValue(0);
+    }
+  }, [visible, slideAnim, fadeAnim]);
+
+  // Don't render if no tour and not visible
+  if (!currentTour && !visible) return null;
+
+  // If closing (visible but no currentTour), still render Modal but let it close
+  if (!currentTour) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={onClose}
+      >
+        <View style={styles.backdrop} />
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -219,7 +276,15 @@ export default function TourDetailSheet({
           },
         ]}
       >
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={handleClose} />
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill} 
+          onPress={() => {
+            if (!isClosingRef.current) {
+              isClosingRef.current = true;
+              handleClose();
+            }
+          }} 
+        />
       </Animated.View>
 
       {/* Sheet */}
@@ -251,7 +316,12 @@ export default function TourDetailSheet({
                 styles.topButton,
                 { backgroundColor: isDark ? 'rgba(40,40,40,0.95)' : 'rgba(255, 255, 255, 0.95)' }
               ]}
-              onPress={handleClose}
+              onPress={() => {
+                if (!isClosingRef.current) {
+                  isClosingRef.current = true;
+                  handleClose();
+                }
+              }}
               activeOpacity={0.8}
             >
               <Ionicons name="chevron-back" size={24} color={isDark ? '#FFF' : '#000'} />

@@ -151,13 +151,8 @@ const TourPreviewCard = memo(function TourPreviewCard({
               {tour.location}
             </Text>
           </View>
-          <View style={styles.tourPreviewBottom}>
-            <Text style={[styles.tourPreviewPrice, { color: colors.primary }]}>
-              {tour.currency}{tour.price}
-            </Text>
-            <View style={[styles.tourPreviewButton, { backgroundColor: colors.primary }]}>
-              <Ionicons name="arrow-forward" size={14} color="#FFF" />
-            </View>
+          <View style={[styles.tourPreviewButton, { backgroundColor: colors.primary }]}>
+            <Ionicons name="arrow-forward" size={14} color="#FFF" />
           </View>
         </View>
       </TouchableOpacity>
@@ -212,11 +207,6 @@ const TourListItem = memo(function TourListItem({
           <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
           <Text style={[styles.tourLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
             {tour.location}
-          </Text>
-        </View>
-        <View style={styles.tourPriceRow}>
-          <Text style={[styles.tourPrice, { color: colors.primary }]}>
-            {tour.currency}{tour.price}
           </Text>
         </View>
       </View>
@@ -429,11 +419,19 @@ export default function ExploreScreen() {
     })
   , [sheetHeight, snapToHeight]);
 
-  // Filter tours by category - only show tours with coordinates (memoized)
-  const filteredTours = useMemo(() => {
+  // Filter tours by category - for map markers (only with coordinates)
+  const filteredToursForMap = useMemo(() => {
     return tours.filter((tour) => {
       const hasCoordinates = tour.latitude && tour.longitude;
       if (!hasCoordinates) return false;
+      if (activeCategory === 'all') return true;
+      return tour.category === activeCategory;
+    });
+  }, [tours, activeCategory]);
+
+  // Filter tours by category - for list (all tours, with or without coordinates)
+  const filteredToursForList = useMemo(() => {
+    return tours.filter((tour) => {
       if (activeCategory === 'all') return true;
       return tour.category === activeCategory;
     });
@@ -666,12 +664,12 @@ export default function ExploreScreen() {
   // Memoized MapMarkers to prevent unnecessary re-renders
   const memoizedMapMarkers = useMemo(() => (
     <MapMarkers
-      tours={filteredTours}
+      tours={filteredToursForMap}
       categoryIconMap={categoryIconMap}
       primaryColor={colors.primary}
       onMarkerPress={handleMarkerPress}
     />
-  ), [filteredTours, categoryIconMap, colors.primary, handleMarkerPress]);
+  ), [filteredToursForMap, categoryIconMap, colors.primary, handleMarkerPress]);
 
   return (
     <View style={styles.container}>
@@ -969,8 +967,8 @@ export default function ExploreScreen() {
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
               </View>
-            ) : filteredTours.length > 0 ? (
-              filteredTours.slice(0, 10).map((tour: Tour) => (
+            ) : filteredToursForList.length > 0 ? (
+              filteredToursForList.slice(0, 10).map((tour: Tour) => (
                 <TourListItem
                   key={tour.id}
                   tour={tour}
@@ -1088,7 +1086,7 @@ export default function ExploreScreen() {
               ))
             ) : (
               // All Tours
-              filteredTours.map((tour: Tour) => (
+              filteredToursForList.map((tour: Tour) => (
                 <TouchableOpacity
                   key={tour.id}
                   style={[styles.viewAllTourCard, { backgroundColor: isDark ? 'rgba(30,30,30,0.95)' : 'rgba(255,255,255,0.9)', borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)' }]}
@@ -1114,9 +1112,6 @@ export default function ExploreScreen() {
                         {tour.location}
                       </Text>
                     </View>
-                    <Text style={[styles.viewAllTourPrice, { color: colors.primary }]}>
-                      {tour.currency}{tour.price}
-                    </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={isDark ? '#FFF' : colors.textSecondary} />
                 </TouchableOpacity>
@@ -1354,17 +1349,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
-  tourPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  tourPrice: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '700',
-  },
   tourRating: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1560,12 +1544,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
-  viewAllTourPrice: {
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '700',
-    marginTop: 2,
-  },
   // Premium Map Control Styles
   mapControlButton: {
     justifyContent: 'center',
@@ -1665,17 +1643,6 @@ const styles = StyleSheet.create({
   tourPreviewLocation: {
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-  },
-  tourPreviewBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  tourPreviewPrice: {
-    fontSize: 17,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '700',
   },
   tourPreviewButton: {
     width: 32,

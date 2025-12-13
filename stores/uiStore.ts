@@ -93,11 +93,17 @@ export const useUIStore = create<UIState>((set, get) => ({
     selectedTour: tour, 
     isTourDetailVisible: true,
   }),
-  closeTourDetail: () => set({ 
-    isTourDetailVisible: false,
-    // Keep selectedTour briefly for closing animation
-    // It will be cleared on next open
-  }),
+  closeTourDetail: () => {
+    set({ isTourDetailVisible: false });
+    // Clear selectedTour after a brief delay to allow closing animation
+    setTimeout(() => {
+      const state = get();
+      // Only clear if still closed (not reopened)
+      if (!state.isTourDetailVisible) {
+        set({ selectedTour: null });
+      }
+    }, 300);
+  },
 
   // Notification sheet
   openNotificationSheet: () => set({ isNotificationSheetVisible: true }),

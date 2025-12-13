@@ -300,8 +300,10 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
+    width: '100%',
   },
   headerTitle: {
     fontSize: 32,
@@ -310,6 +312,8 @@ const styles = StyleSheet.create({
   headerCount: {
     fontSize: 16,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    textAlign: 'right',
+    flexShrink: 1,
   },
   premiumBadge: {
     flexDirection: 'row',
