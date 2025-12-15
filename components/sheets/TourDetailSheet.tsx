@@ -752,6 +752,7 @@ const styles = StyleSheet.create({
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 'auto',
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 28,

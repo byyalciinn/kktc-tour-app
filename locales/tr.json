@@ -268,7 +268,14 @@
       "serviceUnavailable": "Servis geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
       "serverError": "Sunucu hatası oluştu. Lütfen tekrar deneyin.",
       "analysisError": "Görsel analiz edilemedi. Lütfen tekrar deneyin.",
+      "noImageSelected": "Görsel seçilmedi.",
+      "parseError": "Analiz sonucu okunamadı. Lütfen tekrar deneyin.",
+      "imageProcessingFailed": "Görsel işlenemedi. Lütfen tekrar deneyin.",
       "analysisFailed": "Analiz Başarısız"
+    },
+    "fallback": {
+      "unknownPlace": "Bilinmeyen Yer",
+      "noDescription": "Açıklama bulunamadı"
     }
   },
   "profile": {
@@ -284,6 +291,16 @@
     "idInfo": "Kimlik Bilgileri",
     "paymentMethods": "Ödeme Yöntemleri",
     "tourPreferences": "Tur Tercihleri",
+    "blockedUsers": "Engellenen Kullanıcılar",
+    "noBlockedUsers": "Engellenen Kullanıcı Yok",
+    "noBlockedUsersSubtitle": "Engellediğiniz kullanıcılar burada görünecek. İstediğiniz zaman engellerini kaldırabilirsiniz.",
+    "blockedUsersInfo": "Engellenen kullanıcılar paylaşımlarınızı ve yorumlarınızı göremez, siz de onlarınkini göremezsiniz.",
+    "blockedOn": "{{date}} tarihinde engellendi",
+    "unblock": "Engeli Kaldır",
+    "unblockUserTitle": "Engeli Kaldır",
+    "unblockUserMessage": "{{name}} kullanıcısının engelini kaldırmak istediğinize emin misiniz? İçeriklerinizi tekrar görebilecek.",
+    "userUnblocked": "Engel Kaldırıldı",
+    "userUnblockedMessage": "Bu kullanıcının içeriklerini artık görebilirsiniz.",
     "support": "Destek",
     "help": "Yardım",
     "contact": "İletişim",
@@ -804,6 +821,9 @@
     "addComment": "Yorum yazın...",
     "deleteComment": "Yorumu Sil",
     "deleteCommentConfirm": "Bu yorumu silmek istediğinize emin misiniz?",
+    "commentOptions": "Yorum Seçenekleri",
+    "reportCommentTitle": "Yorumu Şikayet Et",
+    "reportCommentMessage": "Bu yorumu neden şikayet etmek istiyorsunuz?",
     "deletePost": "Paylaşımı Sil",
     "deletePostConfirm": "Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
     "postOptions": "Paylaşım Seçenekleri",

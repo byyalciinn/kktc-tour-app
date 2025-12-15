@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, memo } from 'react';
+import React, { useRef, useEffect, useMemo, useState, memo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { ContextMenu, Button, Host } from '@expo/ui/swift-ui';
+import Constants from 'expo-constants';
+import { requireNativeViewManager } from 'expo-modules-core';
 
 import { Colors } from '@/constants/Colors';
 import { CommunityPost } from '@/types';
@@ -93,6 +96,21 @@ function CommunityPostCardComponent({
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
   const { user } = useAuthStore();
+
+  const isExpoGo =
+    (Constants as any)?.executionEnvironment === 'storeClient' ||
+    (Constants as any)?.appOwnership === 'expo';
+
+  const isExpoUIAvailable = useMemo(() => {
+    if (Platform.OS !== 'ios') return false;
+    if (isExpoGo) return false;
+    try {
+      requireNativeViewManager('ExpoUI');
+      return true;
+    } catch {
+      return false;
+    }
+  }, [isExpoGo]);
   
   // Check if current user owns this post
   const isOwnPost = user?.id === post.userId;
@@ -275,6 +293,62 @@ function CommunityPostCardComponent({
     }
   };
 
+  const confirmDeletePost = () => {
+    Alert.alert(
+      t('community.deletePost'),
+      t('community.deletePostConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => onDeletePress?.(post),
+        },
+      ]
+    );
+  };
+
+  const renderPostContextMenuIOS = () => {
+    if (!isExpoUIAvailable) return null;
+
+    return (
+      <Host matchContents>
+        <ContextMenu>
+          <ContextMenu.Items>
+            {isOwnPost ? (
+              onDeletePress ? (
+                <Button systemImage="trash" onPress={confirmDeletePost}>
+                  {t('common.delete')}
+                </Button>
+              ) : null
+            ) : (
+              <>
+                {onReportPress ? (
+                  <Button systemImage="flag" onPress={() => onReportPress?.(post)}>
+                    {t('community.report')}
+                  </Button>
+                ) : null}
+                {onBlockUserPress ? (
+                  <Button systemImage="hand.raised" onPress={() => onBlockUserPress?.(post)}>
+                    {t('community.blockUser')}
+                  </Button>
+                ) : null}
+                {onHidePress ? (
+                  <Button systemImage="eye.slash" onPress={() => onHidePress?.(post)}>
+                    {t('community.notInterested')}
+                  </Button>
+                ) : null}
+              </>
+            )}
+          </ContextMenu.Items>
+          <ContextMenu.Trigger>
+            <Button systemImage="ellipsis" variant="plain" />
+          </ContextMenu.Trigger>
+        </ContextMenu>
+      </Host>
+    );
+  };
+
   const hasImages = post.images && post.images.length > 0;
 
   return (
@@ -321,13 +395,17 @@ function CommunityPostCardComponent({
               </View>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.menuButton}
-            onPress={handleMenuPress}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
+          {isExpoUIAvailable ? (
+            renderPostContextMenuIOS()
+          ) : (
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={handleMenuPress}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Content */}

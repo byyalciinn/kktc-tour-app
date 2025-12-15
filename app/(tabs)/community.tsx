@@ -312,7 +312,13 @@ export default function CommunityScreen() {
           text: t('community.block'),
           style: 'destructive',
           onPress: async () => {
-            const { success, error } = await blockUser(user.id, post.userId, 'User blocked from community');
+            const { success, error } = await blockUser(
+              user.id, 
+              post.userId, 
+              `Blocked from post: ${post.title || post.content?.substring(0, 50)}...`,
+              'post',
+              post.id
+            );
             if (success) {
               Alert.alert(t('community.userBlocked'), t('community.userBlockedMessage'));
             } else {

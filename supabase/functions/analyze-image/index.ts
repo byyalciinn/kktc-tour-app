@@ -24,8 +24,38 @@ const corsHeaders = {
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000; // 2 seconds between retries
 
+// Network timeout configuration
+const REQUEST_TIMEOUT_MS = 25000;
+
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getRetryDelayMs(attempt: number, response?: Response): number {
+  const retryAfter = response?.headers?.get('retry-after');
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (!Number.isNaN(seconds) && seconds > 0) {
+      return Math.min(30000, seconds * 1000);
+    }
+  }
+
+  return RETRY_DELAY_MS * attempt;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function fetchWithRetry(
@@ -33,37 +63,47 @@ async function fetchWithRetry(
   retries = MAX_RETRIES
 ): Promise<Response> {
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const response = await fetchFn();
-    const clonedResponse = response.clone();
-    
-    // Check if response indicates overload
-    if (response.status === 503 || response.status === 429) {
-      console.log(`[RETRY] Attempt ${attempt}/${retries} - API overloaded, waiting...`);
-      if (attempt < retries) {
-        await sleep(RETRY_DELAY_MS * attempt); // Exponential backoff
-        continue;
-      }
-    }
-    
-    // Check response body for overload message
     try {
-      const body = await clonedResponse.json();
-      if (body?.error?.message?.includes('overloaded')) {
-        console.log(`[RETRY] Attempt ${attempt}/${retries} - Model overloaded, waiting...`);
+      const response = await fetchFn();
+      const clonedResponse = response.clone();
+
+      // Retry on transient HTTP statuses
+      if ([408, 429, 500, 502, 503, 504].includes(response.status)) {
+        console.log(`[RETRY] Attempt ${attempt}/${retries} - status=${response.status}`);
         if (attempt < retries) {
-          await sleep(RETRY_DELAY_MS * attempt);
+          await sleep(getRetryDelayMs(attempt, response));
           continue;
         }
       }
-    } catch {
-      // Ignore JSON parse errors
+
+      // Retry on overload message if JSON body exists
+      try {
+        const body = await clonedResponse.json();
+        const msg = body?.error?.message;
+        if (typeof msg === 'string' && msg.toLowerCase().includes('overloaded')) {
+          console.log(`[RETRY] Attempt ${attempt}/${retries} - Model overloaded`);
+          if (attempt < retries) {
+            await sleep(getRetryDelayMs(attempt, response));
+            continue;
+          }
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+
+      return response;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`[RETRY] Attempt ${attempt}/${retries} - fetch error: ${message}`);
+      if (attempt < retries) {
+        await sleep(getRetryDelayMs(attempt));
+        continue;
+      }
+      throw err;
     }
-    
-    return response;
   }
-  
-  // Final attempt
-  return fetchFn();
+
+  throw new Error('Unexpected retry loop termination');
 }
 
 // OPTIMIZED PROMPT: Türkçe çıktı için kısaltılmış şema
@@ -149,15 +189,16 @@ async function analyzeWithClaude(imageBase64: string): Promise<Response> {
 // Google Gemini 2.5 Flash - Most cost-effective option for vision tasks
 // With retry mechanism for overloaded API
 async function analyzeWithGemini(imageBase64: string): Promise<Response> {
-  return fetchWithRetry(() => 
-    fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+  return fetchWithRetry(() =>
+    fetchWithTimeout(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-goog-api-key': GEMINI_API_KEY ?? '',
         },
-        body: JSON.stringify({  
+        body: JSON.stringify({
           contents: [
             {
               parts: [
@@ -177,7 +218,8 @@ async function analyzeWithGemini(imageBase64: string): Promise<Response> {
             responseMimeType: 'application/json', // Force JSON output
           },
         }),
-      }
+      },
+      REQUEST_TIMEOUT_MS
     )
   );
 }
@@ -260,7 +302,28 @@ serve(async (req) => {
         apiResponse = await analyzeWithGemini(imageBase64);
     }
 
-    const result = await apiResponse.json();
+    const rawText = await apiResponse.text();
+    let parsedResult: any = null;
+    try {
+      parsedResult = rawText ? JSON.parse(rawText) : null;
+    } catch {
+      parsedResult = null;
+    }
+
+    if (!apiResponse.ok) {
+      const message =
+        parsedResult?.error?.message ||
+        parsedResult?.message ||
+        rawText ||
+        'Upstream provider error';
+
+      return new Response(
+        JSON.stringify({ error: { message, status: apiResponse.status, provider } }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = parsedResult ?? { error: { message: 'Empty response from provider' } };
 
     // Log usage for monitoring (token-efficient logging)
     console.log(`[SCAN] user=${user.id} provider=${provider}`);

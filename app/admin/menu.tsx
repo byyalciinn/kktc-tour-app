@@ -41,9 +41,9 @@ import {
 } from '@/lib/notificationService';
 import { CommunityPost } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
-import { UsersTab, PostsTab, RoutesTab, ReportsTab, TicketsTab } from '@/components/admin';
+import { UsersTab, PostsTab, RoutesTab, ReportsTab, TicketsTab, BlockReportsTab } from '@/components/admin';
 
-type TabType = 'tours' | 'categories' | 'notifications' | 'routes' | 'posts' | 'users' | 'reports' | 'tickets';
+type TabType = 'tours' | 'categories' | 'notifications' | 'routes' | 'posts' | 'users' | 'reports' | 'tickets' | 'blocks';
 
 const AVAILABLE_ICONS = [
   'apps-outline',
@@ -633,6 +633,29 @@ export default function AdminMenuScreen() {
             Biletler
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'blocks' && [styles.activeTab, { backgroundColor: colors.card }],
+          ]}
+          onPress={() => setActiveTab('blocks')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="ban-outline" 
+            size={18} 
+            color={activeTab === 'blocks' ? colors.primary : colors.textSecondary} 
+          />
+          <Text
+            style={[
+              styles.tabText,
+              { color: activeTab === 'blocks' ? colors.primary : colors.textSecondary },
+              activeTab === 'blocks' && styles.activeTabText,
+            ]}
+          >
+            Engellemeler
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Tours Tab Content */}
@@ -887,6 +910,11 @@ export default function AdminMenuScreen() {
       {/* Tickets Tab Content */}
       {activeTab === 'tickets' && (
         <TicketsTab colors={colors} isDark={isDark} insets={insets} />
+      )}
+
+      {/* Block Reports Tab Content */}
+      {activeTab === 'blocks' && (
+        <BlockReportsTab colors={colors} isDark={isDark} insets={insets} />
       )}
 
       {/* Category Add/Edit Modal */}

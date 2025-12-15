@@ -3,11 +3,12 @@
  */
 
 import { create } from 'zustand';
+import i18n from 'i18next';
 import { analyzeImage, VisionAnalysisResult } from '@/lib/visionService';
 import { logger } from '@/lib/logger';
 
 // Free tier scan limit
-const FREE_SCAN_LIMIT = 10;
+const FREE_SCAN_LIMIT = 3;
 const COOLDOWN_HOURS = 24;
 
 interface ScanState {
@@ -61,7 +62,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
     const { imageUri } = get();
     
     if (!imageUri) {
-      set({ error: 'No image selected' });
+      set({ error: i18n.t('scan.errors.noImageSelected') });
       return;
     }
 
@@ -109,7 +110,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
         set({
           analysisResult: result,
           isAnalyzing: false,
-          error: result.error || 'Analysis failed',
+          error: result.error || i18n.t('scan.errors.analysisError'),
         });
       }
       
@@ -118,7 +119,7 @@ export const useScanStore = create<ScanState>((set, get) => ({
       logger.error('Scan analysis error', error);
       set({
         isAnalyzing: false,
-        error: error instanceof Error ? error.message : 'Analysis failed',
+        error: error instanceof Error ? error.message : i18n.t('scan.errors.analysisError'),
       });
     }
   },

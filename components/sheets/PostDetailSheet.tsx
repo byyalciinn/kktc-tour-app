@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   Animated,
@@ -21,10 +22,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { ContextMenu, Button, Host } from '@expo/ui/swift-ui';
+import Constants from 'expo-constants';
+import { requireNativeViewManager } from 'expo-modules-core';
 
 import { Colors } from '@/constants/Colors';
 import { CommunityPost, CommunityComment } from '@/types';
-import { useCommunityStore, useAuthStore, useThemeStore } from '@/stores';
+import { useCommunityStore, useAuthStore, useThemeStore, useBlockStore } from '@/stores';
 import { getAvatarUrl } from '@/lib/avatarService';
 
 const { width, height } = Dimensions.get('window');
@@ -92,6 +96,23 @@ export default function PostDetailSheet({
     deleteComment,
     toggleLike,
   } = useCommunityStore();
+  const { blockedUserIds, blockUser } = useBlockStore();
+
+  const isExpoGo =
+    (Constants as any)?.executionEnvironment === 'storeClient' ||
+    (Constants as any)?.appOwnership === 'expo';
+
+  const isExpoUIAvailable = useMemo(() => {
+    if (Platform.OS !== 'ios') return false;
+    if (isExpoGo) return false;
+    try {
+      // Expo UI isn't included in Expo Go. This will throw there.
+      requireNativeViewManager('ExpoUI');
+      return true;
+    } catch {
+      return false;
+    }
+  }, [isExpoGo]);
 
   // Local state
   const [commentText, setCommentText] = useState('');
@@ -260,6 +281,190 @@ export default function PostDetailSheet({
     return comment.userId === user?.id || isAdmin;
   };
 
+  // Handle comment menu press for Android (UGC Compliance - Apple Guideline 1.2)
+  const handleCommentMenuPressAndroid = (comment: CommunityComment) => {
+    const isOwnComment = comment.userId === user?.id;
+    
+    if (isOwnComment) {
+      Alert.alert(
+        t('community.commentOptions'),
+        '',
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('common.delete'),
+            style: 'destructive',
+            onPress: () => handleDeleteComment(comment),
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        t('community.commentOptions'),
+        '',
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { 
+            text: t('community.blockUser'), 
+            style: 'destructive', 
+            onPress: () => handleBlockCommentUser(comment) 
+          },
+          { 
+            text: t('community.report'), 
+            onPress: () => handleReportComment(comment) 
+          },
+        ]
+      );
+    }
+  };
+
+  const handleCommentMenuPressIOS = (comment: CommunityComment) => {
+    const isOwnComment = comment.userId === user?.id;
+
+    const options = isOwnComment
+      ? [t('common.cancel'), t('common.delete')]
+      : [t('common.cancel'), t('community.blockUser'), t('community.report')];
+
+    const cancelButtonIndex = 0;
+    const destructiveButtonIndex = 1;
+
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        destructiveButtonIndex,
+      },
+      (buttonIndex) => {
+        if (isOwnComment) {
+          if (buttonIndex === 1) {
+            handleDeleteComment(comment);
+          }
+        } else {
+          if (buttonIndex === 1) {
+            handleBlockCommentUser(comment);
+          } else if (buttonIndex === 2) {
+            handleReportComment(comment);
+          }
+        }
+      }
+    );
+  };
+
+  // Handle block user from comment (UGC Compliance)
+  const handleBlockCommentUser = (comment: CommunityComment) => {
+    if (!user) return;
+    
+    Alert.alert(
+      t('community.blockUserTitle'),
+      t('community.blockUserMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('community.block'),
+          style: 'destructive',
+          onPress: async () => {
+            const { success, error } = await blockUser(
+              user.id, 
+              comment.userId, 
+              `Blocked from comment: ${comment.content?.substring(0, 50)}...`,
+              'comment',
+              comment.id
+            );
+            if (success) {
+              Alert.alert(t('community.userBlocked'), t('community.userBlockedMessage'));
+            } else {
+              Alert.alert(t('common.error'), error || t('common.error'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle report comment - reports to community_reports with comment reference
+  const handleReportComment = async (comment: CommunityComment) => {
+    if (!user || !post) return;
+    
+    const reasons = [
+      { id: 'spam', label: t('community.reportReasons.spam') },
+      { id: 'inappropriate', label: t('community.reportReasons.inappropriate') },
+      { id: 'harassment', label: t('community.reportReasons.harassment') },
+      { id: 'misinformation', label: t('community.reportReasons.misinformation') },
+      { id: 'other', label: t('community.reportReasons.other') },
+    ];
+
+    Alert.alert(
+      t('community.reportCommentTitle'),
+      t('community.reportCommentMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        ...reasons.map(reason => ({
+          text: reason.label,
+          onPress: async () => {
+            // Report comment via community_reports table with comment reference
+            const { reportPost } = useCommunityStore.getState();
+            const { success, error } = await reportPost(
+              post.id, 
+              reason.id as any,
+              `Comment report: "${comment.content?.substring(0, 100)}..." by user ${comment.userId}`
+            );
+            if (success) {
+              Alert.alert(t('community.reportSuccess'), t('community.reportSuccessMessage'));
+            } else {
+              Alert.alert(t('common.error'), error || t('community.reportError'));
+            }
+          },
+        })),
+      ]
+    );
+  };
+
+  // Filter comments to exclude blocked users
+  const filteredComments = useMemo(() => {
+    if (blockedUserIds.length === 0) return comments;
+    return comments.filter(comment => !blockedUserIds.includes(comment.userId));
+  }, [comments, blockedUserIds]);
+
+  // Render iOS Context Menu for comments
+  const renderCommentContextMenuIOS = (item: CommunityComment) => {
+    const isOwnComment = item.userId === user?.id;
+    
+    return (
+      <Host matchContents>
+        <ContextMenu>
+          <ContextMenu.Items>
+            {isOwnComment ? (
+              <Button
+                systemImage="trash"
+                onPress={() => handleDeleteComment(item)}
+              >
+                {t('common.delete')}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  systemImage="hand.raised"
+                  onPress={() => handleBlockCommentUser(item)}
+                >
+                  {t('community.blockUser')}
+                </Button>
+                <Button
+                  systemImage="flag"
+                  onPress={() => handleReportComment(item)}
+                >
+                  {t('community.report')}
+                </Button>
+              </>
+            )}
+          </ContextMenu.Items>
+          <ContextMenu.Trigger>
+            <Button systemImage="ellipsis" variant="plain" />
+          </ContextMenu.Trigger>
+        </ContextMenu>
+      </Host>
+    );
+  };
+
   // Render comment item
   const renderComment = ({ item }: { item: CommunityComment }) => (
     <View style={styles.commentItem}>
@@ -276,14 +481,20 @@ export default function PostDetailSheet({
             <Text style={[styles.commentTime, { color: colors.textSecondary }]}>
               {formatDate(item.createdAt)}
             </Text>
-            {/* Delete button for admin or comment owner */}
-            {canDeleteComment(item) && (
+            {/* Context Menu for comment options (UGC Compliance - iOS 26 native) */}
+            {isExpoUIAvailable ? (
+              renderCommentContextMenuIOS(item)
+            ) : (
               <TouchableOpacity
-                style={styles.commentDeleteButton}
-                onPress={() => handleDeleteComment(item)}
+                style={styles.commentMenuButton}
+                onPress={() =>
+                  Platform.OS === 'ios'
+                    ? handleCommentMenuPressIOS(item)
+                    : handleCommentMenuPressAndroid(item)
+                }
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+                <Ionicons name="ellipsis-horizontal" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -497,12 +708,12 @@ export default function PostDetailSheet({
 
               {isLoadingComments ? (
                 <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
-              ) : comments.length === 0 ? (
+              ) : filteredComments.length === 0 ? (
                 <Text style={[styles.noComments, { color: colors.textSecondary }]}>
                   {t('community.noComments')}
                 </Text>
               ) : (
-                comments.map((comment) => (
+                filteredComments.map((comment) => (
                   <View key={comment.id}>
                     {renderComment({ item: comment })}
                   </View>
@@ -758,7 +969,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  commentDeleteButton: {
+  commentMenuButton: {
     padding: 4,
   },
   commentUserName: {

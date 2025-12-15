@@ -280,7 +280,14 @@
       "serviceUnavailable": "Service is temporarily unavailable. Please try again later.",
       "serverError": "A server error occurred. Please try again.",
       "analysisError": "Unable to analyze the image. Please try again.",
+      "noImageSelected": "No image selected.",
+      "parseError": "We couldn't read the analysis result. Please try again.",
+      "imageProcessingFailed": "Couldn't process the image. Please try again.",
       "analysisFailed": "Analysis Failed"
+    },
+    "fallback": {
+      "unknownPlace": "Unknown Place",
+      "noDescription": "No description available"
     }
   },
   "profile": {
@@ -296,6 +303,16 @@
     "idInfo": "ID Information",
     "paymentMethods": "Payment Methods",
     "tourPreferences": "Tour Preferences",
+    "blockedUsers": "Blocked Users",
+    "noBlockedUsers": "No Blocked Users",
+    "noBlockedUsersSubtitle": "Users you block will appear here. You can unblock them anytime.",
+    "blockedUsersInfo": "Blocked users cannot see your posts or comments, and you won't see theirs.",
+    "blockedOn": "Blocked on {{date}}",
+    "unblock": "Unblock",
+    "unblockUserTitle": "Unblock User",
+    "unblockUserMessage": "Are you sure you want to unblock {{name}}? They will be able to see your content again.",
+    "userUnblocked": "User Unblocked",
+    "userUnblockedMessage": "You can now see content from this user again.",
     "support": "Support",
     "help": "Help",
     "contact": "Contact",
@@ -816,6 +833,9 @@
     "addComment": "Write a comment...",
     "deleteComment": "Delete Comment",
     "deleteCommentConfirm": "Are you sure you want to delete this comment?",
+    "commentOptions": "Comment Options",
+    "reportCommentTitle": "Report Comment",
+    "reportCommentMessage": "Why do you want to report this comment?",
     "deletePost": "Delete Post",
     "deletePostConfirm": "Are you sure you want to delete this post? This action cannot be undone.",
     "postOptions": "Post Options",
