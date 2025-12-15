@@ -74,7 +74,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
 
       // Fetch user profiles for blocked users
       const blockedIds = data?.map(b => b.blocked_id) || [];
-      let usersMap: Record<string, any> = {};
+      const usersMap: Record<string, any> = {};
       
       if (blockedIds.length > 0) {
         const { data: profiles } = await supabase

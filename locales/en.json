@@ -809,11 +809,11 @@
     },
     "fabMenu": {
       "sharePhoto": "Share Photo",
-      "sharePhotoDesc": "Share photos from places you've visited and immortalize your memories.",
+      "sharePhotoDesc": "Share photos from your trip.",
       "writeReview": "Write Review",
-      "writeReviewDesc": "Share your experiences and guide other travelers.",
+      "writeReviewDesc": "Write a quick review for others.",
       "makeSuggestion": "Make Suggestion",
-      "makeSuggestionDesc": "Share the hidden gem you discovered with the community."
+      "makeSuggestionDesc": "Suggest a hidden gem."
     },
     "empty": {
       "title": "No Posts Yet",

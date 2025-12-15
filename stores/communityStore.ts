@@ -26,8 +26,8 @@ async function enrichPostsWithRelations(posts: any[]): Promise<CommunityPostData
   const userIds = [...new Set(posts.map(p => p.user_id))];
   const tourIds = [...new Set(posts.filter(p => p.tour_id).map(p => p.tour_id))];
 
-  let profilesMap: Record<string, any> = {};
-  let toursMap: Record<string, any> = {};
+  const profilesMap: Record<string, any> = {};
+  const toursMap: Record<string, any> = {};
 
   // Fetch profiles
   if (userIds.length > 0) {
@@ -151,7 +151,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
     try {
       // All users see approved posts only
-      let query = supabase
+      const query = supabase
         .from('community_posts')
         .select('*')
         .eq('status', 'approved')
@@ -193,7 +193,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       const to = from + PAGE_SIZE - 1;
 
       // All users see approved posts only
-      let query = supabase
+      const query = supabase
         .from('community_posts')
         .select('*')
         .eq('status', 'approved')
@@ -441,7 +441,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
       // Fetch user profiles separately
       const userIds = [...new Set(data?.map(c => c.user_id) || [])];
-      let profilesMap: Record<string, any> = {};
+      const profilesMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase

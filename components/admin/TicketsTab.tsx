@@ -114,7 +114,7 @@ export default function TicketsTab({ colors, isDark, insets }: TicketsTabProps) 
 
       // Fetch user profiles
       const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
-      let usersMap: Record<string, any> = {};
+      const usersMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
         const { data: users } = await supabase

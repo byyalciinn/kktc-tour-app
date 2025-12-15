@@ -797,11 +797,11 @@
     },
     "fabMenu": {
       "sharePhoto": "Fotoğraf Paylaş",
-      "sharePhotoDesc": "Gezdiğin yerlerden fotoğraflar paylaş ve anılarını ölümsüzleştir.",
+      "sharePhotoDesc": "Gezinden fotoğraf paylaş.",
       "writeReview": "Değerlendirme Yaz",
-      "writeReviewDesc": "Deneyimlerini paylaş ve diğer gezginlere yol göster.",
+      "writeReviewDesc": "Kısa bir değerlendirme yaz.",
       "makeSuggestion": "Öneri Yap",
-      "makeSuggestionDesc": "Keşfettiğin gizli cenneti toplulukla paylaş."
+      "makeSuggestionDesc": "Gizli bir yer öner."
     },
     "empty": {
       "title": "Henüz Paylaşım Yok",

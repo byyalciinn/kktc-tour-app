@@ -546,7 +546,7 @@ export default function CommunityScreen() {
 
       {/* Animated Floating Action Button */}
       {user && (
-        <View style={[styles.fabContainer, { bottom: insets.bottom + 90 }]}>
+        <View pointerEvents="box-none" style={styles.fabContainer}>
           <AnimatedFab
             isFabOpen={isFabMenuOpen}
             handleFabPress={() => setIsFabMenuOpen(!isFabMenuOpen)}
@@ -554,6 +554,7 @@ export default function CommunityScreen() {
             items={fabMenuItems}
             fabIcon="add"
             backgroundColor={colors.primary}
+            bottomOffset={insets.bottom + 90}
           />
         </View>
       )}
@@ -730,10 +731,8 @@ const styles = StyleSheet.create({
   },
   // FAB Container
   fabContainer: {
-    position: 'absolute',
-    right: 0,
-    left: 0,
-    height: 56,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 200,
   },
   // Premium Paywall Styles
   premiumPostWrapper: {

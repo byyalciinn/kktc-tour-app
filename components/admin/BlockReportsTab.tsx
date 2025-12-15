@@ -113,7 +113,7 @@ export default function BlockReportsTab({ colors, isDark, insets }: BlockReports
       const reportedIds = [...new Set(reportsData?.map(r => r.reported_user_id) || [])];
       const allUserIds = [...new Set([...reporterIds, ...reportedIds])];
 
-      let usersMap: Record<string, any> = {};
+      const usersMap: Record<string, any> = {};
       if (allUserIds.length > 0) {
         const { data: users } = await supabase
           .from('profiles')

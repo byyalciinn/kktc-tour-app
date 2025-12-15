@@ -118,7 +118,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
       const postIds = [...new Set(reportsData?.map(r => r.post_id) || [])];
 
       // Fetch reporters
-      let reportersMap: Record<string, any> = {};
+      const reportersMap: Record<string, any> = {};
       if (reporterIds.length > 0) {
         const { data: reporters } = await supabase
           .from('profiles')
@@ -128,7 +128,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
       }
 
       // Fetch posts
-      let postsMap: Record<string, any> = {};
+      const postsMap: Record<string, any> = {};
       if (postIds.length > 0) {
         const { data: posts } = await supabase
           .from('community_posts')
@@ -137,7 +137,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
         
         // Fetch post owners
         const postOwnerIds = [...new Set(posts?.map(p => p.user_id) || [])];
-        let postOwnersMap: Record<string, any> = {};
+        const postOwnersMap: Record<string, any> = {};
         if (postOwnerIds.length > 0) {
           const { data: owners } = await supabase
             .from('profiles')
