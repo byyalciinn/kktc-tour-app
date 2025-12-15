@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore, useUIStore, useThemeStore } from '@/stores';
@@ -45,7 +46,11 @@ interface NotificationSheetProps {
 }
 
 // Helper to format relative time
-const formatRelativeTime = (dateString: string): string => {
+const formatRelativeTime = (
+  dateString: string,
+  t: (key: string, options?: any) => string,
+  language: string
+): string => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -53,20 +58,26 @@ const formatRelativeTime = (dateString: string): string => {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Az önce';
-  if (diffMins < 60) return `${diffMins} dakika önce`;
-  if (diffHours < 24) return `${diffHours} saat önce`;
-  if (diffDays < 7) return `${diffDays} gün önce`;
-  return date.toLocaleDateString('tr-TR');
+  if (diffMins < 1) return t('notifications.time.justNow');
+  if (diffMins < 60) return t('notifications.time.minutesAgo', { count: diffMins });
+  if (diffHours < 24) return t('notifications.time.hoursAgo', { count: diffHours });
+  if (diffDays < 7) return t('notifications.time.daysAgo', { count: diffDays });
+
+  const isEnglish = (language || '').toLowerCase().startsWith('en');
+  return date.toLocaleDateString(isEnglish ? 'en-US' : 'tr-TR');
 };
 
 // Convert NotificationData to local Notification format
-const mapToLocalNotification = (data: NotificationData & { read?: boolean }): Notification => ({
+const mapToLocalNotification = (
+  data: NotificationData & { read?: boolean },
+  t: (key: string, options?: any) => string,
+  language: string
+): Notification => ({
   id: data.id,
   type: data.type as Notification['type'],
   title: data.title,
   message: data.message,
-  time: formatRelativeTime(data.created_at),
+  time: formatRelativeTime(data.created_at, t, language),
   read: data.read || false,
   icon: data.icon,
 });
@@ -85,6 +96,7 @@ function NotificationItem({
   isDark: boolean;
   colors: typeof Colors.light;
 }) {
+  const { t } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const itemHeight = useRef(new Animated.Value(88)).current;
   const itemOpacity = useRef(new Animated.Value(1)).current;
@@ -172,12 +184,12 @@ function NotificationItem({
         {/* Left action - Mark as read */}
         <View style={[styles.actionLeft, { backgroundColor: '#22C55E' }]}>
           <Ionicons name="checkmark-circle" size={24} color="#fff" />
-          <Text style={styles.actionText}>Okundu</Text>
+          <Text style={styles.actionText}>{t('notifications.actions.markRead')}</Text>
         </View>
         {/* Right action - Delete */}
         <View style={[styles.actionRight, { backgroundColor: '#EF4444' }]}>
           <Ionicons name="trash" size={24} color="#fff" />
-          <Text style={styles.actionText}>Sil</Text>
+          <Text style={styles.actionText}>{t('notifications.actions.delete')}</Text>
         </View>
       </View>
 
@@ -262,6 +274,7 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t, i18n } = useTranslation();
 
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -284,9 +297,10 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
     
     setIsLoading(true);
     const { data } = await getUserNotifications(user.id);
-    setNotifications(data.map(mapToLocalNotification));
+    const lang = i18n.resolvedLanguage || i18n.language || 'tr';
+    setNotifications(data.map((item) => mapToLocalNotification(item, t, lang)));
     setIsLoading(false);
-  }, [user?.id]);
+  }, [user?.id, i18n.language, i18n.resolvedLanguage, t]);
 
   // Load notifications when sheet opens
   useEffect(() => {
@@ -418,12 +432,16 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
           {/* Header */}
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Bildirimler
+              {t('notifications.title')}
             </Text>
           </View>
 
           {/* Notifications List */}
-          {notifications.length === 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : notifications.length === 0 ? (
             <View style={styles.emptyState}>
               <View
                 style={[
@@ -434,10 +452,10 @@ export default function NotificationSheet({ visible, onClose }: NotificationShee
                 <Ionicons name="notifications-off-outline" size={40} color={colors.textSecondary} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                Bildirim Yok
+                {t('notifications.emptyTitle')}
               </Text>
               <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
-                Yeni bildirimler burada görünecek
+                {t('notifications.emptySubtitle')}
               </Text>
             </View>
           ) : (

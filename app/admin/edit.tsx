@@ -32,8 +32,6 @@ export default function EditTourScreen() {
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('₺');
   const [duration, setDuration] = useState('');
   const [category, setCategory] = useState('');
   const [highlights, setHighlights] = useState('');
@@ -75,8 +73,6 @@ export default function EditTourScreen() {
       setTitle(data.title);
       setLocation(data.location);
       setDescription(data.description || '');
-      setPrice(String(data.price));
-      setCurrency(data.currency);
       setDuration(data.duration);
       setCategory(data.category);
       setHighlights(data.highlights?.join(', ') || '');
@@ -133,10 +129,6 @@ export default function EditTourScreen() {
       Alert.alert('Hata', 'Konum gerekli');
       return;
     }
-    if (!price.trim() || isNaN(Number(price))) {
-      Alert.alert('Hata', 'Geçerli bir fiyat girin');
-      return;
-    }
     if (!duration.trim()) {
       Alert.alert('Hata', 'Süre gerekli');
       return;
@@ -171,8 +163,6 @@ export default function EditTourScreen() {
         title: title.trim(),
         location: location.trim(),
         description: description.trim(),
-        price: Number(price),
-        currency,
         duration: duration.trim(),
         category,
         highlights: highlightsArray,
@@ -338,41 +328,21 @@ export default function EditTourScreen() {
             />
           </View>
 
-          <View style={styles.rowFields}>
-            <View style={[styles.formSection, { flex: 1 }]}>
-              <Text style={[styles.label, { color: colors.text }]}>Fiyat *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={[styles.formSection, { flex: 1 }]}>
-              <Text style={[styles.label, { color: colors.text }]}>Süre *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="1 Gün"
-                placeholderTextColor={colors.textSecondary}
-                value={duration}
-                onChangeText={setDuration}
-              />
-            </View>
+          <View style={styles.formSection}>
+            <Text style={[styles.label, { color: colors.text }]}>Süre *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F5F5F5',
+                  color: colors.text,
+                },
+              ]}
+              placeholder="1 Gün"
+              placeholderTextColor={colors.textSecondary}
+              value={duration}
+              onChangeText={setDuration}
+            />
           </View>
 
           <View style={styles.formSection}>

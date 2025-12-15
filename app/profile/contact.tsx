@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { Colors } from '@/constants/Colors';
-import { useThemeStore } from '@/stores';
+import { useThemeStore, useAuthStore } from '@/stores';
 import { useTranslation } from 'react-i18next';
 
 // Contact channels - minimal design
@@ -59,6 +59,10 @@ export default function ContactScreen() {
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
+  const { user } = useAuthStore();
+  
+  // Check if user is guest (not logged in)
+  const isGuest = !user;
 
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
@@ -98,7 +102,7 @@ export default function ContactScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Question Banner - Links to Support Tickets */}
+        {/* Question Banner - Links to Support Tickets or Sign In for guests */}
         <TouchableOpacity
           style={[
             styles.questionBanner,
@@ -108,7 +112,23 @@ export default function ContactScreen() {
             },
           ]}
           activeOpacity={0.8}
-          onPress={() => router.push('/profile/support-tickets')}
+          onPress={() => {
+            if (isGuest) {
+              Alert.alert(
+                t('auth.loginRequired'),
+                t('auth.loginRequiredMessage'),
+                [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  {
+                    text: t('auth.signIn'),
+                    onPress: () => router.replace('/(auth)'),
+                  },
+                ]
+              );
+            } else {
+              router.push('/profile/support-tickets');
+            }
+          }}
         >
           <View style={[styles.questionIconContainer, { backgroundColor: colors.primary + '20' }]}>
             <Ionicons name="help-buoy-outline" size={28} color={colors.primary} />
@@ -138,7 +158,7 @@ export default function ContactScreen() {
             <Ionicons name="information-circle-outline" size={26} color={colors.primary} />
           </View>
           <Text style={[styles.infoText, { color: colors.text }]}>
-            Listelerimizde yer almak istemeyen bir yer mi gördünüz? Desteğiniz için teşekkür ederiz. İlgili mekanın/bölgenin listeden çıkarılması için hemen şimdi bir destek bileti oluşturabilirsiniz.
+            {t('profileScreens.contact.removalRequestInfo')}
           </Text>
         </View>
 

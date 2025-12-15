@@ -99,13 +99,6 @@ const TourReelCard: React.FC<TourReelCardProps> = ({ tour, onDetailPress }) => {
 
         {/* Fiyat ve Rating */}
         <View style={styles.infoRow}>
-          <View style={styles.priceContainer}>
-            <Text style={styles.price}>
-              {tour.currency}{tour.price}
-            </Text>
-            <Text style={styles.priceLabel}>/ {t('home.perPerson')}</Text>
-          </View>
-
           {tour.rating > 0 && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={14} color="#FFD700" />

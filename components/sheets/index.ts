@@ -10,3 +10,4 @@ export { default as NotificationSheet } from './NotificationSheet';
 export { default as RouteDetailSheet } from './RouteDetailSheet';
 export { default as CreatePostSheet } from './CreatePostSheet';
 export { default as PostDetailSheet } from './PostDetailSheet';
+export { default as TermsAcceptanceSheet } from './TermsAcceptanceSheet';

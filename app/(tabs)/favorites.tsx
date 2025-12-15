@@ -136,18 +136,38 @@ export default function FavoritesScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : !user ? (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="person-outline"
-              size={64}
-              color={colors.textSecondary}
-            />
+          /* Guest Mode State - Apple Guideline 5.1.1(v) */
+          <View style={styles.guestStateContainer}>
+            <View style={[styles.guestIconContainer, { backgroundColor: `${colors.primary}15` }]}>
+              <Ionicons
+                name="heart-outline"
+                size={64}
+                color={colors.primary}
+              />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              {t('favorites.loginTitle')}
+              {t('favorites.guestTitle')}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-              {t('favorites.loginSubtitle')}
+              {t('favorites.guestSubtitle')}
             </Text>
+            <TouchableOpacity
+              style={[styles.guestLoginButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.push('/(auth)')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#FFF" />
+              <Text style={styles.guestLoginButtonText}>{t('auth.signIn')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.guestExploreButton}
+              onPress={() => router.push('/(tabs)')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.guestExploreButtonText, { color: colors.primary }]}>
+                {t('favorites.exploreTours')}
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : favorites.length > 0 ? (
           <View style={styles.toursList}>
@@ -539,5 +559,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     lineHeight: 20,
+  },
+  // Guest Mode Styles
+  guestStateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 32,
+  },
+  guestIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  guestLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  guestLoginButtonText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  guestExploreButton: {
+    paddingVertical: 12,
+  },
+  guestExploreButtonText: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
   },
 });

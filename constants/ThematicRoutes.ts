@@ -6,6 +6,7 @@
  */
 
 import { ThematicRoute } from '@/types';
+import i18n from '@/lib/i18n';
 
 /**
  * Featured thematic routes for the Explore screen
@@ -592,13 +593,9 @@ export const getStopTypeIcon = (type: string): string => {
  * Get time of day display name
  */
 export const getTimeOfDayLabel = (timeOfDay: string): string => {
-  const labels: Record<string, string> = {
-    morning: 'Sabah',
-    noon: 'Öğle',
-    afternoon: 'Öğleden Sonra',
-    evening: 'Akşam',
-  };
-  return labels[timeOfDay] || timeOfDay;
+  const key = `explore.timeOfDay.${timeOfDay}`;
+  const translated = i18n.t(key);
+  return translated && translated !== key ? translated : timeOfDay;
 };
 
 /**
@@ -606,9 +603,10 @@ export const getTimeOfDayLabel = (timeOfDay: string): string => {
  */
 export const getDifficultyInfo = (difficulty?: string): { label: string; color: string } => {
   const info: Record<string, { label: string; color: string }> = {
-    easy: { label: 'Kolay', color: '#22C55E' },
-    moderate: { label: 'Orta', color: '#F59E0B' },
-    challenging: { label: 'Zorlu', color: '#EF4444' },
+    easy: { label: i18n.t('explore.difficulties.easy'), color: '#22C55E' },
+    moderate: { label: i18n.t('explore.difficulties.moderate'), color: '#F59E0B' },
+    challenging: { label: i18n.t('explore.difficulties.challenging'), color: '#EF4444' },
   };
-  return info[difficulty || 'easy'] || info.easy;
+
+  return info[difficulty || ''] || { label: difficulty || '', color: '#6B7280' };
 };

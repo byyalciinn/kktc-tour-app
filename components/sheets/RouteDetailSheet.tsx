@@ -55,7 +55,7 @@ export default function RouteDetailSheet({
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Tour store for linking to tour details
   const { getTourById } = useTourStore();
@@ -127,6 +127,65 @@ export default function RouteDetailSheet({
   // Toggle day expansion
   const toggleDay = (dayIndex: number) => {
     setExpandedDay(expandedDay === dayIndex ? null : dayIndex);
+  };
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      'Kuzey Kıbrıs': 'Northern Cyprus',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'Kuzey Kıbrıs',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
+  const formatRouteDurationLabel = (): string => {
+    if (!route) return '';
+
+    const raw = (route.durationLabel || '').trim();
+    if (raw) {
+      const lower = raw.toLowerCase();
+      if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
+      if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
+
+      const dayNightMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*(\d+)\s*(gece|night|nights)\s*$/i);
+      if (dayNightMatch?.[1] && dayNightMatch?.[3]) {
+        const days = Number(dayNightMatch[1]);
+        const nights = Number(dayNightMatch[3]);
+        return `${t('duration.day', { count: days })} ${t('duration.night', { count: nights })}`;
+      }
+
+      const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
+      if (dayMatch?.[1]) {
+        const days = Number(dayMatch[1]);
+        return t('duration.day', { count: days });
+      }
+    }
+
+    return t('duration.day', { count: route.durationDays });
   };
 
   if (!route) return null;
@@ -245,7 +304,7 @@ export default function RouteDetailSheet({
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.9)' }]} />
               )}
               <Text style={styles.durationBadgeText}>
-                {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
+                {formatRouteDurationLabel()}
               </Text>
             </View>
           </View>
@@ -302,7 +361,7 @@ export default function RouteDetailSheet({
                 <View style={[styles.infoPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
                   <Ionicons name="location-outline" size={16} color={colors.primary} />
                   <Text style={[styles.infoPillText, { color: colors.text }]}>
-                    {route.baseLocation}
+                    {translateLocationLabel(route.baseLocation)}
                   </Text>
                 </View>
 
@@ -310,7 +369,7 @@ export default function RouteDetailSheet({
                 <View style={[styles.infoPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
                   <Ionicons name="flag-outline" size={16} color={colors.primary} />
                   <Text style={[styles.infoPillText, { color: colors.text }]}>
-                    {totalStops} {t('explore.stops')}
+                    {totalStops} {t('explore.stop', { count: totalStops })}
                   </Text>
                 </View>
 

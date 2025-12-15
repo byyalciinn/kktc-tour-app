@@ -105,6 +105,9 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
 
   const { signOut, user } = useAuthStore();
+  
+  // Check if user is guest (not logged in)
+  const isGuest = !user;
   const { 
     twoFactorEnabled, 
     isLoadingSettings: is2FALoading,
@@ -406,17 +409,21 @@ export default function SettingsScreen() {
               },
             ]}
           >
-            <SettingItem
-              label={t('settings.twoFactorAuth')}
-              hasSwitch
-              switchValue={twoFactorEnabled}
-              onSwitchChange={handleToggle2FA}
-              hasArrow={false}
-            />
-            <SettingItem
-              label={t('settings.changePassword')}
-              onPress={() => router.push('/profile/change-password')}
-            />
+            {!isGuest && (
+              <SettingItem
+                label={t('settings.twoFactorAuth')}
+                hasSwitch
+                switchValue={twoFactorEnabled}
+                onSwitchChange={handleToggle2FA}
+                hasArrow={false}
+              />
+            )}
+            {!isGuest && (
+              <SettingItem
+                label={t('settings.changePassword')}
+                onPress={() => router.push('/profile/change-password')}
+              />
+            )}
             <SettingItem
               label={t('settings.privacyPolicy')}
               onPress={() => router.push('/profile/privacy-policy')}
@@ -429,65 +436,69 @@ export default function SettingsScreen() {
           </BlurView>
         </View>
 
-        {/* Data Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            {t('settings.dataManagement')}
-          </Text>
-          <BlurView
-            intensity={isDark ? 40 : 80}
-            tint={isDark ? 'dark' : 'light'}
-            style={[
-              styles.sectionCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
-              },
-            ]}
-          >
-            <SettingItem
-              label={t('settings.clearCache')}
-              onPress={handleClearCache}
-            />
-            <SettingItem
-              label={t('settings.downloadData')}
-              onPress={() => toast.info(t('settings.comingSoon'))}
-              isLast
-            />
-          </BlurView>
-        </View>
+        {/* Data Section - Hidden for guests */}
+        {!isGuest && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              {t('settings.dataManagement')}
+            </Text>
+            <BlurView
+              intensity={isDark ? 40 : 80}
+              tint={isDark ? 'dark' : 'light'}
+              style={[
+                styles.sectionCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                },
+              ]}
+            >
+              <SettingItem
+                label={t('settings.clearCache')}
+                onPress={handleClearCache}
+              />
+              <SettingItem
+                label={t('settings.downloadData')}
+                onPress={() => toast.info(t('settings.comingSoon'))}
+                isLast
+              />
+            </BlurView>
+          </View>
+        )}
 
-        {/* Account Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-            {t('settings.account')}
-          </Text>
-          <BlurView
-            intensity={isDark ? 40 : 80}
-            tint={isDark ? 'dark' : 'light'}
-            style={[
-              styles.sectionCard,
-              {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
-              },
-            ]}
-          >
-            <SettingItem
-              label={t('auth.logout')}
-              onPress={handleLogout}
-              danger
-              hasArrow={false}
-            />
-            <SettingItem
-              label={t('settings.deleteAccount')}
-              onPress={handleDeleteAccount}
-              danger
-              hasArrow={false}
-              isLast
-            />
-          </BlurView>
-        </View>
+        {/* Account Section - Hidden for guests */}
+        {!isGuest && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              {t('settings.account')}
+            </Text>
+            <BlurView
+              intensity={isDark ? 40 : 80}
+              tint={isDark ? 'dark' : 'light'}
+              style={[
+                styles.sectionCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.5)',
+                },
+              ]}
+            >
+              <SettingItem
+                label={t('auth.logout')}
+                onPress={handleLogout}
+                danger
+                hasArrow={false}
+              />
+              <SettingItem
+                label={t('settings.deleteAccount')}
+                onPress={handleDeleteAccount}
+                danger
+                hasArrow={false}
+                isLast
+              />
+            </BlurView>
+          </View>
+        )}
 
         {/* App Info */}
         <View style={styles.appInfo}>

@@ -8,6 +8,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
 import CachedImage from '@/components/ui/CachedImage';
@@ -24,8 +25,65 @@ interface TourCardProps {
 export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName }: TourCardProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+  const { t, i18n } = useTranslation();
 
   const categoryLabel = getCategoryName ? getCategoryName(tour.category) : tour.category;
+
+  const formatDurationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const lower = raw.toLowerCase();
+
+    if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
+    if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
+
+    const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
+    if (dayMatch?.[1]) {
+      const count = Number(dayMatch[1]);
+      return t('duration.day', { count });
+    }
+
+    const hourMatch = raw.match(/^(\d+)\s*(saat|hour|hours|h)\s*$/i);
+    if (hourMatch?.[1]) {
+      const count = Number(hourMatch[1]);
+      return t('duration.hour', { count });
+    }
+
+    return value;
+  };
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'KKTC',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
 
   return (
     <TouchableOpacity
@@ -33,7 +91,7 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
       activeOpacity={0.95}
       onPress={() => onPress(tour)}
       accessibilityRole="button"
-      accessibilityLabel={`${tour.title}, ${tour.location}, ${tour.currency}${tour.price} kişi başı`}
+      accessibilityLabel={`${tour.title}, ${tour.location}`}
       accessibilityHint="Tur detaylarını görüntülemek için dokunun"
     >
       <CachedImage
@@ -48,7 +106,7 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
 
       {/* Duration Tag */}
       <View style={styles.durationTag}>
-        <Text style={styles.durationText}>{tour.duration}</Text>
+        <Text style={styles.durationText}>{formatDurationLabel(tour.duration)}</Text>
       </View>
 
       {/* Arrow Button */}
@@ -66,14 +124,8 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
             {tour.title}
           </Text>
           <Text style={styles.subtitle} numberOfLines={1}>
-            {tour.location} • {categoryLabel}
+            {translateLocationLabel(tour.location)} • {categoryLabel}
           </Text>
-        </View>
-        <View style={styles.rightContent}>
-          <Text style={styles.price}>
-            {tour.currency}{tour.price}
-          </Text>
-          <Text style={styles.priceLabel}>kişi başı</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -84,6 +136,40 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
  * Compact tour card for related tours section
  */
 export const CompactTourCard = memo(function CompactTourCard({ tour, onPress }: Omit<TourCardProps, 'getCategoryName'>) {
+  const { i18n } = useTranslation();
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'KKTC',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
   return (
     <TouchableOpacity
       style={styles.compactContainer}
@@ -109,7 +195,7 @@ export const CompactTourCard = memo(function CompactTourCard({ tour, onPress }: 
         </Text>
         <View style={styles.compactMeta}>
           <Text style={styles.compactLocation}>
-            {tour.location.split(',')[0]}
+            {translateLocationLabel(tour.location).split(',')[0]}
           </Text>
           <View style={styles.compactRating}>
             <Ionicons name="star" size={12} color="#FFD700" />

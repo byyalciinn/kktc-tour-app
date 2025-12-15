@@ -54,14 +54,22 @@ jest.mock('@expo/vector-icons', () => ({
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, opts?: any) => {
       const translations: Record<string, string> = {
         'explore.day': 'day',
         'explore.stops': 'stops',
+        'explore.stop_one': 'stop',
+        'explore.stop_other': 'stops',
         'explore.themes.cultural': 'Cultural',
         'explore.themes.culture': 'Culture',
         'explore.difficulties.easy': 'Easy',
       };
+
+      if (opts?.count !== undefined) {
+        const pluralKey = opts.count === 1 ? `${key}_one` : `${key}_other`;
+        if (translations[pluralKey]) return translations[pluralKey];
+      }
+
       return translations[key] || key;
     },
   }),

@@ -53,6 +53,12 @@ const SUPPORT_KEYS = [
   { key: 'myTickets', route: '/profile/support-tickets' },
 ] as const;
 
+// Guest users only see help and contact
+const GUEST_SUPPORT_KEYS = [
+  { key: 'help', route: '/profile/help' },
+  { key: 'contact', route: '/profile/contact' },
+] as const;
+
 const ADMIN_MENU_KEYS = [
   { key: 'adminMenu', icon: 'settings-outline', route: '/admin/menu' },
 ] as const;
@@ -67,8 +73,11 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
   // Auth store
   const { profile, user, signOut } = useAuthStore();
 
+  // Check if user is guest (not logged in)
+  const isGuest = !user;
+
   // Get member class color
-  const memberClassColor = memberClassColors[profile?.member_class || 'Normal'] || '#6B7280';
+  const memberClassColor = isGuest ? '#6B7280' : (memberClassColors[profile?.member_class || 'Normal'] || '#6B7280');
 
   // Format member number with # prefix
   const formatMemberNumber = (num: string | null | undefined) => {
@@ -100,7 +109,8 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
     route: item.route,
   }));
 
-  const supportItems = SUPPORT_KEYS.map((item) => ({
+  // For guest users, only show help and contact
+  const supportItems = (isGuest ? GUEST_SUPPORT_KEYS : SUPPORT_KEYS).map((item) => ({
     label: t(`profile.${item.key}`),
     route: item.route,
   }));
@@ -273,95 +283,99 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
                 {profile?.full_name || user?.user_metadata?.full_name || t('profile.defaultUser')}
               </Text>
               <Text style={[styles.memberType, { color: memberClassColor }]}>
-                {profile?.member_class || 'Normal'} {t('profile.memberSuffix')}
+                {isGuest ? t('profile.guestMember') : `${profile?.member_class || 'Normal'} ${t('profile.memberSuffix')}`}
               </Text>
             </View>
 
-            {/* Account Information Section */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                {t('profile.accountInfo').toUpperCase()}
-              </Text>
-              <View
-                style={[
-                  styles.sectionCard,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                  },
-                ]}
-              >
-                {accountInfoItems.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.infoRow,
-                      index < accountInfoItems.length - 1 && [
-                        styles.infoRowBorder,
-                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
-                      ],
-                    ]}
-                    activeOpacity={item.hasArrow || item.copyable ? 0.7 : 1}
-                    onPress={() => item.hasArrow ? handleNavigate(item.route) : null}
-                    onLongPress={item.copyable ? copyMemberNumber : undefined}
-                    delayLongPress={300}
-                  >
-                    <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
-                    <View style={styles.infoValueContainer}>
-                      {item.value ? (
-                        <Text style={[
-                          styles.infoValue, 
-                          { color: colors.textSecondary },
-                          item.copyable && styles.memberNumberValue
-                        ]}>
-                          {item.value}
-                        </Text>
-                      ) : null}
-                      {item.copyable && (
-                        <Ionicons name="copy-outline" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-                      )}
-                      {item.hasArrow && (
-                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
+            {/* Account Information Section - Hidden for guests */}
+            {!isGuest && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  {t('profile.accountInfo').toUpperCase()}
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                >
+                  {accountInfoItems.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.infoRow,
+                        index < accountInfoItems.length - 1 && [
+                          styles.infoRowBorder,
+                          { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                        ],
+                      ]}
+                      activeOpacity={item.hasArrow || item.copyable ? 0.7 : 1}
+                      onPress={() => item.hasArrow ? handleNavigate(item.route) : null}
+                      onLongPress={item.copyable ? copyMemberNumber : undefined}
+                      delayLongPress={300}
+                    >
+                      <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                      <View style={styles.infoValueContainer}>
+                        {item.value ? (
+                          <Text style={[
+                            styles.infoValue, 
+                            { color: colors.textSecondary },
+                            item.copyable && styles.memberNumberValue
+                          ]}>
+                            {item.value}
+                          </Text>
+                        ) : null}
+                        {item.copyable && (
+                          <Ionicons name="copy-outline" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                        )}
+                        {item.hasArrow && (
+                          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
 
-            {/* Personal Details Section */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                {t('profile.personalDetails').toUpperCase()}
-              </Text>
-              <View
-                style={[
-                  styles.sectionCard,
-                  {
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
-                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                  },
-                ]}
-              >
-                {personalDetailsItems.map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.infoRow,
-                      index < personalDetailsItems.length - 1 && [
-                        styles.infoRowBorder,
-                        { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
-                      ],
-                    ]}
-                    activeOpacity={0.7}
-                    onPress={() => handleNavigate(item.route)}
-                  >
-                    <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
+            {/* Personal Details Section - Hidden for guests */}
+            {!isGuest && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  {t('profile.personalDetails').toUpperCase()}
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCard,
+                    {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)',
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                >
+                  {personalDetailsItems.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.infoRow,
+                        index < personalDetailsItems.length - 1 && [
+                          styles.infoRowBorder,
+                          { borderBottomColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' },
+                        ],
+                      ]}
+                      activeOpacity={0.7}
+                      onPress={() => handleNavigate(item.route)}
+                    >
+                      <Text style={[styles.infoLabel, { color: colors.text }]}>{item.label}</Text>
+                      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Support Section */}
             <View style={styles.section}>
@@ -433,20 +447,42 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
               </View>
             )}
 
-            {/* Logout Button */}
-            <TouchableOpacity
-              style={[
-                styles.logoutButton,
-                {
-                  backgroundColor: isDark ? 'rgba(255,59,48,0.15)' : 'rgba(255,59,48,0.1)',
-                },
-              ]}
-              activeOpacity={0.7}
-              onPress={handleLogout}
-            >
-              <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
-              <Text style={styles.logoutText}>{t('auth.logout')}</Text>
-            </TouchableOpacity>
+            {/* Logout Button - For logged in users */}
+            {!isGuest && (
+              <TouchableOpacity
+                style={[
+                  styles.logoutButton,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,59,48,0.15)' : 'rgba(255,59,48,0.1)',
+                  },
+                ]}
+                activeOpacity={0.7}
+                onPress={handleLogout}
+              >
+                <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+                <Text style={styles.logoutText}>{t('auth.logout')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Sign In Button - For guests */}
+            {isGuest && (
+              <TouchableOpacity
+                style={[
+                  styles.signInButton,
+                  {
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => {
+                  closeSheet();
+                  router.replace('/(auth)');
+                }}
+              >
+                <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.signInText}>{t('auth.signIn')}</Text>
+              </TouchableOpacity>
+            )}
 
             {/* App Version */}
             <Text style={[styles.versionText, { color: colors.textSecondary }]}>
@@ -628,6 +664,22 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
     color: '#FF3B30',
+  },
+  signInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  signInText: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   versionText: {
     fontSize: 13,

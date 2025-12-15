@@ -51,6 +51,44 @@ export default function ProfileScreen() {
   // Zustand store
   const { user, profile, signOut } = useAuthStore();
 
+  // ========================================
+  // GUEST MODE: Login olmamış kullanıcı için UI
+  // Apple Guideline 5.1.1(v) uyumluluğu
+  // ========================================
+  if (!user) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <View style={[styles.guestContainer, { paddingTop: insets.top + 60 }]}>
+          <View style={[styles.guestIconContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+            <Ionicons name="person-circle-outline" size={80} color={colors.textSecondary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>
+            {t('profile.guestTitle')}
+          </Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+            {t('profile.guestSubtitle')}
+          </Text>
+          <TouchableOpacity
+            style={[styles.loginButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/(auth)')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-in-outline" size={20} color="#FFF" />
+            <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.registerButton, { borderColor: colors.primary }]}
+            onPress={() => router.push('/(auth)')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.registerButtonText, { color: colors.primary }]}>{t('auth.createAccount')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   // Get member class color
   const memberClassColor = memberClassColors[profile?.member_class || 'Normal'] || '#6B7280';
 
@@ -445,5 +483,65 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  // Guest Mode Styles
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  guestIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 24,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  guestSubtitle: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '400',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  loginButtonText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  registerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+  },
+  registerButtonText: {
+    fontSize: 17,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
   },
 });

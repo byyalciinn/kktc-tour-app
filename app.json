@@ -2,7 +2,7 @@
   "expo": {
     "name": "Cyprigo",
     "slug": "cyprigo",
-    "version": "1.0",
+    "version": "1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,11 +21,11 @@
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Cyprigo needs camera access to take photos for your profile and posts.",
-        "NSPhotoLibraryUsageDescription": "Cyprigo needs photo library access to select images for your profile and posts.",
-        "NSLocationWhenInUseUsageDescription": "Cyprigo needs your location to show nearby tours and provide navigation.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Cyprigo needs your location to show nearby tours and provide navigation.",
-        "NSFaceIDUsageDescription": "Cyprigo uses Face ID for secure authentication."
+        "NSCameraUsageDescription": "Cyprigo uses your camera to take photos for your profile picture, share travel moments in the community feed, and scan historical landmarks to learn about them. For example, you can photograph a castle you're visiting and share it with other travelers.",
+        "NSPhotoLibraryUsageDescription": "Cyprigo accesses your photo library so you can select existing photos for your profile picture or share travel photos in the community feed. For example, you can choose a vacation photo to post in the community.",
+        "NSLocationWhenInUseUsageDescription": "Cyprigo uses your location to show nearby tours and attractions on the map, and to provide turn-by-turn navigation to destinations. For example, we'll show you historical sites within walking distance.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Cyprigo uses your location to show nearby tours and provide navigation directions even when the app is in the background.",
+        "NSFaceIDUsageDescription": "Cyprigo uses Face ID to securely and quickly sign you into your account without entering your password."
       }
     },
     "android": {
@@ -65,25 +65,25 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Cyprigo needs your location to show nearby tours."
+          "locationAlwaysAndWhenInUsePermission": "Cyprigo uses your location to show nearby tours and attractions on the map, and to provide turn-by-turn navigation to destinations."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Cyprigo needs camera access to take photos."
+          "cameraPermission": "Cyprigo uses your camera to take photos for your profile picture, share travel moments in the community feed, and scan historical landmarks to learn about them."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Cyprigo needs photo library access to select images."
+          "photosPermission": "Cyprigo accesses your photo library so you can select existing photos for your profile picture or share travel photos in the community feed."
         }
       ],
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Cyprigo uses Face ID for secure authentication."
+          "faceIDPermission": "Cyprigo uses Face ID to securely and quickly sign you into your account without entering your password."
         }
       ],
       "expo-localization",

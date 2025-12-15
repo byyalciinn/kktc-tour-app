@@ -70,6 +70,7 @@ interface CommunityPostCardProps {
   onDeletePress?: (post: CommunityPost) => void;
   onReportPress?: (post: CommunityPost) => void;
   onHidePress?: (post: CommunityPost) => void;
+  onBlockUserPress?: (post: CommunityPost) => void;
   isLiked?: boolean;
 }
 
@@ -84,6 +85,7 @@ function CommunityPostCardComponent({
   onDeletePress,
   onReportPress,
   onHidePress,
+  onBlockUserPress,
   isLiked = false,
 }: CommunityPostCardProps) {
   const { colorScheme } = useThemeStore();
@@ -184,11 +186,12 @@ function CommunityPostCardComponent({
   // Handle menu press
   const handleMenuPress = () => {
     if (Platform.OS === 'ios') {
+      // UGC Compliance: Added Block User option (Apple Guideline 1.2)
       const options = isOwnPost
         ? [t('common.cancel'), t('common.delete')]
-        : [t('common.cancel'), t('community.report'), t('community.notInterested')];
+        : [t('common.cancel'), t('community.report'), t('community.blockUser'), t('community.notInterested')];
       
-      const destructiveButtonIndex = isOwnPost ? 1 : undefined;
+      const destructiveButtonIndex = isOwnPost ? 1 : 2; // Block user is destructive for non-own posts
       const cancelButtonIndex = 0;
 
       ActionSheetIOS.showActionSheetWithOptions(
@@ -219,6 +222,9 @@ function CommunityPostCardComponent({
               // Report
               onReportPress?.(post);
             } else if (buttonIndex === 2) {
+              // Block User (UGC Compliance)
+              onBlockUserPress?.(post);
+            } else if (buttonIndex === 3) {
               // Not interested
               onHidePress?.(post);
             }
@@ -254,12 +260,14 @@ function CommunityPostCardComponent({
           ]
         );
       } else {
+        // UGC Compliance: Added Block User option for Android (Apple Guideline 1.2)
         Alert.alert(
           t('community.postOptions'),
           '',
           [
             { text: t('common.cancel'), style: 'cancel' },
             { text: t('community.report'), onPress: () => onReportPress?.(post) },
+            { text: t('community.blockUser'), style: 'destructive', onPress: () => onBlockUserPress?.(post) },
             { text: t('community.notInterested'), onPress: () => onHidePress?.(post) },
           ]
         );

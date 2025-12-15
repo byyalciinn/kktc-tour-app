@@ -50,6 +50,8 @@ const initI18n = async () => {
         en: { translation: en },
       },
       lng: initialLanguage,
+      supportedLngs: ['tr', 'en'],
+      nonExplicitSupportedLngs: true,
       fallbackLng: 'tr',
       interpolation: {
         escapeValue: false,
@@ -69,6 +71,8 @@ const initI18n = async () => {
         en: { translation: en },
       },
       lng: 'tr',
+      supportedLngs: ['tr', 'en'],
+      nonExplicitSupportedLngs: true,
       fallbackLng: 'tr',
       interpolation: {
         escapeValue: false,

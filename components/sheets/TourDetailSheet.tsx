@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
@@ -44,6 +45,7 @@ export default function TourDetailSheet({
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
+  const { t } = useTranslation();
   
   // Zustand stores
   const { user } = useAuthStore();
@@ -125,7 +127,7 @@ export default function TourDetailSheet({
   // Handle favorite toggle
   const handleToggleFavorite = async () => {
     if (!user) {
-      Alert.alert('Giriş Gerekli', 'Favorilere eklemek için giriş yapmalısınız.');
+      Alert.alert(t('auth.loginRequired'), t('auth.loginRequiredMessage'));
       return;
     }
     if (!currentTour) return;
@@ -138,7 +140,7 @@ export default function TourDetailSheet({
       // Show paywall when user hits favorite limit
       setShowPaywall(true);
     } else if (error) {
-      Alert.alert('Hata', error);
+      Alert.alert(t('common.error'), error);
     } else {
       setIsFavorited(newState);
     }
@@ -410,7 +412,7 @@ export default function TourDetailSheet({
               </Text>
               <TouchableOpacity style={styles.readMoreButton}>
                 <Text style={[styles.readMoreText, { color: colors.text }]}>
-                  Devamını oku
+                  {t('tour.readMore')}
                 </Text>
                 <View style={[styles.readMoreLine, { backgroundColor: colors.text }]} />
               </TouchableOpacity>
@@ -420,7 +422,7 @@ export default function TourDetailSheet({
             {relatedTours.length > 0 && (
               <View style={styles.upcomingSection}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Benzer Turlar
+                  {t('tour.relatedTours')}
                 </Text>
                 <ScrollView
                   horizontal
@@ -484,37 +486,13 @@ export default function TourDetailSheet({
               },
             ]}
           >
-            <View style={styles.priceContainer}>
-              <View style={styles.priceRow}>
-                <Text style={[styles.ctaPrice, { color: colors.text }]}>
-                  {currentTour.currency}{currentTour.price}
-                </Text>
-                <TouchableOpacity
-                  style={styles.priceInfoButton}
-                  onPress={() => {
-                    Alert.alert(
-                      'Fiyat Bilgisi',
-                      'Fiyatlar tahmini fiyatlardır. Lütfen güncel fiyatları gözden geçiriniz.',
-                      [{ text: 'Tamam', style: 'default' }]
-                    );
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="information-circle-outline"
-                    size={18}
-                    color={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)'}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
             <TouchableOpacity
               style={[styles.bookButton, { backgroundColor: colors.primary }]}
               activeOpacity={0.9}
               onPress={handleGetDirections}
             >
               <Ionicons name="navigate" size={18} color="#FFF" />
-              <Text style={styles.bookButtonText}>Yol Tarifi Al</Text>
+              <Text style={styles.bookButtonText}>{t('tour.getDirections')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -679,9 +679,6 @@ export default function AdminMenuScreen() {
                     {tour.location}
                   </Text>
                   <View style={styles.tourMeta}>
-                    <Text style={[styles.tourPrice, { color: colors.primary }]}>
-                      {tour.currency}{tour.price}
-                    </Text>
                     <Text style={[styles.tourDuration, { color: colors.textSecondary }]}>
                       {tour.duration}
                     </Text>
@@ -1234,11 +1231,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  tourPrice: {
-    fontSize: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '700',
   },
   tourDuration: {
     fontSize: 13,

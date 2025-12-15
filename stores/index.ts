@@ -123,3 +123,9 @@ export {
   selectIsPasswordResetVerified,
   selectPasswordResetEmail,
 } from './passwordResetStore';
+
+// Terms Acceptance store (UGC Compliance)
+export { useTermsStore } from './termsStore';
+
+// Block Users store (UGC Compliance)
+export { useBlockStore } from './blockStore';

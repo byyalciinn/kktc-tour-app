@@ -46,11 +46,70 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const themeIcon = getThemeIcon(route.theme);
   const difficultyInfo = getDifficultyInfo(route.difficulty);
   const themeLabel = t(`explore.themes.${route.theme}`) || route.theme;
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      'Kuzey Kıbrıs': 'Northern Cyprus',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'Kuzey Kıbrıs',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
+  const formatRouteDurationLabel = (): string => {
+    const raw = (route.durationLabel || '').trim();
+    if (raw) {
+      const lower = raw.toLowerCase();
+      if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
+      if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
+
+      const dayNightMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*(\d+)\s*(gece|night|nights)\s*$/i);
+      if (dayNightMatch?.[1] && dayNightMatch?.[3]) {
+        const days = Number(dayNightMatch[1]);
+        const nights = Number(dayNightMatch[3]);
+        return `${t('duration.day', { count: days })} ${t('duration.night', { count: nights })}`;
+      }
+
+      const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
+      if (dayMatch?.[1]) {
+        const days = Number(dayMatch[1]);
+        return t('duration.day', { count: days });
+      }
+    }
+
+    return t('duration.day', { count: route.durationDays });
+  };
+
+  const stopsCount = route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0);
 
   // Debug: Log if coverImage is missing
   if (__DEV__ && (!route.coverImage || !route.coverImage.trim())) {
@@ -64,7 +123,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
         activeOpacity={0.9}
         onPress={() => onPress(route)}
         accessibilityRole="button"
-        accessibilityLabel={`${route.title}, ${route.baseLocation}`}
+        accessibilityLabel={`${route.title}, ${translateLocationLabel(route.baseLocation)}`}
       >
         <CachedImage
           uri={route.coverImage}
@@ -91,7 +150,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.9)' }]} />
           )}
           <Text style={styles.compactDurationText}>
-            {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
+            {formatRouteDurationLabel()}
           </Text>
         </View>
 
@@ -102,10 +161,10 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
           </Text>
           <View style={styles.compactMeta}>
             <Ionicons name="location-outline" size={12} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.compactLocation}>{route.baseLocation}</Text>
+            <Text style={styles.compactLocation}>{translateLocationLabel(route.baseLocation)}</Text>
             <View style={styles.compactDot} />
             <Text style={styles.compactStops}>
-              {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stops')}
+              {stopsCount} {t('explore.stop', { count: stopsCount })}
             </Text>
           </View>
         </View>
@@ -120,7 +179,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
       activeOpacity={0.95}
       onPress={() => onPress(route)}
       accessibilityRole="button"
-      accessibilityLabel={`${route.title}, ${route.durationDays} gün, ${route.baseLocation}`}
+      accessibilityLabel={`${route.title}, ${formatRouteDurationLabel()}, ${translateLocationLabel(route.baseLocation)}`}
     >
       <CachedImage
         uri={route.coverImage}
@@ -162,7 +221,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.95)' }]} />
           )}
           <Text style={styles.durationText}>
-            {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
+            {formatRouteDurationLabel()}
           </Text>
         </View>
       </View>
@@ -220,7 +279,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
                 color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'} 
               />
               <Text style={[styles.metaText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
-                {route.baseLocation}
+                {translateLocationLabel(route.baseLocation)}
               </Text>
             </View>
 
@@ -232,7 +291,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
                 color={isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)'} 
               />
               <Text style={[styles.metaText, { color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
-                {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stops')}
+                {stopsCount} {t('explore.stop', { count: stopsCount })}
               </Text>
             </View>
 

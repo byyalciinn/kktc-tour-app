@@ -58,8 +58,9 @@ export default function ScanScreen() {
     getCooldownRemaining,
   } = useScanStore();
 
-  // Auth for premium check
-  const { profile } = useAuthStore();
+  // Auth for premium check and guest mode
+  const { user, profile } = useAuthStore();
+  const isGuest = !user;
   const isPremium = profile?.member_class !== 'Normal';
   
   // Remaining scans and cooldown
@@ -307,6 +308,29 @@ export default function ScanScreen() {
       />
     );
   };
+
+  // Guest mode screen
+  if (isGuest) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <View style={styles.guestContainer}>
+          <View style={[styles.guestIconContainer, { backgroundColor: colors.card }]}>
+            <Ionicons name="scan-outline" size={48} color={colors.primary} />
+          </View>
+          <Text style={[styles.guestTitle, { color: colors.text }]}>{t('guest.scanTitle')}</Text>
+          <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>{t('guest.scanSubtitle')}</Text>
+          <TouchableOpacity
+            style={[styles.guestSignInButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.replace('/(auth)')}
+          >
+            <Ionicons name="log-in-outline" size={20} color="#FFF" />
+            <Text style={styles.guestSignInText}>{t('guest.signIn')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // Permission screen
   if (!permission?.granted) {
@@ -797,6 +821,49 @@ const styles = StyleSheet.create({
   permissionButtonText: {
     color: '#FFF',
     fontSize: 16,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+
+  // Guest mode styles
+  guestContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  guestIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  guestSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  guestSignInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  guestSignInText: {
+    color: '#FFF',
+    fontSize: 17,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },

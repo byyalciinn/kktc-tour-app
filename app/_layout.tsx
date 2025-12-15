@@ -133,9 +133,11 @@ export default function RootLayout() {
     }
 
     // ========================================
-    // 2. GİRİŞ YAPMAMIŞ KULLANICI
+    // 2. GİRİŞ YAPMAMIŞ KULLANICI (GUEST MODE)
     // ========================================
-    console.log('[_layout] No user, checking intro status:', { hasSeenIntro, inIntro, inAuthGroup });
+    // Apple Guideline 5.1.1(v): Login zorunlu olmamalı, account-based olmayan
+    // özelliklere guest olarak erişilebilmeli
+    console.log('[_layout] No user (guest mode), checking intro status:', { hasSeenIntro, inIntro, inAuthGroup });
     
     // İlk kurulum: Intro görülmemişse intro'ya yönlendir
     if (!hasSeenIntro) {
@@ -146,11 +148,16 @@ export default function RootLayout() {
       return;
     }
 
-    // Intro görüldü, auth'a yönlendir
-    if (!inAuthGroup) {
-      console.log('[_layout] Intro seen, redirecting to auth');
-      router.replace('/(auth)');
+    // Intro görüldü → Guest olarak tabs'a yönlendir (login zorunlu DEĞİL)
+    // Kullanıcı isterse profile tab'ından veya account-based aksiyonlarda login yapabilir
+    const inTabs = segments[0] === '(tabs)';
+    if (inIntro) {
+      // Intro'dan çıkış → tabs'a git (guest mode)
+      console.log('[_layout] Intro completed, redirecting guest to tabs');
+      router.replace('/(tabs)');
     }
+    // Auth ekranındaysa veya tabs'taysa → olduğu yerde kalsın
+    // Guest kullanıcı auth'a gidebilir (isteğe bağlı login için)
   }, [user, loading, initialized, segments, hasSeenIntro, isCheckingIntro, is2FAPending, is2FAChecking]);
 
   // Loading ekranı göster: initialization, loading, intro check veya 2FA check sırasında

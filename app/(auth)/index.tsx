@@ -1098,6 +1098,15 @@ export default function WelcomeScreen() {
           >
             <Text style={[styles.secondaryButtonText, { color: colors.text }]}>{t('auth.register')}</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestButton}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Text style={[styles.guestButtonText, { color: colors.textSecondary }]}>
+              {t('auth.continueAsGuest')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Legal Links */}
@@ -2019,7 +2028,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     marginTop: IMAGE_MARGIN + (Platform.OS === 'ios' ? 44 : 24),
     marginHorizontal: IMAGE_MARGIN,
-    height: height * 0.68,
+    height: height * 0.55,
     borderRadius: IMAGE_BORDER_RADIUS,
     overflow: 'hidden',
   },
@@ -2105,6 +2114,19 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.3,
+  },
+  guestButton: {
+    borderRadius: 16,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  guestButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+    textDecorationLine: 'underline',
   },
   legalContainer: {
     alignItems: 'center',

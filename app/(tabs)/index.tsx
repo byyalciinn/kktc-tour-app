@@ -42,7 +42,77 @@ export default function HomeScreen() {
   
   // Debounce ref for category press
   const lastCategoryPressTime = useRef(0);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const normalizeTranslationKey = (value: string): string => {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ı/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ş/g, 's')
+      .replace(/ç/g, 'c')
+      .replace(/ö/g, 'o')
+      .replace(/ü/g, 'u')
+      .replace(/\s+/g, '');
+  };
+
+  const formatDurationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const lower = raw.toLowerCase();
+
+    if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
+    if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
+
+    const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
+    if (dayMatch?.[1]) {
+      const count = Number(dayMatch[1]);
+      return t('duration.day', { count });
+    }
+
+    const hourMatch = raw.match(/^(\d+)\s*(saat|hour|hours|h)\s*$/i);
+    if (hourMatch?.[1]) {
+      const count = Number(hourMatch[1]);
+      return t('duration.hour', { count });
+    }
+
+    return value;
+  };
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'KKTC',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
 
   // Zustand stores
   const { 
@@ -232,13 +302,15 @@ export default function HomeScreen() {
 
   // Get category name by id - with i18n support
   const getCategoryName = (categoryId: string): string => {
-    // Try to get translated name first
-    const translatedName = t(`home.categories.${categoryId}`, { defaultValue: '' });
-    if (translatedName) return translatedName;
-    
-    // Fallback to category name from store
+    // First find the category to get its name
     const cat = categories.find(c => c.id === categoryId);
-    return cat?.name || categoryId;
+    if (!cat) return categoryId;
+    
+    // Use category name (lowercase, no spaces) as i18n key
+    const i18nKey = normalizeTranslationKey(cat.name);
+    const translatedName = t(`home.categories.${i18nKey}`, { defaultValue: '' });
+    
+    return translatedName || cat.name;
   };
 
   const onRefresh = useCallback(async () => {
@@ -299,7 +371,7 @@ export default function HomeScreen() {
       
       {/* Duration Tag */}
       <View style={styles.tripDurationTag}>
-        <Text style={styles.tripDurationText}>{tour.duration}</Text>
+        <Text style={styles.tripDurationText}>{formatDurationLabel(tour.duration)}</Text>
       </View>
       
       {/* Arrow Button */}
@@ -315,14 +387,8 @@ export default function HomeScreen() {
         <View style={styles.tripCardLeft}>
           <Text style={styles.tripCardTitle}>{tour.title}</Text>
           <Text style={styles.tripCardSubtitle}>
-            {tour.location} • {getCategoryName(tour.category)}
+            {translateLocationLabel(tour.location)} • {getCategoryName(tour.category)}
           </Text>
-        </View>
-        <View style={styles.tripCardRight}>
-          <Text style={styles.tripCardPrice}>
-            {tour.currency}{tour.price}
-          </Text>
-          <Text style={styles.tripCardPriceLabel}>{t('home.perPerson')}</Text>
         </View>
       </View>
       </TouchableOpacity>
@@ -457,7 +523,7 @@ export default function HomeScreen() {
                   fontWeight: isActive ? '600' : '400',
                 }
               ]}>
-                {t(`home.categories.${category.id}`, { defaultValue: category.name })}
+                {t(`home.categories.${normalizeTranslationKey(category.name)}`, { defaultValue: category.name })}
               </Text>
             </TouchableOpacity>
           );

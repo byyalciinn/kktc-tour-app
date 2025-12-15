@@ -517,11 +517,6 @@ export default function DestinationSearch({
                               {tour.location}
                             </Text>
                           </View>
-                          <View style={styles.resultFooter}>
-                            <Text style={[styles.resultPrice, { color: colors.primary }]}>
-                              {tour.currency}{tour.price}
-                            </Text>
-                          </View>
                         </View>
                         <View style={[
                           styles.resultArrow,

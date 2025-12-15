@@ -34,12 +34,35 @@
     "soon": "Soon",
     "comingSoon": "This feature is coming soon",
     "info": "Info",
-    "understood": "Understood"
+    "understood": "Understood",
+    "ok": "OK"
+  },
+  "tour": {
+    "free": "Free",
+    "perPerson": "per person",
+    "readMore": "Read more",
+    "relatedTours": "Related Tours",
+    "getDirections": "Get Directions",
+    "priceInfo": "Price Info",
+    "priceInfoMessage": "Prices are estimates. Please check for current prices."
+  },
+  "duration": {
+    "day_one": "{{count}} Day",
+    "day_other": "{{count}} Days",
+    "hour_one": "{{count}} Hour",
+    "hour_other": "{{count}} Hours",
+    "night_one": "{{count}} Night",
+    "night_other": "{{count}} Nights",
+    "fullDay": "Full day",
+    "halfDay": "Half day"
   },
   "auth": {
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
+    "signIn": "Sign In",
+    "createAccount": "Create Account",
+    "continueAsGuest": "Continue as Guest",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm Password",
@@ -122,14 +145,36 @@
     "explore": "Explore",
     "categories": {
       "all": "All",
+      "tümü": "All",
       "tarihi": "Historical",
+      "tarih": "Historical",
+      "doğa": "Nature",
       "doga": "Nature",
       "kultur": "Culture",
+      "kültür": "Culture",
       "macera": "Adventure",
       "yeme-icme": "Food & Drink",
+      "yemek": "Food",
       "plaj": "Beach",
+      "beach": "Beach",
       "gece-hayati": "Nightlife",
-      "alisveris": "Shopping"
+      "alisveris": "Shopping",
+      "alışveriş": "Shopping",
+      "hotel": "Hotel",
+      "otel": "Hotel",
+      "trip": "Trip",
+      "gezi": "Trip",
+      "bus": "Bus",
+      "otobüs": "Bus",
+      "flight": "Flight",
+      "uçuş": "Flight",
+      "ship": "Ship",
+      "gemi": "Ship",
+      "history": "Historical",
+      "nature": "Nature",
+      "entertainment": "Entertainment",
+      "eğlence": "Entertainment",
+      "dağ": "Mountain"
     }
   },
   "tours": {
@@ -163,7 +208,9 @@
     "removeConfirmMessage": "Are you sure you want to remove this tour from favorites?",
     "countLabel": "{{count}} tours",
     "hint1": "Save your favorite tours and access them anytime",
-    "hint2": "Get notified about deals on your favorite tours"
+    "hint2": "Get notified about deals on your favorite tours",
+    "guestTitle": "Save your favorites",
+    "guestSubtitle": "Sign in to save tours and destinations you love. Your favorites will be synced across all your devices."
   },
   "tabs": {
     "home": "Home",
@@ -172,6 +219,13 @@
     "favorites": "Favorites",
     "scan": "Scan",
     "profile": "Profile"
+  },
+  "guest": {
+    "signIn": "Sign In",
+    "scanTitle": "Scan Historical Places",
+    "scanSubtitle": "Sign in to use AI-powered scanning to discover and learn about historical sites around you.",
+    "communityTitle": "Join the Community",
+    "communitySubtitle": "Sign in to share your travel experiences, connect with other travelers, and discover hidden gems."
   },
   "scan": {
     "title": "Scan",
@@ -265,6 +319,7 @@
     "deletePhoto": "Delete Photo",
     "defaultUser": "User",
     "memberSuffix": "Member",
+    "guestMember": "Guest Member",
     "version": "Version",
     "myPanel": "My Panel",
     "membershipType": "Membership Type",
@@ -278,7 +333,9 @@
     "businessMember": "Business Member",
     "membershipStatus": "Membership Status",
     "active": "Active",
-    "membershipDetails": "Membership Details"
+    "membershipDetails": "Membership Details",
+    "guestTitle": "Sign in to your account",
+    "guestSubtitle": "Create an account or sign in to manage your profile, view your bookings, and access exclusive features."
   },
   "profileScreens": {
     "personalInfo": {
@@ -415,7 +472,8 @@
         }
       },
       "errorUnsupported": "This action is not supported.",
-      "errorGeneric": "Something went wrong."
+      "errorGeneric": "Something went wrong.",
+      "removalRequestInfo": "Did you see a place that doesn't want to be listed? Thank you for your support. You can create a support ticket right now to have the venue/area removed from the list."
     },
     "help": {
       "header": "Help",
@@ -539,6 +597,8 @@
     "dayProgram": "Daily Program",
     "day": "Day",
     "stops": "Stop",
+    "stop_one": "Stop",
+    "stop_other": "Stops",
     "durationLabel": "Duration",
     "difficultyLabel": "Difficulty",
     "bestSeason": "Best Season",
@@ -594,7 +654,22 @@
     "created": "Notification created",
     "send": "Send Notification",
     "sendSuccess": "Notification sent",
-    "sendError": "Notification failed to send"
+    "sendError": "Notification failed to send",
+    "emptyTitle": "No Notifications",
+    "emptySubtitle": "New notifications will appear here",
+    "actions": {
+      "markRead": "Read",
+      "delete": "Delete"
+    },
+    "time": {
+      "justNow": "Just now",
+      "minutesAgo_one": "{{count}} minute ago",
+      "minutesAgo_other": "{{count}} minutes ago",
+      "hoursAgo_one": "{{count}} hour ago",
+      "hoursAgo_other": "{{count}} hours ago",
+      "daysAgo_one": "{{count}} day ago",
+      "daysAgo_other": "{{count}} days ago"
+    }
   },
   "contact": {
     "title": "Contact",
@@ -761,6 +836,12 @@
       "misinformation": "Misinformation",
       "other": "Other"
     },
+    "blockUser": "Block User",
+    "blockUserTitle": "Block This User?",
+    "blockUserMessage": "You won't see their posts anymore. They won't be notified that you blocked them.",
+    "block": "Block",
+    "userBlocked": "User Blocked",
+    "userBlockedMessage": "You won't see content from this user anymore.",
     "premium": {
       "title": "See All Posts",
       "subtitle": "Want to share your experiences and catch community opportunities? Upgrade to Gold membership!",
@@ -904,6 +985,20 @@
     },
     "cta": "Start Exploring",
     "footer": "Ready for adventure"
+  },
+  "terms": {
+    "title": "Community Guidelines",
+    "communityGuidelines": "Our Community Standards",
+    "guidelinesContent": "Cyprigo is a community for travelers to share their experiences. To keep our community safe and welcoming, please follow these guidelines when posting content.",
+    "prohibitedContent": "Prohibited Content",
+    "noHateSpeech": "Hate speech or discrimination of any kind",
+    "noHarassment": "Harassment, bullying, or threatening behavior",
+    "noExplicitContent": "Explicit, violent, or inappropriate content",
+    "noSpam": "Spam, advertising, or misleading information",
+    "noMisinformation": "False or misleading content about places or services",
+    "violationWarning": "Violations may result in content removal and account suspension. We review all reports within 24 hours.",
+    "agreeCheckbox": "I agree to the Community Guidelines and understand that violations may result in account suspension",
+    "acceptButton": "Accept & Continue"
   },
   "intro": {
     "skip": "Skip",

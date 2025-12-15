@@ -112,6 +112,40 @@ const TourPreviewCard = memo(function TourPreviewCard({
   colors,
   isDark,
 }: TourPreviewCardProps) {
+  const { i18n } = useTranslation();
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'KKTC',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
   return (
     <Animated.View
       style={[
@@ -148,7 +182,7 @@ const TourPreviewCard = memo(function TourPreviewCard({
           <View style={styles.tourPreviewMeta}>
             <Ionicons name="location" size={12} color={colors.textSecondary} />
             <Text style={[styles.tourPreviewLocation, { color: colors.textSecondary }]} numberOfLines={1}>
-              {tour.location}
+              {translateLocationLabel(tour.location)}
             </Text>
           </View>
           <View style={[styles.tourPreviewButton, { backgroundColor: colors.primary }]}>
@@ -177,6 +211,40 @@ const TourListItem = memo(function TourListItem({
   isDark, 
   colors 
 }: TourListItemProps) {
+  const { i18n } = useTranslation();
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'KKTC',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -206,7 +274,7 @@ const TourListItem = memo(function TourListItem({
         <View style={styles.tourInfo}>
           <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
           <Text style={[styles.tourLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
-            {tour.location}
+            {translateLocationLabel(tour.location)}
           </Text>
         </View>
       </View>
@@ -237,8 +305,85 @@ export default function ExploreScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const mapRef = useRef<MapView>(null);
+
+  const normalizeTranslationKey = (value: string): string => {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ı/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ş/g, 's')
+      .replace(/ç/g, 'c')
+      .replace(/ö/g, 'o')
+      .replace(/ü/g, 'u')
+      .replace(/\s+/g, '');
+  };
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      'Kuzey Kıbrıs': 'Northern Cyprus',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'Kuzey Kıbrıs',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
+
+  const getTranslatedCategoryName = useCallback((categoryName: string): string => {
+    if (!categoryName) return categoryName;
+    const key = normalizeTranslationKey(categoryName);
+    return t(`home.categories.${key}`, { defaultValue: categoryName });
+  }, [t]);
+
+  const formatRouteDurationLabel = useCallback((route: ThematicRoute): string => {
+    const raw = (route.durationLabel || '').trim();
+    if (raw) {
+      const lower = raw.toLowerCase();
+      if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
+      if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
+
+      const dayNightMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*(\d+)\s*(gece|night|nights)\s*$/i);
+      if (dayNightMatch?.[1] && dayNightMatch?.[3]) {
+        const days = Number(dayNightMatch[1]);
+        const nights = Number(dayNightMatch[3]);
+        return `${t('duration.day', { count: days })} ${t('duration.night', { count: nights })}`;
+      }
+
+      const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
+      if (dayMatch?.[1]) {
+        const days = Number(dayMatch[1]);
+        return t('duration.day', { count: days });
+      }
+    }
+
+    return t('duration.day', { count: route.durationDays });
+  }, [t]);
 
   // Zustand stores with optimized selectors using useShallow
   const tours = useTourStore(selectTours);
@@ -541,9 +686,9 @@ export default function ExploreScreen() {
     if (activeCategory === 'all') return t('explore.nearbyTitleDefault');
     const category = categories.find((c: Category) => c.id === activeCategory);
     return category
-      ? t('explore.categoryTitle', { category: category.name })
+      ? t('explore.categoryTitle', { category: getTranslatedCategoryName(category.name) })
       : t('explore.nearbyTitleDefault');
-  }, [activeCategory, categories, t]);
+  }, [activeCategory, categories, getTranslatedCategoryName, t]);
 
   // Current zoom level ref for zoom controls
   const currentZoomRef = useRef(0.08); // latitudeDelta as zoom proxy
@@ -942,7 +1087,7 @@ export default function ExploreScreen() {
                       { color: isActive ? '#FFF' : colors.text },
                     ]}
                   >
-                    {category.name}
+                    {getTranslatedCategoryName(category.name)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -1065,18 +1210,18 @@ export default function ExploreScreen() {
                     <View style={styles.viewAllRouteMeta}>
                       <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
                       <Text style={[styles.viewAllRouteLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
-                        {route.baseLocation}
+                        {translateLocationLabel(route.baseLocation)}
                       </Text>
                     </View>
                     <View style={styles.viewAllRouteBadges}>
                       <View style={[styles.viewAllRouteBadge, { backgroundColor: colors.primary + '20' }]}>
                         <Text style={[styles.viewAllRouteBadgeText, { color: colors.primary }]}>
-                          {route.durationLabel || `${route.durationDays} ${t('explore.day')}`}
+                          {formatRouteDurationLabel(route)}
                         </Text>
                       </View>
                       <View style={[styles.viewAllRouteBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)' }]}>
                         <Text style={[styles.viewAllRouteBadgeText, { color: isDark ? 'rgba(255,255,255,0.8)' : colors.textSecondary }]}>
-                          {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stops')}
+                          {route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0)} {t('explore.stop', { count: route.totalStops || route.itinerary.reduce((acc, day) => acc + day.stops.length, 0) })}
                         </Text>
                       </View>
                     </View>
@@ -1109,7 +1254,7 @@ export default function ExploreScreen() {
                     <View style={styles.viewAllTourMeta}>
                       <Ionicons name="location" size={14} color={isDark ? colors.primary : colors.textSecondary} />
                       <Text style={[styles.viewAllTourLocation, { color: isDark ? 'rgba(255,255,255,0.75)' : colors.textSecondary }]}>
-                        {tour.location}
+                        {translateLocationLabel(tour.location)}
                       </Text>
                     </View>
                   </View>

@@ -34,12 +34,35 @@
     "soon": "Yakında",
     "comingSoon": "Bu özellik yakında eklenecek",
     "info": "Bilgi",
-    "understood": "Anladım"
+    "understood": "Anladım",
+    "ok": "Tamam"
+  },
+  "tour": {
+    "free": "Ücretsiz",
+    "perPerson": "kişi başı",
+    "readMore": "Devamını oku",
+    "relatedTours": "Benzer Turlar",
+    "getDirections": "Yol Tarifi Al",
+    "priceInfo": "Fiyat Bilgisi",
+    "priceInfoMessage": "Fiyatlar tahmini fiyatlardır. Lütfen güncel fiyatları gözden geçiriniz."
+  },
+  "duration": {
+    "day_one": "{{count}} Gün",
+    "day_other": "{{count}} Gün",
+    "hour_one": "{{count}} Saat",
+    "hour_other": "{{count}} Saat",
+    "night_one": "{{count}} Gece",
+    "night_other": "{{count}} Gece",
+    "fullDay": "Tam gün",
+    "halfDay": "Yarım gün"
   },
   "auth": {
     "login": "Giriş Yap",
     "register": "Kayıt Ol",
     "logout": "Çıkış Yap",
+    "signIn": "Giriş Yap",
+    "createAccount": "Hesap Oluştur",
+    "continueAsGuest": "Misafir olarak devam et",
     "email": "E-posta",
     "password": "Şifre",
     "confirmPassword": "Şifre Tekrar",
@@ -123,13 +146,23 @@
     "categories": {
       "all": "Tümü",
       "tarihi": "Tarihi",
+      "tarih": "Tarihi",
       "doga": "Doğa",
       "kultur": "Kültür",
       "macera": "Macera",
       "yeme-icme": "Yeme-İçme",
       "plaj": "Plaj",
+      "beach": "Plaj",
       "gece-hayati": "Gece Hayatı",
-      "alisveris": "Alışveriş"
+      "alisveris": "Alışveriş",
+      "hotel": "Otel",
+      "trip": "Gezi",
+      "bus": "Otobüs",
+      "flight": "Uçuş",
+      "ship": "Gemi",
+      "history": "Tarihi",
+      "nature": "Doğa",
+      "entertainment": "Eğlence"
     }
   },
   "tours": {
@@ -163,7 +196,9 @@
     "removeConfirmMessage": "Bu turu favorilerden kaldırmak istediğinize emin misiniz?",
     "countLabel": "{{count}} tur",
     "hint1": "Favori turlarınızı kaydedin ve istediğiniz zaman kolayca erişin",
-    "hint2": "Favori turlarınızdaki fırsatlardan haberdar olun"
+    "hint2": "Favori turlarınızdaki fırsatlardan haberdar olun",
+    "guestTitle": "Favorilerinizi kaydedin",
+    "guestSubtitle": "Beğendiğiniz turları ve destinasyonları kaydetmek için giriş yapın. Favorileriniz tüm cihazlarınızda senkronize edilir."
   },
   "tabs": {
     "home": "Ana Sayfa",
@@ -172,6 +207,13 @@
     "favorites": "Favoriler",
     "scan": "Tarat",
     "profile": "Profil"
+  },
+  "guest": {
+    "signIn": "Giriş Yap",
+    "scanTitle": "Tarihi Yerleri Tarayın",
+    "scanSubtitle": "Çevrenizdeki tarihi yerleri keşfetmek ve öğrenmek için yapay zeka destekli taramayı kullanmak üzere giriş yapın.",
+    "communityTitle": "Topluluğa Katılın",
+    "communitySubtitle": "Seyahat deneyimlerinizi paylaşmak, diğer gezginlerle bağlantı kurmak ve gizli hazineleri keşfetmek için giriş yapın."
   },
   "scan": {
     "title": "Tarat",
@@ -265,6 +307,7 @@
     "deletePhoto": "Fotoğrafı Sil",
     "defaultUser": "Kullanıcı",
     "memberSuffix": "Üye",
+    "guestMember": "Misafir Üye",
     "version": "Versiyon",
     "myPanel": "Kullanıcı Panelim",
     "membershipType": "Üyelik Tipi",
@@ -278,7 +321,9 @@
     "businessMember": "Business Üye",
     "membershipStatus": "Üyelik Durumu",
     "active": "Aktif",
-    "membershipDetails": "Üyelik Detayları"
+    "membershipDetails": "Üyelik Detayları",
+    "guestTitle": "Hesabınıza giriş yapın",
+    "guestSubtitle": "Profilinizi yönetmek, rezervasyonlarınızı görüntülemek ve özel özelliklere erişmek için giriş yapın veya hesap oluşturun."
   },
   "profileScreens": {
     "personalInfo": {
@@ -415,7 +460,8 @@
         }
       },
       "errorUnsupported": "Bu işlem desteklenmiyor.",
-      "errorGeneric": "Bir sorun oluştu."
+      "errorGeneric": "Bir sorun oluştu.",
+      "removalRequestInfo": "Listelerimizde yer almak istemeyen bir yer mi gördünüz? Desteğiniz için teşekkür ederiz. İlgili mekanın/bölgenin listeden çıkarılması için hemen şimdi bir destek bileti oluşturabilirsiniz."
     },
     "help": {
       "header": "Yardım",
@@ -539,6 +585,8 @@
     "dayProgram": "Günlük Program",
     "day": "Gün",
     "stops": "Durak",
+    "stop_one": "Durak",
+    "stop_other": "Durak",
     "durationLabel": "Süre",
     "difficultyLabel": "Zorluk",
     "bestSeason": "En İyi Dönem",
@@ -594,7 +642,22 @@
     "created": "Bildirim oluşturuldu",
     "send": "Bildirimi Gönder",
     "sendSuccess": "Bildirim gönderildi",
-    "sendError": "Bildirim gönderilemedi"
+    "sendError": "Bildirim gönderilemedi",
+    "emptyTitle": "Bildirim Yok",
+    "emptySubtitle": "Yeni bildirimler burada görünecek",
+    "actions": {
+      "markRead": "Okundu",
+      "delete": "Sil"
+    },
+    "time": {
+      "justNow": "Az önce",
+      "minutesAgo_one": "{{count}} dakika önce",
+      "minutesAgo_other": "{{count}} dakika önce",
+      "hoursAgo_one": "{{count}} saat önce",
+      "hoursAgo_other": "{{count}} saat önce",
+      "daysAgo_one": "{{count}} gün önce",
+      "daysAgo_other": "{{count}} gün önce"
+    }
   },
   "contact": {
     "title": "İletişim",
@@ -761,6 +824,12 @@
       "misinformation": "Yanlış Bilgi",
       "other": "Diğer"
     },
+    "blockUser": "Kullanıcıyı Engelle",
+    "blockUserTitle": "Bu Kullanıcıyı Engelle?",
+    "blockUserMessage": "Artık paylaşımlarını görmeyeceksiniz. Engellediğiniz bildirilmeyecek.",
+    "block": "Engelle",
+    "userBlocked": "Kullanıcı Engellendi",
+    "userBlockedMessage": "Bu kullanıcının içeriklerini artık görmeyeceksiniz.",
     "premium": {
       "title": "Tüm Paylaşımları Gör",
       "subtitle": "Sen de paylaşım yapmak ve topluluk fırsatlarını yakalamak istiyorsan Gold üyeliğe geç!",
@@ -904,6 +973,20 @@
     },
     "cta": "Keşfetmeye Başla",
     "footer": "Maceraya hazır ol"
+  },
+  "terms": {
+    "title": "Topluluk Kuralları",
+    "communityGuidelines": "Topluluk Standartlarımız",
+    "guidelinesContent": "Cyprigo, gezginlerin deneyimlerini paylaştığı bir topluluktur. Topluluğumuzu güvenli ve samimi tutmak için içerik paylaşırken lütfen bu kurallara uyun.",
+    "prohibitedContent": "Yasak İçerikler",
+    "noHateSpeech": "Her türlü nefret söylemi veya ayrımcılık",
+    "noHarassment": "Taciz, zorbalık veya tehdit içeren davranışlar",
+    "noExplicitContent": "Müstehcen, şiddet içeren veya uygunsuz içerik",
+    "noSpam": "Spam, reklam veya yanıltıcı bilgi",
+    "noMisinformation": "Yerler veya hizmetler hakkında yanlış veya yanıltıcı içerik",
+    "violationWarning": "İhlaller içerik kaldırılmasına ve hesap askıya alınmasına neden olabilir. Tüm raporları 24 saat içinde inceliyoruz.",
+    "agreeCheckbox": "Topluluk Kurallarını kabul ediyorum ve ihlallerin hesap askıya alınmasına neden olabileceğini anlıyorum",
+    "acceptButton": "Kabul Et ve Devam Et"
   },
   "intro": {
     "skip": "Atla",

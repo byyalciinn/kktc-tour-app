@@ -18,15 +18,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useCommunityStore, useAuthStore, useThemeStore, useShallow } from '@/stores';
+import { useCommunityStore, useAuthStore, useThemeStore, useShallow, useTermsStore, useBlockStore } from '@/stores';
 import { CommunityPost, CommunityPostType } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
-import { CreatePostSheet, PostDetailSheet, ProfileSheet } from '@/components/sheets';
+import { CreatePostSheet, PostDetailSheet, ProfileSheet, TermsAcceptanceSheet } from '@/components/sheets';
 import { AnimatedFab, AnimatedFabItemProps } from '@/components/ui';
 import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 
@@ -80,6 +80,10 @@ export default function CommunityScreen() {
     }))
   );
 
+  // Terms & Block stores (UGC Compliance)
+  const { hasAcceptedTerms, checkTermsAcceptance } = useTermsStore();
+  const { blockedUserIds, fetchBlockedUsers, blockUser } = useBlockStore();
+
   // Local state
   const [activeFilter, setActiveFilter] = useState<CommunityPostType | 'all'>('all');
   const [isCreateSheetVisible, setIsCreateSheetVisible] = useState(false);
@@ -87,6 +91,7 @@ export default function CommunityScreen() {
   const [selectedPostForDetail, setSelectedPostForDetail] = useState<CommunityPost | null>(null);
   const [isProfileSheetVisible, setIsProfileSheetVisible] = useState(false);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
+  const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
 
   // Spin animation for refresh
   useEffect(() => {
@@ -113,12 +118,27 @@ export default function CommunityScreen() {
     fetchPosts();
   }, []);
 
-  // Filter posts by type
+  // Load blocked users when user changes (UGC Compliance)
+  useEffect(() => {
+    if (user) {
+      fetchBlockedUsers(user.id);
+      checkTermsAcceptance(user.id);
+    }
+  }, [user]);
+
+  // Filter posts by type and blocked users (UGC Compliance)
   const filteredPosts = useMemo(() => {
-    return activeFilter === 'all' 
+    let filtered = activeFilter === 'all' 
       ? posts 
       : posts.filter(post => post.type === activeFilter);
-  }, [posts, activeFilter]);
+    
+    // Filter out posts from blocked users
+    if (blockedUserIds.length > 0) {
+      filtered = filtered.filter(post => !blockedUserIds.includes(post.userId));
+    }
+    
+    return filtered;
+  }, [posts, activeFilter, blockedUserIds]);
 
   // All posts visible to all users (no premium restriction)
   const visiblePosts = filteredPosts;
@@ -144,8 +164,38 @@ export default function CommunityScreen() {
     await toggleLike(user.id, post.id);
   }, [user, toggleLike]);
 
-  const handleCreatePress = useCallback(() => {
+  // Handle create press with Terms check (UGC Compliance - Apple Guideline 1.2)
+  const handleCreatePress = useCallback(async () => {
+    if (!user) {
+      // Guest user - show login prompt
+      Alert.alert(
+        t('auth.loginRequired'),
+        t('auth.loginRequiredMessage'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('auth.signIn'), onPress: () => router.push('/(auth)') },
+        ]
+      );
+      return;
+    }
+    
+    // Check if user has accepted terms
+    if (!hasAcceptedTerms) {
+      const accepted = await checkTermsAcceptance(user.id);
+      if (!accepted) {
+        setIsFabMenuOpen(false);
+        setIsTermsSheetVisible(true);
+        return;
+      }
+    }
+    
     setIsFabMenuOpen(false);
+    setIsCreateSheetVisible(true);
+  }, [user, hasAcceptedTerms, checkTermsAcceptance, t]);
+
+  // Handle terms acceptance
+  const handleTermsAccepted = useCallback(() => {
+    setIsTermsSheetVisible(false);
     setIsCreateSheetVisible(true);
   }, []);
 
@@ -249,6 +299,30 @@ export default function CommunityScreen() {
     }
   }, [t]);
 
+  // Handle block user (UGC Compliance - Apple Guideline 1.2)
+  const handleBlockUser = useCallback(async (post: CommunityPost) => {
+    if (!user) return;
+    
+    Alert.alert(
+      t('community.blockUserTitle'),
+      t('community.blockUserMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('community.block'),
+          style: 'destructive',
+          onPress: async () => {
+            const { success, error } = await blockUser(user.id, post.userId, 'User blocked from community');
+            if (success) {
+              Alert.alert(t('community.userBlocked'), t('community.userBlockedMessage'));
+            } else {
+              Alert.alert(t('common.error'), error || t('common.error'));
+            }
+          },
+        },
+      ]
+    );
+  }, [user, blockUser, t]);
 
   // Render post item
   const renderPostItem = useCallback(({ item, index }: { item: CommunityPost; index: number }) => {
@@ -260,10 +334,11 @@ export default function CommunityScreen() {
         onDeletePress={handleDeletePost}
         onReportPress={handleReportPost}
         onHidePress={handleHidePost}
+        onBlockUserPress={handleBlockUser}
         isLiked={item.isLiked}
       />
     );
-  }, [handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost]);
+  }, [handlePostPress, handleLikePress, handleDeletePost, handleReportPost, handleHidePost, handleBlockUser]);
 
   // Render header
   const renderHeader = useCallback(() => (
@@ -369,6 +444,32 @@ export default function CommunityScreen() {
     );
   }, [isLoadingMore, posts.length, hasMore, colors.primary]);
 
+  // Guest mode screen
+  const isGuest = !user;
+  if (isGuest) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <SafeAreaView style={styles.guestSafeArea}>
+          <View style={styles.guestContainer}>
+            <View style={[styles.guestIconContainer, { backgroundColor: colors.card }]}>
+              <Ionicons name="people-outline" size={48} color={colors.primary} />
+            </View>
+            <Text style={[styles.guestTitle, { color: colors.text }]}>{t('guest.communityTitle')}</Text>
+            <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>{t('guest.communitySubtitle')}</Text>
+            <TouchableOpacity
+              style={[styles.guestSignInButton, { backgroundColor: colors.primary }]}
+              onPress={() => router.replace('/(auth)')}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#FFF" />
+              <Text style={styles.guestSignInText}>{t('guest.signIn')}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -472,6 +573,13 @@ export default function CommunityScreen() {
       <ProfileSheet
         visible={isProfileSheetVisible}
         onClose={() => setIsProfileSheetVisible(false)}
+      />
+
+      {/* Terms Acceptance Sheet (UGC Compliance - Apple Guideline 1.2) */}
+      <TermsAcceptanceSheet
+        visible={isTermsSheetVisible}
+        onAccept={handleTermsAccepted}
+        onCancel={() => setIsTermsSheetVisible(false)}
       />
     </View>
   );
@@ -696,5 +804,53 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
     color: '#FFF',
+  },
+
+  // Guest mode styles
+  guestSafeArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  guestContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  guestIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  guestSubtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  guestSignInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+  },
+  guestSignInText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
   },
 });
