@@ -284,8 +284,9 @@ export default function PostDetailSheet({
   // Handle comment menu press for Android (UGC Compliance - Apple Guideline 1.2)
   const handleCommentMenuPressAndroid = (comment: CommunityComment) => {
     const isOwnComment = comment.userId === user?.id;
+    const canDelete = isOwnComment || isAdmin;
     
-    if (isOwnComment) {
+    if (canDelete) {
       Alert.alert(
         t('community.commentOptions'),
         '',
@@ -296,6 +297,19 @@ export default function PostDetailSheet({
             style: 'destructive',
             onPress: () => handleDeleteComment(comment),
           },
+          ...(!isOwnComment
+            ? [
+                {
+                  text: t('community.blockUser'),
+                  style: 'destructive' as const,
+                  onPress: () => handleBlockCommentUser(comment),
+                },
+                {
+                  text: t('community.report'),
+                  onPress: () => handleReportComment(comment),
+                },
+              ]
+            : []),
         ]
       );
     } else {
@@ -320,13 +334,16 @@ export default function PostDetailSheet({
 
   const handleCommentMenuPressIOS = (comment: CommunityComment) => {
     const isOwnComment = comment.userId === user?.id;
+    const canDelete = isOwnComment || isAdmin;
 
-    const options = isOwnComment
-      ? [t('common.cancel'), t('common.delete')]
+    const options = canDelete
+      ? isOwnComment
+        ? [t('common.cancel'), t('common.delete')]
+        : [t('common.cancel'), t('common.delete'), t('community.blockUser'), t('community.report')]
       : [t('common.cancel'), t('community.blockUser'), t('community.report')];
 
     const cancelButtonIndex = 0;
-    const destructiveButtonIndex = 1;
+    const destructiveButtonIndex = canDelete ? 1 : 1;
 
     ActionSheetIOS.showActionSheetWithOptions(
       {
@@ -335,16 +352,25 @@ export default function PostDetailSheet({
         destructiveButtonIndex,
       },
       (buttonIndex) => {
-        if (isOwnComment) {
+        if (canDelete) {
           if (buttonIndex === 1) {
             handleDeleteComment(comment);
+            return;
           }
-        } else {
-          if (buttonIndex === 1) {
-            handleBlockCommentUser(comment);
-          } else if (buttonIndex === 2) {
-            handleReportComment(comment);
+          if (!isOwnComment) {
+            if (buttonIndex === 2) {
+              handleBlockCommentUser(comment);
+            } else if (buttonIndex === 3) {
+              handleReportComment(comment);
+            }
           }
+          return;
+        }
+
+        if (buttonIndex === 1) {
+          handleBlockCommentUser(comment);
+        } else if (buttonIndex === 2) {
+          handleReportComment(comment);
         }
       }
     );
@@ -428,19 +454,21 @@ export default function PostDetailSheet({
   // Render iOS Context Menu for comments
   const renderCommentContextMenuIOS = (item: CommunityComment) => {
     const isOwnComment = item.userId === user?.id;
+    const canDelete = isOwnComment || isAdmin;
     
     return (
       <Host matchContents>
         <ContextMenu>
           <ContextMenu.Items>
-            {isOwnComment ? (
+            {canDelete && (
               <Button
                 systemImage="trash"
                 onPress={() => handleDeleteComment(item)}
               >
                 {t('common.delete')}
               </Button>
-            ) : (
+            )}
+            {!isOwnComment && (
               <>
                 <Button
                   systemImage="hand.raised"

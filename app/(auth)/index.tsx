@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
+  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -293,6 +294,7 @@ export default function WelcomeScreen() {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [termsVisible, setTermsVisible] = useState(false);
+  const [returnToSheet, setReturnToSheet] = useState<'register' | null>(null);
   const [twoFactorVisible, setTwoFactorVisible] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const sliderRef = useRef<ScrollView>(null);
@@ -310,6 +312,7 @@ export default function WelcomeScreen() {
   const [registerPassword, setRegisterPassword] = useState('');
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Forgot password states
   const [forgotEmail, setForgotEmail] = useState('');
@@ -371,6 +374,9 @@ export default function WelcomeScreen() {
     reset: resetPasswordStore,
   } = usePasswordResetStore();
   const { t } = useTranslation();
+
+  const termsOfUseSections = t('termsOfUse.sections', { returnObjects: true }) as Array<{ title: string; content: string }>;
+  const privacyPolicySections = t('privacyPolicy.sections', { returnObjects: true }) as Array<{ title: string; content: string }>;
   
   // Debug: Log when twoFactorVisible changes
   useEffect(() => {
@@ -538,7 +544,11 @@ export default function WelcomeScreen() {
       useTwoFactorStore.getState().setCheckingRequired(false);
       setLoginLoading(false);
       const { message, type } = getAuthErrorMessage(error, t);
-      useUIStore.getState().showToast(message, type);
+      Alert.alert(
+        t('common.error'),
+        message,
+        [{ text: t('common.done') }]
+      );
       return;
     }
 
@@ -638,6 +648,35 @@ export default function WelcomeScreen() {
     setRegisterVisible(false);
     setForgotPasswordVisible(false);
     setTimeout(() => setLoginVisible(true), 300);
+  };
+
+  const openTermsFromRegister = () => {
+    // iOS doesn't reliably stack multiple Modals; close register first, then open terms
+    setReturnToSheet('register');
+    setRegisterVisible(false);
+    setTimeout(() => setTermsVisible(true), 50);
+  };
+
+  const openPrivacyFromRegister = () => {
+    setReturnToSheet('register');
+    setRegisterVisible(false);
+    setTimeout(() => setPrivacyVisible(true), 50);
+  };
+
+  const closeTermsSheet = () => {
+    setTermsVisible(false);
+    if (returnToSheet === 'register') {
+      setReturnToSheet(null);
+      setTimeout(() => setRegisterVisible(true), 250);
+    }
+  };
+
+  const closePrivacySheet = () => {
+    setPrivacyVisible(false);
+    if (returnToSheet === 'register') {
+      setReturnToSheet(null);
+      setTimeout(() => setRegisterVisible(true), 250);
+    }
   };
 
   const openForgotPassword = () => {
@@ -1246,10 +1285,63 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         </View>
         
+        {/* EULA/Terms Acceptance Checkbox */}
+        <View style={styles.termsCheckboxContainer}>
+          <TouchableOpacity
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <View
+              style={[
+                styles.termsCheckbox,
+                {
+                  borderColor: termsAccepted
+                    ? '#F89C28'
+                    : isDark
+                    ? 'rgba(255,255,255,0.3)'
+                    : 'rgba(0,0,0,0.2)',
+                },
+                termsAccepted && { backgroundColor: '#F89C28' },
+              ]}
+            >
+              {termsAccepted && <Ionicons name="checkmark" size={14} color="#FFF" />}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.termsCheckboxTextColumn}>
+            <View style={styles.termsCheckboxTextRow}>
+              <Text style={[styles.termsCheckboxText, { color: colors.textSecondary }]}> 
+                {t('auth.eulaConsentPrefix')}{' '}
+              </Text>
+              <TouchableOpacity onPress={openTermsFromRegister} activeOpacity={0.7}>
+                <Text style={[styles.termsCheckboxLink, { color: colors.text }]}>
+                  {t('settings.termsOfService')}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.termsCheckboxText, { color: colors.textSecondary }]}> 
+                {' '}{t('common.and')}{' '}
+              </Text>
+              <TouchableOpacity onPress={openPrivacyFromRegister} activeOpacity={0.7}>
+                <Text style={[styles.termsCheckboxLink, { color: colors.text }]}>
+                  {t('settings.privacyPolicy')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              style={[styles.termsCheckboxNote, { color: colors.textSecondary }]}
+              numberOfLines={2}
+            >
+              {t('auth.ugcConsentNote')}
+            </Text>
+          </View>
+        </View>
+        
         <TouchableOpacity
-          style={[styles.sheetButton, { marginTop: 20 }]}
+          style={[styles.sheetButton, { marginTop: 16 }, !termsAccepted && styles.sheetButtonDisabled]}
           onPress={handleRegister}
-          disabled={registerLoading}
+          disabled={registerLoading || !termsAccepted}
         >
           {registerLoading ? (
             <ActivityIndicator color="#fff" />
@@ -1472,29 +1564,78 @@ export default function WelcomeScreen() {
       {/* Privacy Policy Sheet */}
       <AuthBottomSheet
         visible={privacyVisible}
-        onClose={() => setPrivacyVisible(false)}
+        onClose={closePrivacySheet}
         sheetHeight={height * 0.85}
         isDark={isDark}
       >
-        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('settings.privacyPolicy')}</Text>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.7 }}>
-          <Text style={[styles.legalContentText, { color: colors.textSecondary }]}>
-            {t('auth.privacyPolicyContent')}
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('privacyPolicy.title')}</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ maxHeight: height * 0.7 }}
+          contentContainerStyle={styles.legalScrollContent}
+        >
+          <Text style={[styles.legalIntroText, { color: colors.textSecondary }]}>
+            {t('privacyPolicy.intro')}
           </Text>
+          {privacyPolicySections.map((section, index) => (
+            <View
+              key={index}
+              style={[
+                styles.legalSectionCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}
+            >
+              <Text style={[styles.legalSectionTitle, { color: colors.text }]}>
+                {section.title}
+              </Text>
+              <Text style={[styles.legalSectionContent, { color: colors.textSecondary }]}>
+                {section.content}
+              </Text>
+            </View>
+          ))}
         </ScrollView>
       </AuthBottomSheet>
 
       {/* Terms of Service Sheet */}
       <AuthBottomSheet
         visible={termsVisible}
-        onClose={() => setTermsVisible(false)}
+        onClose={closeTermsSheet}
         sheetHeight={height * 0.85}
         isDark={isDark}
       >
-        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('settings.termsOfService')}</Text>
-        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.7 }}>
-          <Text style={[styles.legalContentText, { color: colors.textSecondary }]}>
-            {t('auth.termsOfServiceContent')}
+        <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('termsOfUse.title')}</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ maxHeight: height * 0.7 }}
+          contentContainerStyle={styles.legalScrollContent}
+        >
+          <Text style={[styles.legalIntroText, { color: colors.textSecondary }]}>
+            {t('termsOfUse.intro')}
+          </Text>
+          {termsOfUseSections.map((section, index) => (
+            <View
+              key={index}
+              style={[
+                styles.legalSectionCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+                  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                },
+              ]}
+            >
+              <Text style={[styles.legalSectionTitle, { color: colors.text }]}>
+                {section.title}
+              </Text>
+              <Text style={[styles.legalSectionContent, { color: colors.textSecondary }]}>
+                {section.content}
+              </Text>
+            </View>
+          ))}
+          <Text style={[styles.legalNoteText, { color: colors.textSecondary }]}>
+            {t('termsOfUse.note')}
           </Text>
         </ScrollView>
       </AuthBottomSheet>
@@ -2152,6 +2293,39 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: -0.2,
   },
+  legalScrollContent: {
+    paddingBottom: 40,
+  },
+  legalIntroText: {
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: -0.2,
+    marginBottom: 16,
+  },
+  legalSectionCard: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  legalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    marginBottom: 8,
+  },
+  legalSectionContent: {
+    fontSize: 14,
+    lineHeight: 22,
+    letterSpacing: -0.2,
+  },
+  legalNoteText: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: -0.2,
+  },
   topHeaderOverlay: {
     position: 'absolute',
     top: 16,
@@ -2379,6 +2553,47 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  sheetButtonDisabled: {
+    backgroundColor: 'rgba(248, 156, 40, 0.4)',
+  },
+  termsCheckboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    gap: 12,
+  },
+  termsCheckboxTextRow: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  termsCheckboxTextColumn: {
+    flex: 1,
+  },
+  termsCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  termsCheckboxText: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  termsCheckboxNote: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    opacity: 0.85,
+  },
+  termsCheckboxLink: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   sheetFooter: {
     flexDirection: 'row',

@@ -128,8 +128,6 @@ export default function AddTourScreen() {
         title: title.trim(),
         location: location.trim(),
         description: description.trim(),
-        price: 0,
-        currency: '₺',
         duration: duration.trim(),
         category,
         highlights: highlightsArray,

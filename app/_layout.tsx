@@ -83,7 +83,9 @@ export default function RootLayout() {
       segments: segments[0],
     });
     
-    if (!initialized || loading || isCheckingIntro) {
+    // During initialization or active auth/2FA checks, do not redirect.
+    // Keeping the Stack mounted prevents segments from resetting and avoids unintended guest redirects.
+    if (!initialized || loading || isCheckingIntro || is2FAChecking) {
       console.log('[_layout] Waiting for initialization...');
       return;
     }
@@ -161,7 +163,9 @@ export default function RootLayout() {
   }, [user, loading, initialized, segments, hasSeenIntro, isCheckingIntro, is2FAPending, is2FAChecking]);
 
   // Loading ekranı göster: initialization, loading, intro check veya 2FA check sırasında
-  if (!initialized || loading || isCheckingIntro || is2FAChecking) {
+  // IMPORTANT: Do not unmount the navigator during auth/2FA checks.
+  // Unmounting can reset segments and cause unintended guest navigation.
+  if (!initialized || isCheckingIntro) {
     return <LoadingScreen />;
   }
 

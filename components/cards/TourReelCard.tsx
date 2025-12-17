@@ -47,7 +47,7 @@ const TourReelCard: React.FC<TourReelCardProps> = ({ tour, onDetailPress }) => {
     <View style={styles.container}>
       {/* Tam ekran fotoğraf - Yüksek kalite */}
       <Image
-        source={{ uri: tour.image }}
+        source={{ uri: tour.image || tour.imageThumb || '' }}
         style={styles.image}
         resizeMode="cover"
       />

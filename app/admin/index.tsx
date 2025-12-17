@@ -163,7 +163,7 @@ export default function AdminToursScreen() {
                 },
               ]}
             >
-              <Image source={{ uri: tour.image }} style={styles.tourImage} />
+              <Image source={{ uri: tour.image_thumb || tour.image }} style={styles.tourImage} />
               
               <View style={styles.tourInfo}>
                 <Text style={[styles.tourTitle, { color: colors.text }]} numberOfLines={1}>

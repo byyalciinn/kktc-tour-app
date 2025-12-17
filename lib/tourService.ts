@@ -3,6 +3,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { optimizeTourImage } from './imageOptimizer';
+import { optimizeImageAggressive } from './imageOptimizer';
 import { sanitizeForLike, sanitizeInput } from './validation';
 
 const BUCKET_NAME = 'image-bucket';
@@ -29,6 +30,18 @@ const validateImageFile = (fileSize?: number, mimeType?: string): ImageValidatio
   return { isValid: true };
 };
 
+export const optimizeTourThumbnail = async (
+  uri: string
+): Promise<{ uri: string; base64: string } | null> => {
+  try {
+    const optimized = await optimizeImageAggressive(uri, 'thumbnail', 120);
+    if (!optimized) return null;
+    return { uri: optimized.uri, base64: optimized.base64 };
+  } catch {
+    return null;
+  }
+};
+
 const slugify = (text: string) =>
   text
     .toLowerCase()
@@ -42,8 +55,6 @@ export interface TourInput {
   title: string;
   location: string;
   description: string;
-  price: number;
-  currency: string;
   duration: string;
   category: string;
   highlights: string[];
@@ -65,6 +76,7 @@ export interface TourData extends TourInput {
   review_count: number;
   created_at: string;
   updated_at: string;
+  image_thumb?: string | null;
   latitude?: number;
   longitude?: number;
 }
@@ -101,6 +113,64 @@ export const pickImage = async (): Promise<{ uri: string | null; error?: string 
   } catch (error) {
     console.error('Pick image error:', error);
     return { uri: null, error: 'Görsel seçilirken bir hata oluştu' };
+  }
+};
+
+export const uploadTourImageWithThumbnail = async (
+  imageUri: string,
+  fileName: string
+): Promise<{ imageUrl: string | null; thumbUrl: string | null }> => {
+  try {
+    const optimized = await optimizeImage(imageUri);
+    if (!optimized) {
+      return { imageUrl: null, thumbUrl: null };
+    }
+
+    const thumbOptimized = await optimizeTourThumbnail(imageUri);
+
+    const timestamp = Date.now();
+    const fullPath = `tours/${timestamp}_${fileName}.jpg`;
+    const thumbPath = `tours/thumbs/${timestamp}_${fileName}.jpg`;
+
+    const { error: fullError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(fullPath, decode(optimized.base64), {
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000, immutable',
+        upsert: false,
+      });
+
+    if (fullError) {
+      console.error('Upload error:', fullError);
+      return { imageUrl: null, thumbUrl: null };
+    }
+
+    let thumbUrl: string | null = null;
+    if (thumbOptimized?.base64) {
+      const { error: thumbError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(thumbPath, decode(thumbOptimized.base64), {
+          contentType: 'image/jpeg',
+          cacheControl: 'public, max-age=31536000, immutable',
+          upsert: false,
+        });
+
+      if (!thumbError) {
+        const { data: thumbUrlData } = supabase.storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(thumbPath);
+        thumbUrl = thumbUrlData.publicUrl;
+      }
+    }
+
+    const { data: fullUrlData } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(fullPath);
+
+    return { imageUrl: fullUrlData.publicUrl, thumbUrl };
+  } catch (error) {
+    console.error('Upload error:', error);
+    return { imageUrl: null, thumbUrl: null };
   }
 };
 
@@ -189,6 +259,7 @@ export const uploadImage = async (base64: string, fileName: string): Promise<str
       .from(BUCKET_NAME)
       .upload(filePath, decode(base64), {
         contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000, immutable',
         upsert: false,
       });
 
@@ -238,16 +309,17 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
 export const createTour = async (tour: TourInput, imageUri?: string): Promise<{ data: TourData | null; error: string | null }> => {
   try {
     let imageUrl = tour.image || '';
+    let imageThumbUrl: string | null = null;
 
     // Upload image if provided
     if (imageUri) {
-      const optimized = await optimizeImage(imageUri);
-      if (optimized) {
-        const fileName = slugify(tour.title);
-        const uploadedUrl = await uploadImage(optimized.base64, fileName);
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl;
-        }
+      const fileName = slugify(tour.title);
+      const { imageUrl: fullUrl, thumbUrl } = await uploadTourImageWithThumbnail(imageUri, fileName);
+      if (fullUrl) {
+        imageUrl = fullUrl;
+      }
+      if (thumbUrl) {
+        imageThumbUrl = thumbUrl;
       }
     }
 
@@ -256,12 +328,11 @@ export const createTour = async (tour: TourInput, imageUri?: string): Promise<{ 
       title: tour.title,
       location: tour.location,
       description: tour.description,
-      price: tour.price,
-      currency: tour.currency,
       duration: tour.duration,
       category: tour.category,
       highlights: tour.highlights,
       image: imageUrl,
+      image_thumb: imageThumbUrl,
       rating: 0,
       review_count: 0,
     };
@@ -305,22 +376,20 @@ export const updateTour = async (
     console.log('Tour data:', tour);
     
     let imageUrl = tour.image;
+    let imageThumbUrl: string | null | undefined = undefined;
 
     // Upload new image if provided
     if (newImageUri) {
       console.log('Uploading new image...');
-      const optimized = await optimizeImage(newImageUri);
-      if (optimized) {
-        const fileName = slugify(tour.title || 'tour');
-        const uploadedUrl = await uploadImage(optimized.base64, fileName);
-        if (uploadedUrl) {
-          imageUrl = uploadedUrl;
-          console.log('New image uploaded:', uploadedUrl);
-          
-          // Delete old image
-          if (oldImageUrl && oldImageUrl.includes(BUCKET_NAME)) {
-            await deleteImage(oldImageUrl);
-          }
+      const fileName = slugify(tour.title || 'tour');
+      const { imageUrl: fullUrl, thumbUrl } = await uploadTourImageWithThumbnail(newImageUri, fileName);
+      if (fullUrl) {
+        imageUrl = fullUrl;
+        imageThumbUrl = thumbUrl;
+        console.log('New image uploaded:', fullUrl);
+
+        if (oldImageUrl && oldImageUrl.includes(BUCKET_NAME)) {
+          await deleteImage(oldImageUrl);
         }
       }
     }
@@ -331,12 +400,11 @@ export const updateTour = async (
     if (tour.title !== undefined) updateData.title = tour.title;
     if (tour.location !== undefined) updateData.location = tour.location;
     if (tour.description !== undefined) updateData.description = tour.description;
-    if (tour.price !== undefined) updateData.price = tour.price;
-    if (tour.currency !== undefined) updateData.currency = tour.currency;
     if (tour.duration !== undefined) updateData.duration = tour.duration;
     if (tour.category !== undefined) updateData.category = tour.category;
     if (tour.highlights !== undefined) updateData.highlights = tour.highlights;
     if (imageUrl) updateData.image = imageUrl;
+    if (imageThumbUrl !== undefined) updateData.image_thumb = imageThumbUrl;
     if (tour.latitude !== undefined) updateData.latitude = tour.latitude;
     if (tour.longitude !== undefined) updateData.longitude = tour.longitude;
     

@@ -65,12 +65,11 @@ export interface Database {
           title: string;
           location: string;
           description: string;
-          price: number;
-          currency: string;
           duration: string;
           rating: number;
           review_count: number;
           image: string;
+          image_thumb: string | null;
           highlights: string[];
           category: string;
           created_at: string;

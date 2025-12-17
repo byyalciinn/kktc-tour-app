@@ -234,12 +234,11 @@ export default function DestinationSearch({
       title: tour.title,
       location: tour.location,
       description: tour.description || '',
-      price: tour.price,
-      currency: tour.currency,
       duration: tour.duration,
       rating: tour.rating,
       reviewCount: tour.review_count,
       image: tour.image || '',
+      imageThumb: tour.image_thumb || undefined,
       highlights: tour.highlights || [],
       category: tour.category,
     };
@@ -497,7 +496,7 @@ export default function DestinationSearch({
                         activeOpacity={0.8}
                       >
                         <Image 
-                          source={{ uri: tour.image }} 
+                          source={{ uri: tour.image_thumb || tour.image }} 
                           style={styles.resultImage} 
                         />
                         <View style={styles.resultContent}>

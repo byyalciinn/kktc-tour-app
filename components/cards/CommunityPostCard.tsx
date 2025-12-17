@@ -94,7 +94,7 @@ function CommunityPostCardComponent({
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
 
   const isExpoGo =
@@ -160,8 +160,15 @@ function CommunityPostCardComponent({
     if (diffMins < 60) return t('community.time.minutes', { count: diffMins });
     if (diffHours < 24) return t('community.time.hours', { count: diffHours });
     if (diffDays < 7) return t('community.time.days', { count: diffDays });
-    
-    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '')
+      .toLowerCase()
+      .startsWith('en');
+
+    return date.toLocaleDateString(isEnglish ? 'en-US' : 'tr-TR', {
+      day: 'numeric',
+      month: isEnglish ? 'long' : 'short',
+    });
   };
 
   // Handle press with scale animation
@@ -519,11 +526,6 @@ function CommunityPostCardComponent({
               <Text style={[styles.actionText, { color: colors.textSecondary }]}>
                 {post.commentsCount > 0 ? post.commentsCount : ''}
               </Text>
-            </TouchableOpacity>
-
-            {/* Share button */}
-            <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
-              <Ionicons name="share-outline" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>

@@ -7,8 +7,6 @@ export interface Tour {
   title: string;
   location: string;
   description: string;
-  price: number;
-  currency: string;
   duration: string;
   rating: number;
   reviewCount: number;
@@ -54,8 +52,6 @@ export const featuredTours: Tour[] = [
     title: 'Bellapais Manastırı',
     location: 'Girne, KKTC',
     description: '13. yüzyıldan kalma gotik mimari harikası manastırı keşfedin. Akdeniz\'in muhteşem manzarası eşliğinde tarihe yolculuk.',
-    price: 25,
-    currency: '€',
     duration: '2 saat',
     rating: 4.8,
     reviewCount: 1247,
@@ -68,8 +64,6 @@ export const featuredTours: Tour[] = [
     title: 'Altın Kum Plajı',
     location: 'Karpaz, KKTC',
     description: 'KKTC\'nin en güzel plajlarından biri. Altın sarısı kumları ve berrak suları ile unutulmaz bir deniz deneyimi.',
-    price: 15,
-    currency: '€',
     duration: 'Tam gün',
     rating: 4.9,
     reviewCount: 2156,
@@ -82,8 +76,6 @@ export const featuredTours: Tour[] = [
     title: 'Salamis Antik Kenti',
     location: 'Gazimağusa, KKTC',
     description: 'Antik dönemin en önemli liman şehirlerinden biri. Roma hamamları, tiyatro ve gymnasium kalıntıları.',
-    price: 20,
-    currency: '€',
     duration: '3 saat',
     rating: 4.7,
     reviewCount: 1823,
@@ -96,8 +88,6 @@ export const featuredTours: Tour[] = [
     title: 'Girne Kalesi',
     location: 'Girne, KKTC',
     description: 'Bizans döneminden kalma tarihi kale. İçinde batık gemi müzesi ve muhteşem liman manzarası.',
-    price: 18,
-    currency: '€',
     duration: '2 saat',
     rating: 4.6,
     reviewCount: 2341,
@@ -110,8 +100,6 @@ export const featuredTours: Tour[] = [
     title: 'Beşparmak Dağları',
     location: 'Girne, KKTC',
     description: 'Eşsiz doğa yürüyüşleri ve nefes kesen manzaralar. St. Hilarion Kalesi\'ne tırmanış.',
-    price: 30,
-    currency: '€',
     duration: '4 saat',
     rating: 4.8,
     reviewCount: 987,
@@ -124,8 +112,6 @@ export const featuredTours: Tour[] = [
     title: 'Karpaz Eşekleri Safari',
     location: 'Karpaz, KKTC',
     description: 'Karpaz yarımadasının ünlü yabani eşeklerini doğal ortamlarında görün.',
-    price: 35,
-    currency: '€',
     duration: 'Yarım gün',
     rating: 4.5,
     reviewCount: 654,

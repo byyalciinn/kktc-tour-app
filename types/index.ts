@@ -11,12 +11,11 @@ export interface Tour {
   title: string;
   location: string;
   description: string;
-  price: number;
-  currency: string;
   duration: string;
   rating: number;
   reviewCount: number;
   image: string;
+  imageThumb?: string;
   highlights: string[];
   category: string;
   latitude?: number;
@@ -27,8 +26,6 @@ export interface TourInput {
   title: string;
   location: string;
   description: string;
-  price: number;
-  currency: string;
   duration: string;
   category: string;
   highlights: string[];
@@ -43,6 +40,7 @@ export interface TourData extends TourInput {
   review_count: number;
   created_at: string;
   updated_at: string;
+  image_thumb?: string | null;
   latitude?: number;
   longitude?: number;
 }
@@ -53,12 +51,11 @@ export const tourDataToTour = (data: TourData): Tour => ({
   title: data.title,
   location: data.location,
   description: data.description || '',
-  price: data.price,
-  currency: data.currency,
   duration: data.duration,
   rating: data.rating || 0,
   reviewCount: data.review_count || 0,
   image: data.image || '',
+  imageThumb: data.image_thumb || undefined,
   highlights: data.highlights || [],
   category: data.category,
   latitude: data.latitude,

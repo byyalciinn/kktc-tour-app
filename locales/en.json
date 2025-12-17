@@ -111,6 +111,11 @@
     "passwordNeedsLowercase": "Password must contain at least one lowercase letter",
     "passwordNeedsNumber": "Password must contain at least one number",
     "agreeToTerms": "By continuing, you agree to our",
+    "acceptTermsCheckbox": "I accept the",
+    "termsAndConditions": "Terms & Conditions",
+    "eulaConsentPrefix": "I agree to the",
+    "eulaConsentSuffix": "and acknowledge that objectionable content and abusive users are not tolerated and may result in content removal and account suspension.",
+    "ugcConsentNote": "Zero tolerance for abuse or objectionable content. Violations may result in content removal or account suspension.",
     "accountBanned": "Your account has been banned",
     "accountBannedTitle": "Account Banned",
     "accountBannedDescription": "Your account has been banned by administrators and you cannot log in to the system.",
@@ -127,9 +132,7 @@
       "serverError": "An error occurred. Please try again",
       "databaseError": "Registration failed. Please try again",
       "resetLinkSent": "Password reset link sent ✉️"
-    },
-    "privacyPolicyContent": "Privacy Policy\n\nAt Cyprigo, we respect your privacy and are committed to protecting your personal data.\n\nInformation We Collect\n• Account Information: Name, email address, and profile photo\n• Location Data: To show nearby tourist attractions (with your permission)\n• Usage Data: In-app interactions and preferences\n• Device Information: For performance improvement\n\nHow We Use Information\n• Provide information about tourist places in Northern Cyprus\n• Offer personalized recommendations\n• Manage and secure your account\n• Improve app performance\n\nData Security\nWe use SSL/TLS encryption and secure server infrastructure.\n\nYour Rights\nYou have the right to access, correct, and delete your data. You can delete your account from Settings > Delete My Account.\n\nContact\ncyprurigo@gmail.com\n\nLast updated: December 2024",
-    "termsOfServiceContent": "Terms of Service\n\nBy using Cyprigo, you agree to the following terms.\n\nService Description\nCyprigo is an informational app that helps you discover tourist attractions and tours in Northern Cyprus. We do not process direct reservations or payments.\n\nUser Account\n• You must provide accurate and current information\n• You are responsible for your account security\n• You can delete your account at any time\n\nIn-App Purchases\n• All purchases are processed through Apple App Store\n• Subscriptions auto-renew\n• To cancel, use iOS Settings > Apple ID > Subscriptions\n\nUser Responsibilities\n• Use the app for lawful purposes only\n• Respect other users\n• Do not share harmful or inappropriate content\n\nIntellectual Property\nApp content and design belong to Cyprigo.\n\nContact\ncyprurigo@gmail.com\n\nLast updated: December 2024"
+    }
   },
   "home": {
     "location": "Location",
@@ -355,6 +358,25 @@
     "guestSubtitle": "Create an account or sign in to manage your profile, view your bookings, and access exclusive features."
   },
   "profileScreens": {
+    "changePassword": {
+      "header": "Change Password",
+      "info": "Choose a strong password for your security. It should be at least 8 characters and include uppercase/lowercase letters and a number.",
+      "currentPasswordLabel": "CURRENT PASSWORD",
+      "currentPasswordPlaceholder": "Enter your current password",
+      "newPasswordLabel": "NEW PASSWORD",
+      "newPasswordPlaceholder": "Enter your new password",
+      "confirmPasswordLabel": "NEW PASSWORD (CONFIRM)",
+      "confirmPasswordPlaceholder": "Re-enter your new password",
+      "submit": "Change Password",
+      "loading": "Changing...",
+      "forgotPassword": "Forgot your current password?",
+      "success": "Your password has been changed successfully.",
+      "errors": {
+        "fillAllFields": "Please fill in all fields.",
+        "minLength": "New password must be at least 8 characters.",
+        "mismatch": "New passwords do not match."
+      }
+    },
     "personalInfo": {
       "header": "Personal Information",
       "detailsTitle": "PERSONAL DETAILS",
@@ -769,6 +791,115 @@
     "rights": "Your Rights",
     "serviceDescription": "Service Description"
   },
+  "termsOfUse": {
+    "title": "Terms of Use",
+    "intro": "Please read these terms carefully before using Cyprigo.",
+    "note": "By continuing to use Cyprigo, you agree to these terms.",
+    "sections": [
+      {
+        "title": "1. Acceptance",
+        "content": "By downloading, installing, or using the Cyprigo mobile application (the \"App\"), you agree to these Terms of Use (the \"Terms\"). If you do not agree, please do not use the App.\n\nYou must be at least 13 years old to use the App. If you are under 18, you may use the App only with the consent and supervision of a parent or legal guardian."
+      },
+      {
+        "title": "2. Service Description",
+        "content": "Cyprigo is a mobile application that helps you discover tourist places, historical sites, and tours in Northern Cyprus.\n\nServices we provide:\n• Detailed information about places and tours\n• Location-based recommendations and discovery\n• Saving favorites\n• Map viewing and directions\n• Personalized recommendations\n• Community posts\n\nImportant: Cyprigo is an information and discovery platform. We do not process tour bookings or payments directly."
+      },
+      {
+        "title": "3. User Account",
+        "content": "Account creation:\n• You must provide accurate and up-to-date information\n• You are responsible for keeping your account credentials confidential\n• You are responsible for all activity under your account\n\nAccount security:\n• Do not share your password with anyone\n• Notify us immediately if you suspect unauthorized access\n• We recommend using a strong and unique password\n\nYou may delete your account at any time from Settings > Delete Account."
+      },
+      {
+        "title": "4. In-App Purchases",
+        "content": "Cyprigo may offer premium membership options.\n\nPayment terms:\n• All purchases are processed via Apple App Store\n• Prices are shown in your local currency\n• Payment is charged to your Apple account upon confirmation\n\nSubscription terms:\n• Subscriptions automatically renew at the end of the period\n• Cancellation takes effect at the end of the current period\n• To cancel, use iOS Settings > Apple ID > Subscriptions\n\nRefund policy:\n• All refunds are subject to Apple’s policies\n• For refund requests, contact Apple Support"
+      },
+      {
+        "title": "5. User Responsibilities",
+        "content": "When using the App, you must follow these rules:\n\nAcceptable use:\n• Provide accurate and up-to-date information\n• Comply with applicable laws and regulations\n• Treat other users respectfully\n• Follow community guidelines\n\nProhibited use:\n• Using the App for illegal purposes\n• Distributing malware or compromising system security\n• Attempting unauthorized access to other accounts\n• Reverse engineering or attempting to extract source code\n• Sharing spam, misleading, or inappropriate content\n• Harassing or disturbing other users"
+      },
+      {
+        "title": "6. Community & User-Generated Content",
+        "content": "Cyprigo includes community features where users can post content. To keep the community safe, the following rules apply:\n\nZero tolerance:\n• No objectionable content (including harassment, hate speech, explicit content, spam, or misinformation)\n• No abusive behavior toward other users\n\nReporting & blocking:\n• You can report content in the app\n• You can block abusive users, which hides their content from your feed\n\nEnforcement:\n• We may remove content and restrict, suspend, or terminate accounts for violations\n• We review reports and take action as quickly as possible, typically within 24 hours\n\nFor urgent safety concerns, contact: cyprurigo@gmail.com"
+      },
+      {
+        "title": "7. Intellectual Property",
+        "content": "All Cyprigo content, design, logo, graphics, text, and software are protected by copyright and intellectual property laws.\n\nLicense:\nWe grant you a limited, revocable, non-transferable, non-exclusive license to use the App for personal, non-commercial purposes.\n\nNot permitted:\n• Copying, reproducing, or distributing content without permission\n• Commercial use\n• Reverse engineering or source code extraction attempts\n• Unauthorized use of trademarks, logos, or other IP"
+      },
+      {
+        "title": "8. Limitation of Liability",
+        "content": "The App is provided \"as is\" and \"as available\". To the maximum extent permitted by law:\n\n• We do not guarantee uninterrupted, error-free, or secure operation\n• We do not guarantee the accuracy, completeness, or timeliness of information\n• We are not responsible for third-party services’ content or availability\n• We are not liable for indirect, incidental, special, or consequential damages\n\nYour use of the App is at your own risk."
+      },
+      {
+        "title": "9. Account Termination",
+        "content": "Deleting your account:\nYou may delete your account at any time from Settings > Delete Account. Account deletion is irreversible.\n\nOur rights:\nWe may suspend or permanently terminate your account without prior notice if:\n• You violate these Terms\n• You engage in illegal activities\n• You harm or harass other users\n• You misuse the App\n\nIn case of termination, active subscriptions remain valid until the end of the current period."
+      },
+      {
+        "title": "10. Changes",
+        "content": "We reserve the right to update these Terms at any time.\n\nChange notice:\n• Material changes may be announced in-app\n• Updated terms will be published in the App\n• The \"last updated\" date will be revised\n\nContinuing to use the App after changes means you accept the updated Terms."
+      },
+      {
+        "title": "11. Governing Law",
+        "content": "These Terms are governed by and construed in accordance with the laws of the Turkish Republic of Northern Cyprus.\n\nDispute resolution:\n• We will first seek an amicable resolution\n• If unresolved, mediation may be pursued\n• TRNC courts have exclusive jurisdiction"
+      },
+      {
+        "title": "12. Contact",
+        "content": "If you have questions, suggestions, or complaints about these Terms, contact us:\n\nEmail: cyprurigo@gmail.com\n\nCyprigo\nNorthern Cyprus\n\nLast updated: December 2025"
+      }
+    ]
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy",
+    "intro": "Please read this privacy policy carefully before using Cyprigo.",
+    "sections": [
+      {
+        "title": "1. Introduction",
+        "content": "At Cyprigo (\"we\", \"us\", or the \"App\"), we respect your privacy and are committed to protecting your personal data. This Privacy Policy explains what information we collect, how we use it, and how we protect it when you use the Cyprigo mobile application.\n\nBy downloading, installing, or using this App, you agree to the practices described in this Privacy Policy."
+      },
+      {
+        "title": "2. Information We Collect",
+        "content": "Cyprigo may collect the following information:\n\n(a) Account information: Name, email address, and profile photo you provide during registration.\n\n(b) Location data: Your device location to show nearby attractions and tours (only with your explicit permission and while the app is in use).\n\n(c) Usage data: In-app interactions, viewed tours, favorites, and preferences.\n\n(d) Device information: Device model, OS version, and app version (for debugging and performance improvements).\n\n(e) Purchase information: Membership status (payment details are processed and stored by Apple; we do not have access to your payment details)."
+      },
+      {
+        "title": "3. Community & Safety Data (User-Generated Content)",
+        "content": "When you use community features, we may process additional data to prevent abuse and moderate user-generated content:\n\n• Reports: report reason, optional description, and references to the reported content\n• Blocking: records of users you block so their content is hidden from your feed\n• Moderation actions: status updates when content is reviewed and action is taken\n\nThis data helps us enforce our zero-tolerance policy and respond to safety concerns."
+      },
+      {
+        "title": "4. How We Use Information",
+        "content": "We use the collected information to:\n\n• Provide information about tourist places and tours in Northern Cyprus\n• Offer location-based recommendations and a personalized experience\n• Manage and secure your account\n• Analyze and improve app performance\n• Provide customer support\n• Comply with legal obligations\n\nImportant: Cyprigo is an information and discovery app. We do not process reservations or payments directly."
+      },
+      {
+        "title": "5. Sharing of Information",
+        "content": "We do not share your personal data with third parties except in the following cases:\n\n(a) Service providers: Trusted providers for app infrastructure (e.g., Supabase for database services).\n\n(b) Legal requirements: When required by law or in response to legal processes.\n\n(c) Business transfers: In case of a merger, sale, or transfer of company assets.\n\nWe never sell or rent your personal data to third parties for advertising or marketing purposes."
+      },
+      {
+        "title": "6. Data Security",
+        "content": "We apply industry-standard security measures to protect your data:\n\n• Secure data transfer with SSL/TLS encryption\n• Secure cloud server infrastructure\n• Access control and authorization mechanisms\n• Encrypted data storage\n• Regular security assessments\n\nWhile no method of transmission or storage is 100% secure, we take commercially reasonable measures to protect your information."
+      },
+      {
+        "title": "7. Data Retention",
+        "content": "We retain your personal data only as long as necessary for the purposes described in this policy:\n\n• Account information: While your account remains active\n• Usage data: Up to 24 months\n• Location data: Processed in real time and not stored permanently\n\nWhen you delete your account, your personal data will be permanently removed from our systems within 30 days (except where legal retention requirements apply)."
+      },
+      {
+        "title": "8. Your Rights",
+        "content": "You have the following rights regarding your personal data:\n\n• Right of access\n• Right to rectification\n• Right to deletion\n• Right to data portability\n• Right to object to certain processing activities\n\nTo exercise these rights, you can use Settings > Delete My Account in the app or email us at cyprurigo@gmail.com."
+      },
+      {
+        "title": "9. Children’s Privacy",
+        "content": "Cyprigo is not intended for children under the age of 13, and we do not knowingly collect personal data from children under 13.\n\nIf you are a parent or guardian and believe your child has provided us personal data, please contact us at cyprurigo@gmail.com and we will delete such information promptly."
+      },
+      {
+        "title": "10. Third-Party Services",
+        "content": "Our app uses third-party services such as:\n\n• Supabase: Secure database and authentication services\n• Apple App Store: In-app purchase processing\n• Apple MapKit / Google Maps: Map and location services\n\nThese services have their own privacy policies. We recommend reviewing them."
+      },
+      {
+        "title": "11. Policy Changes",
+        "content": "We may update this Privacy Policy from time to time. If there are material changes:\n\n• We may notify you in the app\n• We will publish the updated policy in the app\n• We will update the \"last updated\" date\n\nYour continued use of the app after changes means you accept the updated policy."
+      },
+      {
+        "title": "12. Contact",
+        "content": "If you have questions, concerns, or requests about this Privacy Policy or our data practices, contact us:\n\nEmail: cyprurigo@gmail.com\n\nCyprigo\nNorthern Cyprus\n\nLast updated: December 2025"
+      }
+    ]
+  },
   "community": {
     "title": "Community",
     "subtitle": "Share your experiences, discover more",
@@ -828,7 +959,7 @@
     "anonymous": "Anonymous User",
     "relatedTour": "Related Tour",
     "likes": "likes",
-    "comments": "comments",
+    "comments": "Comments",
     "noComments": "No comments yet. Be the first to comment!",
     "addComment": "Write a comment...",
     "deleteComment": "Delete Comment",
@@ -883,6 +1014,69 @@
       "allClear": "All content has been reviewed, no pending items.",
       "approveConfirm": "Are you sure you want to approve \"{{title}}\"?",
       "rejectReasonRequired": "Please enter a rejection reason"
+    }
+  },
+  "supportTickets": {
+    "title": "Support Tickets",
+    "empty": {
+      "title": "No tickets yet",
+      "subtitle": "Need help? Create a new support ticket."
+    },
+    "actions": {
+      "create": "Create Ticket",
+      "submit": "Submit Ticket"
+    },
+    "ticketCount": "{{count}} ticket",
+    "ticketCount_plural": "{{count}} tickets",
+    "categories": {
+      "general": "General Question",
+      "booking": "Booking",
+      "technical": "Technical Support",
+      "feedback": "Suggestion / Complaint",
+      "payment": "Payment",
+      "other": "Other"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "create": {
+      "title": "New Ticket"
+    },
+    "form": {
+      "categoryLabel": "CATEGORY",
+      "subjectLabel": "SUBJECT",
+      "messageLabel": "MESSAGE",
+      "subjectPlaceholder": "Write a short title",
+      "messagePlaceholder": "Describe your issue in detail"
+    },
+    "validation": {
+      "selectCategory": "Please select a category.",
+      "enterSubject": "Please enter a subject.",
+      "enterMessage": "Please enter a message."
+    },
+    "created": {
+      "title": "Ticket Created",
+      "message": "Your ticket code: {{code}}\n\nWe'll get back to you soon."
+    },
+    "errors": {
+      "createFailed": "Failed to create ticket.",
+      "sendFailed": "Failed to send message."
+    },
+    "detail": {
+      "status": "Status",
+      "category": "Category",
+      "createdAt": "Created",
+      "messagesTitle": "MESSAGES"
+    },
+    "messages": {
+      "supportTeam": "Support Team",
+      "you": "You"
+    },
+    "reply": {
+      "placeholder": "Write your message..."
     }
   },
   "paywall": {

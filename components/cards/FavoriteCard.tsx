@@ -30,7 +30,7 @@ export function FavoriteCard({ tour, onPress, onRemove }: FavoriteCardProps) {
       accessibilityHint="Tur detaylarını görüntülemek için dokunun"
     >
       <Image
-        source={{ uri: tour.image }}
+        source={{ uri: tour.imageThumb || tour.image }}
         style={styles.image}
         accessibilityIgnoresInvertColors
       />

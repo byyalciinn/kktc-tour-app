@@ -21,6 +21,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 
 interface CachedImageProps extends Omit<ImageProps, 'source'> {
   uri: string;
@@ -51,6 +52,40 @@ const getCacheKey = (uri: string): string => {
   return uri;
 };
 
+const FS_CACHE_DIR: string = ((FileSystem as any).cacheDirectory ?? '') as string;
+const IMAGE_DISK_CACHE_DIR = `${FS_CACHE_DIR}cached-images/`;
+
+const stableHash = (input: string): string => {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+  // convert to unsigned base36
+  return (hash >>> 0).toString(36);
+};
+
+const isRemoteHttpUrl = (value: string): boolean => {
+  const lower = (value || '').toLowerCase();
+  return lower.startsWith('http://') || lower.startsWith('https://');
+};
+
+const getDiskCachePathForUrl = (url: string): string => {
+  const key = stableHash(url);
+  return `${IMAGE_DISK_CACHE_DIR}${key}.img`;
+};
+
+const ensureDiskCacheDir = async (): Promise<void> => {
+  if (!FS_CACHE_DIR) return;
+  try {
+    const info = await FileSystem.getInfoAsync(IMAGE_DISK_CACHE_DIR);
+    if (!info.exists) {
+      await FileSystem.makeDirectoryAsync(IMAGE_DISK_CACHE_DIR, { intermediates: true });
+    }
+  } catch {
+    // ignore
+  }
+};
+
 /**
  * Optimized Image component with caching and loading states
  */
@@ -72,7 +107,7 @@ export const prefetchImages = (urls: string[]) => {
   });
 };
 
-const CachedImage = memo<CachedImageProps>(({
+const CachedImage = memo<CachedImageProps>(({ 
   uri,
   style,
   containerStyle,
@@ -91,6 +126,7 @@ const CachedImage = memo<CachedImageProps>(({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [resolvedUri, setResolvedUri] = useState<string>(uri);
   const fadeAnim = useRef(new Animated.Value(fadeIn ? 0 : 1)).current;
 
   // Reset state when URI changes
@@ -98,11 +134,47 @@ const CachedImage = memo<CachedImageProps>(({
     if (uri) {
       setLoading(true);
       setError(false);
+      setResolvedUri(uri);
       if (fadeIn) {
         fadeAnim.setValue(0);
       }
     }
   }, [uri, fadeIn, fadeAnim]);
+
+  // Resolve to disk-cached file:// URI when possible
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolve = async () => {
+      if (!uri || !isRemoteHttpUrl(uri) || !FS_CACHE_DIR) {
+        return;
+      }
+
+      await ensureDiskCacheDir();
+      const path = getDiskCachePathForUrl(uri);
+
+      try {
+        const info = await FileSystem.getInfoAsync(path);
+        if (cancelled) return;
+
+        if (info.exists) {
+          setResolvedUri(info.uri);
+          return;
+        }
+
+        const download = await FileSystem.downloadAsync(uri, path);
+        if (cancelled) return;
+        setResolvedUri(download.uri);
+      } catch {
+        // ignore and fall back to remote
+      }
+    };
+
+    resolve();
+    return () => {
+      cancelled = true;
+    };
+  }, [uri]);
 
   // Prefetch high priority images
   useEffect(() => {
@@ -179,7 +251,7 @@ const CachedImage = memo<CachedImageProps>(({
       <Animated.Image
         {...imageProps}
         source={{
-          uri: getCacheKey(uri),
+          uri: getCacheKey(resolvedUri),
           cache: getCachePolicy(),
         }}
         style={[styles.absoluteFill, imageStyle] as ImageStyle}

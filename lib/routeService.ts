@@ -519,6 +519,7 @@ export const uploadRouteCoverImage = async (
       .from(ROUTE_BUCKET)
       .upload(fileName, decode(optimized.base64), {
         contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000, immutable',
         upsert: true,
       });
 
@@ -566,6 +567,7 @@ export const uploadRouteStopImage = async (
       .from(ROUTE_BUCKET)
       .upload(fileName, decode(optimized.base64), {
         contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000, immutable',
         upsert: true,
       });
 

@@ -32,7 +32,41 @@ export default function FavoritesScreen() {
   const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const translateLocationLabel = (value: string): string => {
+    const raw = (value || '').trim();
+    if (!raw) return value;
+
+    const trToEn: Record<string, string> = {
+      Girne: 'Kyrenia',
+      Lefkoşa: 'Nicosia',
+      Gazimağusa: 'Famagusta',
+      İskele: 'Iskele',
+      Karpaz: 'Karpas',
+      'Kuzey Kıbrıs': 'Northern Cyprus',
+      KKTC: 'Northern Cyprus',
+    };
+
+    const enToTr: Record<string, string> = {
+      Kyrenia: 'Girne',
+      Nicosia: 'Lefkoşa',
+      Famagusta: 'Gazimağusa',
+      Iskele: 'İskele',
+      Karpas: 'Karpaz',
+      'Northern Cyprus': 'Kuzey Kıbrıs',
+      TRNC: 'KKTC',
+    };
+
+    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const map = isEnglish ? trToEn : enToTr;
+
+    return raw
+      .split(',')
+      .map(part => part.trim())
+      .map(part => map[part] ?? part)
+      .join(', ');
+  };
 
   // Zustand stores
   const { user } = useAuthStore();
@@ -178,7 +212,7 @@ export default function FavoritesScreen() {
                 activeOpacity={0.95}
                 onPress={() => handleTourPress(tour)}
               >
-                <Image source={{ uri: tour.image }} style={styles.tourImage} />
+                <Image source={{ uri: tour.imageThumb || tour.image }} style={styles.tourImage} />
                 {/* Overlay gradient */}
                 <View style={styles.tourCardGradient} />
                 
@@ -199,7 +233,7 @@ export default function FavoritesScreen() {
                   <View style={styles.locationRow}>
                     <Ionicons name="location" size={14} color="rgba(255,255,255,0.85)" />
                     <Text style={styles.locationText}>
-                      {tour.location}
+                      {translateLocationLabel(tour.location)}
                     </Text>
                   </View>
                 </View>

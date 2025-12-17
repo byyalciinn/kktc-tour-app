@@ -53,8 +53,8 @@ export const ImagePresets = {
   },
   // Thumbnail - very small for previews
   thumbnail: {
-    maxWidth: 300,
-    maxHeight: 300,
+    maxWidth: 400,
+    maxHeight: 400,
     quality: 0.5,
     format: ImageManipulator.SaveFormat.JPEG,
   },

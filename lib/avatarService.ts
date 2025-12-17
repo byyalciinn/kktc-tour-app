@@ -34,7 +34,8 @@ export const uploadAvatar = async (
 
     // Determine file extension from URI
     const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${userId}/avatar.${fileExt}`;
+    const timestamp = Date.now();
+    const fileName = `${userId}/avatar_${timestamp}.${fileExt}`;
     const contentType = `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
 
     // Convert base64 to ArrayBuffer
@@ -45,7 +46,8 @@ export const uploadAvatar = async (
       .from('avatars')
       .upload(fileName, arrayBuffer, {
         contentType,
-        upsert: true, // Overwrite if exists
+        cacheControl: 'public, max-age=31536000, immutable',
+        upsert: false,
       });
 
     if (error) {
@@ -58,10 +60,20 @@ export const uploadAvatar = async (
       .from('avatars')
       .getPublicUrl(fileName);
 
-    // Add cache-busting query param
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    try {
+      const { data: files } = await supabase.storage.from('avatars').list(userId);
+      const filesToDelete = (files || [])
+        .filter((f) => f.name && f.name !== `avatar_${timestamp}.${fileExt}`)
+        .map((f) => `${userId}/${f.name}`);
 
-    return { url: publicUrl, error: null };
+      if (filesToDelete.length > 0) {
+        await supabase.storage.from('avatars').remove(filesToDelete);
+      }
+    } catch (_cleanupError) {
+      // ignore
+    }
+
+    return { url: urlData.publicUrl, error: null };
   } catch (error) {
     console.error('Avatar upload error:', error);
     return { url: null, error: error as Error };
