@@ -164,6 +164,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Set isNewUser flag for onboarding redirect
     if (!error && data.user) {
       set({ isNewUser: true });
+      
+      // Update terms acceptance (UGC Compliance - Apple Guideline 1.2)
+      // User accepted terms during registration via checkbox
+      await supabase
+        .from('profiles')
+        .update({ 
+          terms_accepted_at: new Date().toISOString(),
+          terms_version: '1.0'
+        })
+        .eq('id', data.user.id);
     }
 
     set({ loading: false });

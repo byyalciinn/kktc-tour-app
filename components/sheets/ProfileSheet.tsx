@@ -45,6 +45,7 @@ const PERSONAL_DETAILS_KEYS = [
   { key: 'idInfo', icon: 'card-outline', route: '/profile/id-info' },
   { key: 'paymentMethods', icon: 'wallet-outline', route: '/profile/payment-methods' },
   { key: 'tourPreferences', icon: 'options-outline', route: '/profile/tour-preferences' },
+  { key: 'blockedUsers', icon: 'ban-outline', route: '/profile/blocked-users' },
 ] as const;
 
 const SUPPORT_KEYS = [

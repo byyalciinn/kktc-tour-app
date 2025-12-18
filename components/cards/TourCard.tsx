@@ -38,10 +38,28 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
     if (lower === 'tam gün' || lower === 'full day') return t('duration.fullDay');
     if (lower === 'yarım gün' || lower === 'half day') return t('duration.halfDay');
 
+    const dayRangeMatch = raw.match(/^\s*(\d+)\s*[-–]\s*(\d+)\s*(gün|gun|day|days)\s*$/i);
+    if (dayRangeMatch?.[1] && dayRangeMatch?.[2]) {
+      const from = Number(dayRangeMatch[1]);
+      const to = Number(dayRangeMatch[2]);
+      const localizedSample = t('duration.day', { count: to });
+      const unit = localizedSample.replace(String(to), '').trim();
+      return `${from}-${to} ${unit}`;
+    }
+
     const dayMatch = raw.match(/^(\d+)\s*(gün|gun|day|days)\s*$/i);
     if (dayMatch?.[1]) {
       const count = Number(dayMatch[1]);
       return t('duration.day', { count });
+    }
+
+    const hourRangeMatch = raw.match(/^\s*(\d+)\s*[-–]\s*(\d+)\s*(saat|hour|hours|h)\s*$/i);
+    if (hourRangeMatch?.[1] && hourRangeMatch?.[2]) {
+      const from = Number(hourRangeMatch[1]);
+      const to = Number(hourRangeMatch[2]);
+      const localizedSample = t('duration.hour', { count: to });
+      const unit = localizedSample.replace(String(to), '').trim();
+      return `${from}-${to} ${unit}`;
     }
 
     const hourMatch = raw.match(/^(\d+)\s*(saat|hour|hours|h)\s*$/i);
@@ -95,7 +113,7 @@ export const TourCard = memo(function TourCard({ tour, onPress, getCategoryName 
       accessibilityHint="Tur detaylarını görüntülemek için dokunun"
     >
       <CachedImage
-        uri={tour.image}
+        uri={tour.imageThumb || tour.image}
         style={styles.image}
         fallbackIcon="map-outline"
         priority="normal"
@@ -179,7 +197,7 @@ export const CompactTourCard = memo(function CompactTourCard({ tour, onPress }: 
       accessibilityLabel={`${tour.title}, ${tour.location}`}
     >
       <CachedImage
-        uri={tour.image}
+        uri={tour.imageThumb || tour.image}
         style={styles.compactImage}
         fallbackIcon="image-outline"
         priority="low"

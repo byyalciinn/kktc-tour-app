@@ -111,6 +111,11 @@
     "passwordNeedsLowercase": "Şifre en az bir küçük harf içermelidir",
     "passwordNeedsNumber": "Şifre en az bir rakam içermelidir",
     "agreeToTerms": "Devam ederek kabul etmiş olursunuz:",
+    "acceptTermsCheckbox": "Kabul ediyorum:",
+    "termsAndConditions": "Kullanım Koşulları",
+    "eulaConsentPrefix": "Kabul ediyorum:",
+    "eulaConsentSuffix": "ve uygunsuz içerik ile kötüye kullanıma sıfır tolerans olduğunu; ihlallerde içeriğin kaldırılabileceğini ve hesabın askıya alınabileceğini anlıyorum.",
+    "ugcConsentNote": "Sıfır tolerans: uygunsuz içerik veya kötüye kullanım. İhlallerde içerik kaldırılabilir ya da hesap askıya alınabilir.",
     "accountBanned": "Hesabınız yasaklanmıştır",
     "accountBannedTitle": "Hesap Yasaklandı",
     "accountBannedDescription": "Hesabınız yöneticiler tarafından yasaklanmıştır ve sisteme giriş yapamazsınız.",
@@ -127,9 +132,7 @@
       "serverError": "Bir hata oluştu. Tekrar deneyin",
       "databaseError": "Kayıt oluşturulamadı. Tekrar deneyin",
       "resetLinkSent": "Şifre sıfırlama bağlantısı gönderildi ✉️"
-    },
-    "privacyPolicyContent": "Gizlilik Politikası\n\nCyprigo olarak gizliliğinize saygı duyuyor ve kişisel verilerinizi korumayı taahhüt ediyoruz.\n\nTopladığımız Bilgiler\n• Hesap Bilgileri: Ad, e-posta adresi ve profil fotoğrafı\n• Konum Verileri: Yakınınızdaki turistik yerleri göstermek için (izninizle)\n• Kullanım Verileri: Uygulama içi etkileşimler ve tercihler\n• Cihaz Bilgileri: Performans iyileştirme amaçlı\n\nBilgilerin Kullanımı\n• Kuzey Kıbrıs'taki turistik yerler hakkında bilgi sunmak\n• Kişiselleştirilmiş öneriler sağlamak\n• Hesabınızı yönetmek ve güvenliğini sağlamak\n• Uygulama performansını iyileştirmek\n\nVeri Güvenliği\nSSL/TLS şifreleme ve güvenli sunucu altyapısı kullanıyoruz.\n\nHaklarınız\nVerilerinize erişim, düzeltme ve silme haklarına sahipsiniz. Hesabınızı Ayarlar > Hesabımı Sil seçeneğinden silebilirsiniz.\n\nİletişim\ncyprurigo@gmail.com\n\nSon güncelleme: Aralık 2024",
-    "termsOfServiceContent": "Kullanım Koşulları\n\nCyprigo'yu kullanarak aşağıdaki koşulları kabul etmiş olursunuz.\n\nHizmet Tanımı\nCyprigo, Kuzey Kıbrıs'taki turistik yerleri ve turları keşfetmenizi sağlayan bir bilgilendirme uygulamasıdır. Doğrudan rezervasyon veya ödeme işlemi yapmamaktayız.\n\nKullanıcı Hesabı\n• Doğru ve güncel bilgi sağlamalısınız\n• Hesap güvenliğinizden siz sorumlusunuz\n• Hesabınızı istediğiniz zaman silebilirsiniz\n\nUygulama İçi Satın Almalar\n• Tüm satın almalar Apple App Store üzerinden işlenir\n• Abonelikler otomatik yenilenir\n• İptal için iOS Ayarlar > Apple ID > Abonelikler kullanın\n\nKullanıcı Yükümlülükleri\n• Uygulamayı yasal amaçlarla kullanın\n• Diğer kullanıcılara saygılı davranın\n• Zararlı veya uygunsuz içerik paylaşmayın\n\nFikri Mülkiyet\nUygulama içeriği ve tasarımı Cyprigo'ya aittir.\n\nİletişim\ncyprurigo@gmail.com\n\nSon güncelleme: Aralık 2024"
+    }
   },
   "home": {
     "location": "Konum",
@@ -268,7 +271,14 @@
       "serviceUnavailable": "Servis geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
       "serverError": "Sunucu hatası oluştu. Lütfen tekrar deneyin.",
       "analysisError": "Görsel analiz edilemedi. Lütfen tekrar deneyin.",
+      "noImageSelected": "Görsel seçilmedi.",
+      "parseError": "Analiz sonucu okunamadı. Lütfen tekrar deneyin.",
+      "imageProcessingFailed": "Görsel işlenemedi. Lütfen tekrar deneyin.",
       "analysisFailed": "Analiz Başarısız"
+    },
+    "fallback": {
+      "unknownPlace": "Bilinmeyen Yer",
+      "noDescription": "Açıklama bulunamadı"
     }
   },
   "profile": {
@@ -284,6 +294,16 @@
     "idInfo": "Kimlik Bilgileri",
     "paymentMethods": "Ödeme Yöntemleri",
     "tourPreferences": "Tur Tercihleri",
+    "blockedUsers": "Engellenen Kullanıcılar",
+    "noBlockedUsers": "Engellenen Kullanıcı Yok",
+    "noBlockedUsersSubtitle": "Engellediğiniz kullanıcılar burada görünecek. İstediğiniz zaman engellerini kaldırabilirsiniz.",
+    "blockedUsersInfo": "Engellenen kullanıcılar paylaşımlarınızı ve yorumlarınızı göremez, siz de onlarınkini göremezsiniz.",
+    "blockedOn": "{{date}} tarihinde engellendi",
+    "unblock": "Engeli Kaldır",
+    "unblockUserTitle": "Engeli Kaldır",
+    "unblockUserMessage": "{{name}} kullanıcısının engelini kaldırmak istediğinize emin misiniz? İçeriklerinizi tekrar görebilecek.",
+    "userUnblocked": "Engel Kaldırıldı",
+    "userUnblockedMessage": "Bu kullanıcının içeriklerini artık görebilirsiniz.",
     "support": "Destek",
     "help": "Yardım",
     "contact": "İletişim",
@@ -326,6 +346,25 @@
     "guestSubtitle": "Profilinizi yönetmek, rezervasyonlarınızı görüntülemek ve özel özelliklere erişmek için giriş yapın veya hesap oluşturun."
   },
   "profileScreens": {
+    "changePassword": {
+      "header": "Şifre Değiştir",
+      "info": "Güvenliğiniz için güçlü bir şifre seçin. En az 8 karakter, büyük/küçük harf ve rakam içermelidir.",
+      "currentPasswordLabel": "MEVCUT ŞİFRE",
+      "currentPasswordPlaceholder": "Mevcut şifrenizi girin",
+      "newPasswordLabel": "YENİ ŞİFRE",
+      "newPasswordPlaceholder": "Yeni şifrenizi girin",
+      "confirmPasswordLabel": "YENİ ŞİFRE (TEKRAR)",
+      "confirmPasswordPlaceholder": "Yeni şifrenizi tekrar girin",
+      "submit": "Şifreyi Değiştir",
+      "loading": "Değiştiriliyor...",
+      "forgotPassword": "Mevcut şifrenizi mi unuttunuz?",
+      "success": "Şifreniz başarıyla değiştirildi.",
+      "errors": {
+        "fillAllFields": "Lütfen tüm alanları doldurun.",
+        "minLength": "Yeni şifre en az 8 karakter olmalıdır.",
+        "mismatch": "Yeni şifreler eşleşmiyor."
+      }
+    },
     "personalInfo": {
       "header": "Kişisel Bilgiler",
       "detailsTitle": "KİŞİSEL DETAYLAR",
@@ -740,6 +779,115 @@
     "rights": "Haklarınız",
     "serviceDescription": "Hizmet Tanımı"
   },
+  "termsOfUse": {
+    "title": "Kullanım Koşulları",
+    "intro": "Cyprigo'yu kullanmadan önce lütfen bu koşulları dikkatlice okuyunuz.",
+    "note": "Cyprigo'yu kullanmaya devam ederek bu koşulları kabul etmiş sayılırsınız.",
+    "sections": [
+      {
+        "title": "1. Kabul ve Onay",
+        "content": "Cyprigo mobil uygulamasını (\"Uygulama\") indirerek, yükleyerek veya kullanarak bu Kullanım Koşulları'nı (\"Koşullar\") kabul etmiş olursunuz. Bu Koşulları kabul etmiyorsanız, lütfen Uygulamayı kullanmayınız.\n\nUygulamayı kullanmak için 13 yaşından büyük olmanız gerekmektedir. 18 yaşından küçükseniz, ebeveyn veya yasal vasinizin onayı ve gözetimi altında kullanabilirsiniz."
+      },
+      {
+        "title": "2. Hizmet Tanımı",
+        "content": "Cyprigo, Kuzey Kıbrıs'taki turistik yerleri, tarihi mekanları ve turları keşfetmenizi sağlayan bir mobil uygulamadır.\n\nSunduğumuz hizmetler:\n• Turistik yerler ve turlar hakkında detaylı bilgiler\n• Konum bazlı öneriler ve keşif\n• Favori yerleri kaydetme\n• Harita üzerinde görüntüleme ve yol tarifi\n• Kişiselleştirilmiş öneriler\n• Topluluk paylaşımları\n\nÖnemli: Cyprigo bir bilgilendirme ve keşif platformudur. Doğrudan tur rezervasyonu veya ödeme işlemi yapmamaktayız."
+      },
+      {
+        "title": "3. Kullanıcı Hesabı",
+        "content": "Hesap Oluşturma:\n• Kayıt sırasında doğru ve güncel bilgi sağlamalısınız\n• Hesap bilgilerinizi gizli tutmak sizin sorumluluğunuzdadır\n• Hesabınız altında gerçekleştirilen tüm aktivitelerden siz sorumlusunuz\n\nHesap Güvenliği:\n• Şifrenizi kimseyle paylaşmayın\n• Yetkisiz erişim şüphesinde derhal bizi bilgilendirin\n• Güçlü ve benzersiz şifre kullanmanızı öneririz\n\nHesabınızı istediğiniz zaman uygulama içinden Ayarlar > Hesabımı Sil seçeneğinden silebilirsiniz."
+      },
+      {
+        "title": "4. Uygulama İçi Satın Almalar",
+        "content": "Cyprigo, premium üyelik seçenekleri sunabilmektedir.\n\nÖdeme Koşulları:\n• Tüm satın almalar Apple App Store üzerinden işlenir\n• Fiyatlar yerel para biriminizde gösterilir\n• Ödeme, satın alma onayında Apple hesabınızdan tahsil edilir\n\nAbonelik Koşulları:\n• Abonelikler dönem sonunda otomatik olarak yenilenir\n• İptal işlemi, mevcut dönemin sonunda geçerli olur\n• İptal için iOS Ayarlar > Apple ID > Abonelikler bölümünü kullanın\n\nİade Politikası:\n• Tüm iadeler Apple'ın politikalarına tabidir\n• İade talepleri için Apple Destek ile iletişime geçmeniz gerekmektedir"
+      },
+      {
+        "title": "5. Kullanıcı Yükümlülükleri",
+        "content": "Uygulamayı kullanırken aşağıdaki kurallara uymalısınız:\n\nKabul Edilen Kullanım:\n• Doğru ve güncel bilgi sağlamak\n• Tüm geçerli yasalara ve düzenlemelere uymak\n• Diğer kullanıcılara saygılı davranmak\n• Topluluk kurallarına uymak\n\nYasaklanan Kullanım:\n• Uygulamayı yasadışı amaçlarla kullanmak\n• Zararlı yazılım yaymak veya sistem güvenliğini tehlikeye atmak\n• Başkalarının hesaplarına yetkisiz erişim sağlamaya çalışmak\n• Uygulamayı tersine mühendislik yapmak veya kaynak kodunu çıkarmaya çalışmak\n• Spam, yanıltıcı veya uygunsuz içerik paylaşmak\n• Diğer kullanıcıları taciz etmek veya rahatsız etmek"
+      },
+      {
+        "title": "6. Topluluk ve Kullanıcı İçeriği",
+        "content": "Cyprigo, kullanıcıların içerik paylaşabildiği topluluk özellikleri içerir. Topluluğu güvenli tutmak için aşağıdaki kurallar geçerlidir:\n\nSıfır tolerans:\n• Taciz, nefret söylemi, müstehcen içerik, spam veya yanıltıcı bilgi gibi uygunsuz içerikler paylaşamazsınız\n• Diğer kullanıcılara yönelik kötüye kullanım ve zorbalık kabul edilmez\n\nŞikayet (report) ve engelleme (block):\n• Uygulama içinde içerik şikayet edebilirsiniz\n• Kötüye kullanım yapan kullanıcıları engelleyebilir ve içeriklerini akışınızdan gizleyebilirsiniz\n\nYaptırımlar ve moderasyon:\n• İhlallerde içerikler kaldırılabilir; hesaplar kısıtlanabilir/askıya alınabilir veya sonlandırılabilir\n• Şikayetler en kısa sürede incelenir ve genellikle 24 saat içinde aksiyon alınır\n\nAcil güvenlik konuları için: cyprurigo@gmail.com"
+      },
+      {
+        "title": "7. Fikri Mülkiyet",
+        "content": "Cyprigo'nun tüm içeriği, tasarımı, logosu, grafikleri, metinleri ve yazılımı telif hakkı ve fikri mülkiyet yasaları ile korunmaktadır.\n\nKullanım Lisansı:\nSize Uygulamayı kişisel, ticari olmayan amaçlarla kullanmak için sınırlı, geri alınabilir, devredilemez ve münhasır olmayan bir lisans veriyoruz.\n\nİzin Verilmeyen Kullanımlar:\n• İçeriğin izinsiz kopyalanması, çoğaltılması veya dağıtılması\n• Ticari amaçlı kullanım\n• Tersine mühendislik veya kaynak kodu çıkarma girişimleri\n• Marka, logo ve diğer fikri mülkiyetin izinsiz kullanımı"
+      },
+      {
+        "title": "8. Sorumluluk Sınırları",
+        "content": "Uygulama \"olduğu gibi\" ve \"mevcut haliyle\" sunulmaktadır. Yasaların izin verdiği azami ölçüde:\n\n• Uygulamanın kesintisiz, hatasız veya güvenli çalışacağını garanti etmiyoruz\n• Uygulamadaki bilgilerin doğruluğu, eksiksizliği veya güncelliği konusunda garanti vermiyoruz\n• Üçüncü taraf hizmetlerinin içeriğinden veya kullanılabilirliğinden sorumlu değiliz\n• Dolaylı, arızi, özel veya sonuç olarak ortaya çıkan zararlardan sorumlu değiliz\n\nUygulamayı kullanımınız tamamen kendi riskiniz dahilindedir."
+      },
+      {
+        "title": "9. Hesap Feshi",
+        "content": "Hesap Silme:\nHesabınızı istediğiniz zaman uygulama içinden Ayarlar > Hesabımı Sil seçeneğinden silebilirsiniz. Hesap silme işlemi geri alınamaz.\n\nFesih Hakları:\nAşağıdaki durumlarda hesabınızı önceden bildirimde bulunmaksızın askıya alabilir veya kalıcı olarak feshedebiliriz:\n• Bu Koşulları ihlal etmeniz\n• Yasadışı faaliyetlerde bulunmanız\n• Diğer kullanıcılara zarar vermeniz veya taciz etmeniz\n• Uygulamayı kötüye kullanmanız\n\nFesih durumunda, aktif abonelikleriniz mevcut dönem sonuna kadar geçerli kalır."
+      },
+      {
+        "title": "10. Değişiklikler",
+        "content": "Bu Kullanım Koşulları'nı herhangi bir zamanda güncelleme hakkımızı saklı tutarız.\n\nDeğişiklik Bildirimi:\n• Önemli değişiklikler uygulama içi bildirim ile duyurulacaktır\n• Güncellenmiş koşullar uygulamada yayınlanacaktır\n• \"Son güncelleme\" tarihi değiştirilecektir\n\nDeğişikliklerden sonra Uygulamayı kullanmaya devam etmeniz, güncellenmiş Koşulları kabul ettiğiniz anlamına gelir. Değişiklikleri kabul etmiyorsanız, Uygulamayı kullanmayı bırakmalısınız."
+      },
+      {
+        "title": "11. Geçerli Hukuk",
+        "content": "Bu Koşullar, Kuzey Kıbrıs Türk Cumhuriyeti yasalarına tabidir ve bu yasalara göre yorumlanacaktır.\n\nUyuşmazlık Çözümü:\n• Herhangi bir uyuşmazlık durumunda öncelikle dostane çözüm aranacaktır\n• Çözüme ulaşılamaması halinde arabuluculuk yoluna başvurulabilir\n• KKTC mahkemeleri münhasır yetkiye sahiptir"
+      },
+      {
+        "title": "12. İletişim",
+        "content": "Bu Kullanım Koşulları hakkında sorularınız, önerileriniz veya şikayetleriniz için bizimle iletişime geçebilirsiniz:\n\nE-posta: cyprurigo@gmail.com\n\nCyprigo\nKuzey Kıbrıs\n\nSon güncelleme: Aralık 2025"
+      }
+    ]
+  },
+  "privacyPolicy": {
+    "title": "Gizlilik Politikası",
+    "intro": "Cyprigo'yu kullanmadan önce lütfen bu gizlilik politikasını dikkatlice okuyunuz.",
+    "sections": [
+      {
+        "title": "1. Giriş",
+        "content": "Cyprigo (\"biz\", \"bizim\" veya \"Uygulama\") olarak gizliliğinize saygı duyuyor ve kişisel verilerinizi korumayı taahhüt ediyoruz. Bu Gizlilik Politikası, Cyprigo mobil uygulamasını kullandığınızda hangi bilgileri topladığımızı, nasıl kullandığımızı ve koruduğumuzu açıklamaktadır.\n\nBu uygulamayı indirerek, yükleyerek veya kullanarak bu Gizlilik Politikası'nda açıklanan uygulamaları kabul etmiş olursunuz."
+      },
+      {
+        "title": "2. Topladığımız Bilgiler",
+        "content": "Cyprigo aşağıdaki bilgileri toplayabilir:\n\n(a) Hesap Bilgileri: Kayıt sırasında sağladığınız ad, e-posta adresi ve profil fotoğrafı.\n\n(b) Konum Verileri: Yakınınızdaki turistik yerleri ve turları göstermek için cihaz konumunuz (yalnızca açık izninizle ve uygulama kullanımdayken).\n\n(c) Kullanım Verileri: Uygulama içi etkileşimler, görüntülenen turlar, favoriler ve tercihler.\n\n(d) Cihaz Bilgileri: Cihaz modeli, işletim sistemi sürümü ve uygulama sürümü (hata ayıklama ve performans iyileştirme amaçlı).\n\n(e) Satın Alma Bilgileri: Üyelik durumu (ödeme bilgileri Apple tarafından işlenir ve saklanır, biz bu bilgilere erişemeyiz)."
+      },
+      {
+        "title": "3. Topluluk ve Güvenlik Verileri (Kullanıcı İçeriği)",
+        "content": "Topluluk özelliklerini kullandığınızda, kötüye kullanımı önlemek ve kullanıcı içeriklerini moderasyon ile yönetmek için ek veriler işleyebiliriz:\n\n• Bildirimler (report): bildirim nedeni, isteğe bağlı açıklama ve bildirilen içeriğe referanslar\n• Engelleme (block): engellediğiniz kullanıcıların içeriklerinin akışınızdan gizlenmesi için engelleme kayıtları\n• Moderasyon aksiyonları: içeriğin incelenmesi ve aksiyon alınması durumunda durum güncellemeleri\n\nBu veriler, sıfır tolerans politikamızın uygulanmasına ve güvenlik taleplerine hızlı yanıt vermemize yardımcı olur."
+      },
+      {
+        "title": "4. Bilgilerin Kullanımı",
+        "content": "Topladığımız bilgileri aşağıdaki amaçlarla kullanıyoruz:\n\n• Kuzey Kıbrıs'taki turistik yerler ve turlar hakkında bilgi sunmak\n• Konum bazlı öneriler ve kişiselleştirilmiş deneyim sağlamak\n• Hesabınızı yönetmek ve güvenliğini sağlamak\n• Uygulama performansını analiz etmek ve iyileştirmek\n• Müşteri desteği sağlamak\n• Yasal yükümlülüklerimizi yerine getirmek\n\nÖnemli: Cyprigo bir tur bilgilendirme ve keşif uygulamasıdır. Doğrudan rezervasyon veya ödeme işlemi yapmamaktayız."
+      },
+      {
+        "title": "5. Bilgi Paylaşımı",
+        "content": "Kişisel bilgilerinizi aşağıdaki durumlar dışında üçüncü taraflarla paylaşmıyoruz:\n\n(a) Hizmet Sağlayıcılar: Uygulama altyapısı için güvenilir hizmet sağlayıcılarla (örn. Supabase - veritabanı hizmetleri).\n\n(b) Yasal Gereklilikler: Yasaların gerektirdiği durumlarda veya yasal süreçlere yanıt olarak.\n\n(c) İş Transferleri: Şirket birleşmesi, satışı veya varlık transferi durumunda.\n\nKişisel verilerinizi hiçbir zaman reklam veya pazarlama amacıyla üçüncü taraflara satmıyor veya kiralamıyoruz."
+      },
+      {
+        "title": "6. Veri Güvenliği",
+        "content": "Verilerinizi korumak için endüstri standardı güvenlik önlemleri uyguluyoruz:\n\n• SSL/TLS şifreleme ile güvenli veri iletimi\n• Güvenli bulut sunucu altyapısı\n• Erişim kontrolü ve yetkilendirme mekanizmaları\n• Şifreli veri depolama\n• Düzenli güvenlik değerlendirmeleri\n\nHiçbir internet iletimi veya elektronik depolama yöntemi %100 güvenli olmasa da, verilerinizi korumak için ticari olarak kabul edilebilir tüm önlemleri alıyoruz."
+      },
+      {
+        "title": "7. Veri Saklama",
+        "content": "Kişisel verilerinizi yalnızca bu politikada belirtilen amaçlar için gerekli olduğu sürece saklıyoruz:\n\n• Hesap bilgileri: Hesabınız aktif olduğu sürece\n• Kullanım verileri: Maksimum 24 ay\n• Konum verileri: Gerçek zamanlı işlenir, kalıcı olarak saklanmaz\n\nHesabınızı sildiğinizde, kişisel verileriniz 30 gün içinde sistemlerimizden kalıcı olarak kaldırılır (yasal saklama gereklilikleri hariç)."
+      },
+      {
+        "title": "8. Kullanıcı Hakları",
+        "content": "Kişisel verilerinizle ilgili aşağıdaki haklara sahipsiniz:\n\n• Erişim Hakkı: Hakkınızda tuttuğumuz verilere erişim talep edebilirsiniz.\n• Düzeltme Hakkı: Yanlış veya eksik bilgilerin düzeltilmesini isteyebilirsiniz.\n• Silme Hakkı: Hesabınızı ve verilerinizi silmemizi talep edebilirsiniz.\n• Taşınabilirlik Hakkı: Verilerinizin bir kopyasını talep edebilirsiniz.\n• İtiraz Hakkı: Belirli veri işleme faaliyetlerine itiraz edebilirsiniz.\n\nBu haklarınızı kullanmak için uygulama içinden Ayarlar > Hesabımı Sil seçeneğini kullanabilir veya cyprurigo@gmail.com adresine e-posta gönderebilirsiniz."
+      },
+      {
+        "title": "9. Çocukların Gizliliği",
+        "content": "Cyprigo 13 yaşın altındaki çocuklara yönelik değildir ve 13 yaşın altındaki kişilerden bilerek kişisel bilgi toplamıyoruz.\n\nEğer bir ebeveyn veya vasi olarak 13 yaşın altındaki çocuğunuzun bize kişisel bilgi sağladığını fark ederseniz, lütfen cyprurigo@gmail.com adresinden bizimle iletişime geçin. Bu tür bilgileri derhal sileceğiz."
+      },
+      {
+        "title": "10. Üçüncü Taraf Hizmetler",
+        "content": "Uygulamamız aşağıdaki üçüncü taraf hizmetleri kullanmaktadır:\n\n• Supabase: Güvenli veritabanı ve kimlik doğrulama hizmetleri\n• Apple App Store: Uygulama içi satın alma işlemleri\n• Apple MapKit / Google Maps: Harita ve konum hizmetleri\n\nBu üçüncü taraf hizmetlerin kendi gizlilik politikaları bulunmaktadır. İlgili politikaları incelemenizi öneririz."
+      },
+      {
+        "title": "11. Politika Değişiklikleri",
+        "content": "Bu Gizlilik Politikası'nı zaman zaman güncelleyebiliriz. Önemli değişiklikler olduğunda:\n\n• Uygulama içi bildirim göndereceğiz\n• Güncellenmiş politikayı uygulamada yayınlayacağız\n• \"Son güncelleme\" tarihini değiştireceğiz\n\nDeğişikliklerden sonra uygulamayı kullanmaya devam etmeniz, güncellenmiş politikayı kabul ettiğiniz anlamına gelir."
+      },
+      {
+        "title": "12. İletişim",
+        "content": "Bu Gizlilik Politikası veya veri uygulamalarımız hakkında sorularınız, endişeleriniz veya talepleriniz için bizimle iletişime geçebilirsiniz:\n\nE-posta: cyprurigo@gmail.com\n\nCyprigo\nKuzey Kıbrıs\n\nSon güncelleme: Aralık 2025"
+      }
+    ]
+  },
   "community": {
     "title": "Topluluk",
     "subtitle": "Deneyimlerinizi paylaşın, keşfedin",
@@ -780,11 +928,11 @@
     },
     "fabMenu": {
       "sharePhoto": "Fotoğraf Paylaş",
-      "sharePhotoDesc": "Gezdiğin yerlerden fotoğraflar paylaş ve anılarını ölümsüzleştir.",
+      "sharePhotoDesc": "Gezinden fotoğraf paylaş.",
       "writeReview": "Değerlendirme Yaz",
-      "writeReviewDesc": "Deneyimlerini paylaş ve diğer gezginlere yol göster.",
+      "writeReviewDesc": "Kısa bir değerlendirme yaz.",
       "makeSuggestion": "Öneri Yap",
-      "makeSuggestionDesc": "Keşfettiğin gizli cenneti toplulukla paylaş."
+      "makeSuggestionDesc": "Gizli bir yer öner."
     },
     "empty": {
       "title": "Henüz Paylaşım Yok",
@@ -804,6 +952,9 @@
     "addComment": "Yorum yazın...",
     "deleteComment": "Yorumu Sil",
     "deleteCommentConfirm": "Bu yorumu silmek istediğinize emin misiniz?",
+    "commentOptions": "Yorum Seçenekleri",
+    "reportCommentTitle": "Yorumu Şikayet Et",
+    "reportCommentMessage": "Bu yorumu neden şikayet etmek istiyorsunuz?",
     "deletePost": "Paylaşımı Sil",
     "deletePostConfirm": "Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
     "postOptions": "Paylaşım Seçenekleri",
@@ -851,6 +1002,68 @@
       "allClear": "Tüm içerikler incelendi, bekleyen içerik bulunmuyor.",
       "approveConfirm": "\"{{title}}\" içeriğini onaylamak istediğinize emin misiniz?",
       "rejectReasonRequired": "Lütfen bir red nedeni girin"
+    }
+  },
+  "supportTickets": {
+    "title": "Destek Biletleri",
+    "empty": {
+      "title": "Henüz bilet yok",
+      "subtitle": "Yardıma mı ihtiyacınız var? Yeni bir destek bileti oluşturun."
+    },
+    "actions": {
+      "create": "Bilet Oluştur",
+      "submit": "Bileti Oluştur"
+    },
+    "ticketCount": "{{count}} bilet",
+    "categories": {
+      "general": "Genel Soru",
+      "booking": "Rezervasyon",
+      "technical": "Teknik Destek",
+      "feedback": "Öneri / Şikayet",
+      "payment": "Ödeme",
+      "other": "Diğer"
+    },
+    "status": {
+      "open": "Açık",
+      "inProgress": "İşlemde",
+      "resolved": "Çözüldü",
+      "closed": "Kapatıldı"
+    },
+    "create": {
+      "title": "Yeni Bilet"
+    },
+    "form": {
+      "categoryLabel": "KATEGORİ",
+      "subjectLabel": "KONU",
+      "messageLabel": "MESAJ",
+      "subjectPlaceholder": "Kısa bir başlık yazın",
+      "messagePlaceholder": "Sorununuzu veya sorunuzu detaylı açıklayın"
+    },
+    "validation": {
+      "selectCategory": "Lütfen bir kategori seçin.",
+      "enterSubject": "Lütfen bir konu girin.",
+      "enterMessage": "Lütfen mesajınızı yazın."
+    },
+    "created": {
+      "title": "Bilet Oluşturuldu",
+      "message": "Bilet kodunuz: {{code}}\n\nEn kısa sürede size dönüş yapacağız."
+    },
+    "errors": {
+      "createFailed": "Bilet oluşturulamadı.",
+      "sendFailed": "Mesaj gönderilemedi."
+    },
+    "detail": {
+      "status": "Durum",
+      "category": "Kategori",
+      "createdAt": "Oluşturulma",
+      "messagesTitle": "MESAJLAR"
+    },
+    "messages": {
+      "supportTeam": "Destek Ekibi",
+      "you": "Siz"
+    },
+    "reply": {
+      "placeholder": "Mesajınızı yazın..."
     }
   },
   "paywall": {

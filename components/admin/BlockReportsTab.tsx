@@ -1,8 +1,8 @@
 /**
- * Reports Tab Component
+ * Block Reports Tab Component
  * 
- * Admin panel component for managing community post reports
- * Minimalist premium design without icons/emojis
+ * Admin panel component for viewing user block reports
+ * Shows automatic reports created when users block each other
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -26,18 +26,17 @@ import { getAvatarUrl } from '@/lib/avatarService';
 import { useAuthStore } from '@/stores';
 import { supabase } from '@/lib/supabase';
 
-interface ReportsTabProps {
+interface BlockReportsTabProps {
   colors: typeof Colors.light;
   isDark: boolean;
   insets: EdgeInsets;
 }
 
-// Report reason labels
-const reasonLabels: Record<string, string> = {
-  spam: 'Spam',
-  inappropriate: 'Uygunsuz İçerik',
-  harassment: 'Taciz',
-  misinformation: 'Yanlış Bilgi',
+// Source labels
+const sourceLabels: Record<string, string> = {
+  post: 'Paylaşım',
+  comment: 'Yorum',
+  profile: 'Profil',
   other: 'Diğer',
 };
 
@@ -51,15 +50,19 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 
 type FilterStatus = 'all' | 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 
-interface Report {
+interface BlockReport {
   id: string;
-  post_id: string;
   reporter_id: string;
+  reported_user_id: string;
   reason: string;
   description: string | null;
+  source: string;
+  post_id: string | null;
+  comment_id: string | null;
   status: string;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
   reporter?: {
@@ -67,30 +70,22 @@ interface Report {
     full_name: string;
     avatar_url: string | null;
   };
-  post?: {
+  reported_user?: {
     id: string;
-    title: string | null;
-    content: string | null;
-    images: string[];
-    user_id: string;
-    status: string;
-    user?: {
-      id: string;
-      full_name: string;
-      avatar_url: string | null;
-    };
+    full_name: string;
+    avatar_url: string | null;
   };
 }
 
-export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) {
+export default function BlockReportsTab({ colors, isDark, insets }: BlockReportsTabProps) {
   const { user } = useAuthStore();
   
   // State
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<BlockReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('pending');
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<BlockReport | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [processing, setProcessing] = useState(false);
   
@@ -107,58 +102,31 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
   const fetchReports = useCallback(async () => {
     try {
       const { data: reportsData, error } = await supabase
-        .from('community_reports')
+        .from('user_block_reports')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Fetch related data
+      // Fetch related users
       const reporterIds = [...new Set(reportsData?.map(r => r.reporter_id) || [])];
-      const postIds = [...new Set(reportsData?.map(r => r.post_id) || [])];
+      const reportedIds = [...new Set(reportsData?.map(r => r.reported_user_id) || [])];
+      const allUserIds = [...new Set([...reporterIds, ...reportedIds])];
 
-      // Fetch reporters
-      const reportersMap: Record<string, any> = {};
-      if (reporterIds.length > 0) {
-        const { data: reporters } = await supabase
+      const usersMap: Record<string, any> = {};
+      if (allUserIds.length > 0) {
+        const { data: users } = await supabase
           .from('profiles')
           .select('id, full_name, avatar_url')
-          .in('id', reporterIds);
-        reporters?.forEach(r => { reportersMap[r.id] = r; });
-      }
-
-      // Fetch posts
-      const postsMap: Record<string, any> = {};
-      if (postIds.length > 0) {
-        const { data: posts } = await supabase
-          .from('community_posts')
-          .select('id, title, content, images, user_id, status')
-          .in('id', postIds);
-        
-        // Fetch post owners
-        const postOwnerIds = [...new Set(posts?.map(p => p.user_id) || [])];
-        const postOwnersMap: Record<string, any> = {};
-        if (postOwnerIds.length > 0) {
-          const { data: owners } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', postOwnerIds);
-          owners?.forEach(o => { postOwnersMap[o.id] = o; });
-        }
-
-        posts?.forEach(p => { 
-          postsMap[p.id] = {
-            ...p,
-            user: postOwnersMap[p.user_id] || null,
-          }; 
-        });
+          .in('id', allUserIds);
+        users?.forEach(u => { usersMap[u.id] = u; });
       }
 
       // Combine data
-      const enrichedReports: Report[] = (reportsData || []).map(report => ({
+      const enrichedReports: BlockReport[] = (reportsData || []).map(report => ({
         ...report,
-        reporter: reportersMap[report.reporter_id] || null,
-        post: postsMap[report.post_id] || null,
+        reporter: usersMap[report.reporter_id] || null,
+        reported_user: usersMap[report.reported_user_id] || null,
       }));
 
       setReports(enrichedReports);
@@ -172,8 +140,8 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
         dismissed: enrichedReports.filter(r => r.status === 'dismissed').length,
       });
     } catch (error) {
-      console.error('Error fetching reports:', error);
-      Alert.alert('Hata', 'Şikayetler yüklenirken bir hata oluştu');
+      console.error('Error fetching block reports:', error);
+      Alert.alert('Hata', 'Engelleme raporları yüklenirken bir hata oluştu');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -198,7 +166,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
     setProcessing(true);
     try {
       const { error } = await supabase
-        .from('community_reports')
+        .from('user_block_reports')
         .update({
           status: newStatus,
           reviewed_by: user.id,
@@ -220,8 +188,8 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
         const oldStatus = reports.find(r => r.id === reportId)?.status || 'pending';
         return {
           ...prev,
-          [oldStatus]: Math.max(0, prev[oldStatus as keyof typeof prev] - 1),
-          [newStatus]: (prev[newStatus as keyof typeof prev] || 0) + 1,
+          [oldStatus]: Math.max(0, (prev as any)[oldStatus] - 1),
+          [newStatus]: ((prev as any)[newStatus] || 0) + 1,
         };
       });
 
@@ -234,32 +202,32 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
     }
   };
 
-  // Delete reported post
-  const deleteReportedPost = async (postId: string, reportId: string) => {
+  // Ban reported user
+  const banReportedUser = async (userId: string, reportId: string) => {
     Alert.alert(
-      'Paylaşımı Sil',
-      'Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      'Kullanıcıyı Yasakla',
+      'Bu kullanıcıyı yasaklamak istediğinize emin misiniz? Kullanıcı uygulamaya giriş yapamayacak.',
       [
         { text: 'İptal', style: 'cancel' },
         {
-          text: 'Sil',
+          text: 'Yasakla',
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
             try {
               const { error } = await supabase
-                .from('community_posts')
-                .delete()
-                .eq('id', postId);
+                .from('profiles')
+                .update({ is_banned: true, banned_at: new Date().toISOString() })
+                .eq('id', userId);
 
               if (error) throw error;
 
               // Update report status to resolved
               await updateReportStatus(reportId, 'resolved');
               
-              Alert.alert('Başarılı', 'Paylaşım silindi ve şikayet çözüldü');
+              Alert.alert('Başarılı', 'Kullanıcı yasaklandı ve rapor çözüldü');
             } catch (error: any) {
-              Alert.alert('Hata', error.message || 'Paylaşım silinemedi');
+              Alert.alert('Hata', error.message || 'Kullanıcı yasaklanamadı');
             } finally {
               setProcessing(false);
             }
@@ -362,12 +330,12 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
           <View style={styles.emptyState}>
             <View style={[styles.emptyIndicator, { backgroundColor: isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB' }]} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>
-              {filterStatus === 'pending' ? 'Bekleyen şikayet yok' : 'Şikayet bulunamadı'}
+              {filterStatus === 'pending' ? 'Bekleyen engelleme raporu yok' : 'Rapor bulunamadı'}
             </Text>
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
               {filterStatus === 'pending' 
-                ? 'Tüm şikayetler incelendi' 
-                : 'Bu filtreye uygun şikayet bulunmuyor'}
+                ? 'Tüm raporlar incelendi' 
+                : 'Bu filtreye uygun rapor bulunmuyor'}
             </Text>
           </View>
         ) : (
@@ -389,17 +357,24 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
             >
               {/* Report Header */}
               <View style={styles.reportHeader}>
-                <View style={styles.reporterInfo}>
-                  <Image
-                    source={{ uri: getAvatarUrl(report.reporter?.avatar_url, report.reporter_id) }}
-                    style={styles.reporterAvatar}
-                  />
-                  <View style={styles.reporterText}>
-                    <Text style={[styles.reporterName, { color: colors.text }]} numberOfLines={1}>
+                <View style={styles.usersRow}>
+                  <View style={styles.userInfo}>
+                    <Image
+                      source={{ uri: getAvatarUrl(report.reporter?.avatar_url, report.reporter_id) }}
+                      style={styles.userAvatar}
+                    />
+                    <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
                       {report.reporter?.full_name || 'Anonim'}
                     </Text>
-                    <Text style={[styles.reportDate, { color: colors.textSecondary }]}>
-                      {formatDate(report.created_at)}
+                  </View>
+                  <Text style={[styles.arrowText, { color: colors.textSecondary }]}>→</Text>
+                  <View style={styles.userInfo}>
+                    <Image
+                      source={{ uri: getAvatarUrl(report.reported_user?.avatar_url, report.reported_user_id) }}
+                      style={styles.userAvatar}
+                    />
+                    <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+                      {report.reported_user?.full_name || 'Anonim'}
                     </Text>
                   </View>
                 </View>
@@ -416,11 +391,15 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
                 </View>
               </View>
 
-              {/* Reason */}
-              <View style={styles.reasonContainer}>
-                <Text style={[styles.reasonLabel, { color: colors.textSecondary }]}>Sebep:</Text>
-                <Text style={[styles.reasonValue, { color: colors.text }]}>
-                  {reasonLabels[report.reason] || report.reason}
+              {/* Source & Date */}
+              <View style={styles.metaRow}>
+                <View style={[styles.sourceBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                  <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
+                    {sourceLabels[report.source] || report.source}
+                  </Text>
+                </View>
+                <Text style={[styles.reportDate, { color: colors.textSecondary }]}>
+                  {formatDate(report.created_at)}
                 </Text>
               </View>
 
@@ -429,34 +408,6 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
                 <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
                   {report.description}
                 </Text>
-              )}
-
-              {/* Reported Post Preview */}
-              {report.post && (
-                <View style={[
-                  styles.postPreview, 
-                  { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }
-                ]}>
-                  <View style={styles.postPreviewHeader}>
-                    <Image
-                      source={{ uri: getAvatarUrl(report.post.user?.avatar_url, report.post.user_id) }}
-                      style={styles.postOwnerAvatar}
-                    />
-                    <Text style={[styles.postOwnerName, { color: colors.text }]} numberOfLines={1}>
-                      {report.post.user?.full_name || 'Kullanıcı'}
-                    </Text>
-                  </View>
-                  {report.post.title && (
-                    <Text style={[styles.postTitle, { color: colors.text }]} numberOfLines={1}>
-                      {report.post.title}
-                    </Text>
-                  )}
-                  {report.post.content && (
-                    <Text style={[styles.postContent, { color: colors.textSecondary }]} numberOfLines={2}>
-                      {report.post.content}
-                    </Text>
-                  )}
-                </View>
               )}
             </TouchableOpacity>
           ))
@@ -484,7 +435,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
             >
               <Text style={[styles.modalCancel, { color: colors.primary }]}>Kapat</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Şikayet Detayı</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Engelleme Detayı</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -493,7 +444,7 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
               {/* Reporter Section */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  Şikayet Eden
+                  Engelleyen Kullanıcı
                 </Text>
                 <View style={[styles.sectionCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
                   <Image
@@ -511,15 +462,100 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
                 </View>
               </View>
 
-              {/* Reason Section */}
+              {/* Reported User Section */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                  Şikayet Sebebi
+                  Engellenen Kullanıcı
+                </Text>
+                <View style={[styles.sectionCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
+                  <Image
+                    source={{ uri: getAvatarUrl(selectedReport.reported_user?.avatar_url, selectedReport.reported_user_id) }}
+                    style={styles.sectionAvatar}
+                  />
+                  <View style={styles.sectionInfo}>
+                    <Text style={[styles.sectionName, { color: colors.text }]}>
+                      {selectedReport.reported_user?.full_name || 'Anonim'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Source Section */}
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  Engelleme Kaynağı
                 </Text>
                 <View style={[styles.sectionCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
                   <Text style={[styles.reasonText, { color: colors.text }]}>
-                    {reasonLabels[selectedReport.reason] || selectedReport.reason}
+                    {sourceLabels[selectedReport.source] || selectedReport.source}
                   </Text>
+                </View>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  Rapor Bilgisi
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCardColumn,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+                  ]}
+                >
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Durum</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {statusConfig[selectedReport.status]?.label || selectedReport.status}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Rapor ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.id}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Reporter ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.reporter_id}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Reported ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.reported_user_id}
+                    </Text>
+                  </View>
+                  {selectedReport.post_id && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Post ID</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.post_id}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedReport.comment_id && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Comment ID</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.comment_id}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedReport.reviewed_at && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>İncelenme</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}> {formatDate(selectedReport.reviewed_at)} </Text>
+                    </View>
+                  )}
+                  {selectedReport.reviewed_by && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>İnceleyen</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.reviewed_by}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -527,58 +563,17 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
               {selectedReport.description && (
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                    Açıklama
+                    Detay
                   </Text>
-                  <View style={[styles.sectionCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Text style={[styles.descriptionText, { color: colors.text }]}>
+                  <View
+                    style={[
+                      styles.sectionCardColumn,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+                    ]}
+                  >
+                    <Text style={[styles.descriptionText, { color: colors.text }]} selectable>
                       {selectedReport.description}
                     </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Reported Post Section */}
-              {selectedReport.post && (
-                <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                    Şikayet Edilen Paylaşım
-                  </Text>
-                  <View style={[styles.postCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
-                    <View style={styles.postHeader}>
-                      <Image
-                        source={{ uri: getAvatarUrl(selectedReport.post.user?.avatar_url, selectedReport.post.user_id) }}
-                        style={styles.postAvatar}
-                      />
-                      <Text style={[styles.postUserName, { color: colors.text }]}>
-                        {selectedReport.post.user?.full_name || 'Kullanıcı'}
-                      </Text>
-                    </View>
-                    {selectedReport.post.title && (
-                      <Text style={[styles.postTitleFull, { color: colors.text }]}>
-                        {selectedReport.post.title}
-                      </Text>
-                    )}
-                    {selectedReport.post.content && (
-                      <Text style={[styles.postContentFull, { color: colors.textSecondary }]}>
-                        {selectedReport.post.content}
-                      </Text>
-                    )}
-                    {selectedReport.post.images && selectedReport.post.images.length > 0 && (
-                      <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false}
-                        style={styles.postImages}
-                        contentContainerStyle={styles.postImagesContent}
-                      >
-                        {selectedReport.post.images.map((image, index) => (
-                          <Image 
-                            key={index} 
-                            source={{ uri: image }} 
-                            style={styles.postImage} 
-                          />
-                        ))}
-                      </ScrollView>
-                    )}
                   </View>
                 </View>
               )}
@@ -611,14 +606,14 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => deleteReportedPost(selectedReport.post_id, selectedReport.id)}
+                    style={[styles.actionButton, styles.banButton]}
+                    onPress={() => banReportedUser(selectedReport.reported_user_id, selectedReport.id)}
                     disabled={processing}
                   >
                     {processing ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={styles.deleteButtonText}>Paylaşımı Sil</Text>
+                      <Text style={styles.banButtonText}>Kullanıcıyı Yasakla</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -639,14 +634,14 @@ export default function ReportsTab({ colors, isDark, insets }: ReportsTabProps) 
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={[styles.actionButton, styles.deleteButton]}
-                    onPress={() => deleteReportedPost(selectedReport.post_id, selectedReport.id)}
+                    style={[styles.actionButton, styles.banButton]}
+                    onPress={() => banReportedUser(selectedReport.reported_user_id, selectedReport.id)}
                     disabled={processing}
                   >
                     {processing ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={styles.deleteButtonText}>Paylaşımı Sil</Text>
+                      <Text style={styles.banButtonText}>Kullanıcıyı Yasakla</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -739,7 +734,6 @@ const styles = StyleSheet.create({
   emptyIndicator: {
     width: 48,
     height: 2,
-    backgroundColor: '#D1D5DB',
     borderRadius: 1,
     marginBottom: 24,
   },
@@ -769,29 +763,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  reporterInfo: {
+  usersRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 8,
   },
-  reporterAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  reporterText: {
-    flex: 1,
+  userAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
-  reporterName: {
+  userName: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+    maxWidth: 80,
+  },
+  arrowText: {
     fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-  },
-  reportDate: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    marginTop: 2,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -803,56 +799,27 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
   },
-  reasonContainer: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 6,
-  },
-  reasonLabel: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-  },
-  reasonValue: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  
-  // Post Preview
-  postPreview: {
-    borderRadius: 12,
-    padding: 12,
-  },
-  postPreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 8,
   },
-  postOwnerAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
+  sourceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  postOwnerName: {
-    fontSize: 13,
+  sourceText: {
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '500',
   },
-  postTitle: {
-    fontSize: 14,
+  reportDate: {
+    fontSize: 12,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-    marginBottom: 4,
   },
-  postContent: {
+  description: {
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     lineHeight: 18,
@@ -902,6 +869,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
   },
+  sectionCardColumn: {
+    borderRadius: 14,
+    padding: 14,
+  },
   sectionAvatar: {
     width: 44,
     height: 44,
@@ -930,50 +901,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     lineHeight: 22,
+    flexShrink: 1,
+    width: '100%',
   },
-  
-  // Post Card in Modal
-  postCard: {
-    borderRadius: 14,
-    padding: 16,
-  },
-  postHeader: {
+
+  infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 6,
   },
-  postAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-  },
-  postUserName: {
-    fontSize: 15,
+  infoLabel: {
+    fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
   },
-  postTitleFull: {
-    fontSize: 16,
+  infoValue: {
+    fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  postContentFull: {
-    fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
-    lineHeight: 20,
-  },
-  postImages: {
-    marginTop: 12,
-  },
-  postImagesContent: {
-    gap: 8,
-  },
-  postImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 10,
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
   },
   
   // Actions
@@ -985,42 +934,41 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   dismissButton: {
-    backgroundColor: 'rgba(107,114,128,0.1)',
+    backgroundColor: 'rgba(107, 114, 128, 0.1)',
   },
   dismissButtonText: {
+    color: '#6B7280',
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    color: '#6B7280',
   },
   reviewButton: {
-    backgroundColor: 'rgba(59,130,246,0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   reviewButtonText: {
+    color: '#3B82F6',
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    color: '#3B82F6',
   },
   resolveButton: {
     backgroundColor: '#22C55E',
   },
   resolveButtonText: {
+    color: '#fff',
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    color: '#fff',
   },
-  deleteButton: {
+  banButton: {
     backgroundColor: '#EF4444',
   },
-  deleteButtonText: {
+  banButtonText: {
+    color: '#fff',
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     fontWeight: '600',
-    color: '#fff',
   },
 });

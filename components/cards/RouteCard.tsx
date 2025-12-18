@@ -76,7 +76,7 @@ export const RouteCard = memo(function RouteCard({ route, onPress, variant = 'de
       TRNC: 'KKTC',
     };
 
-    const isEnglish = (i18n.resolvedLanguage || i18n.language || '').toLowerCase().startsWith('en');
+    const isEnglish = (i18n?.resolvedLanguage || i18n?.language || '').toLowerCase().startsWith('en');
     const map = isEnglish ? trToEn : enToTr;
     return raw
       .split(',')

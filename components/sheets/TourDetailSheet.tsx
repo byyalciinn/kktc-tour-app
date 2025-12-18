@@ -45,7 +45,7 @@ export default function TourDetailSheet({
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   // Zustand stores
   const { user } = useAuthStore();
@@ -82,10 +82,45 @@ export default function TourDetailSheet({
     ? tours.filter((t) => t.category === currentTour.category && t.id !== currentTour.id).slice(0, 4)
     : [];
 
+  const translatePrimaryLocation = useCallback(
+    (rawLocation: string) => {
+      const primary = (rawLocation || '').split(',')[0]?.trim() || '';
+      const isEnglish = (i18n.resolvedLanguage || i18n.language || '')
+        .toLowerCase()
+        .startsWith('en');
+
+      if (!isEnglish) return primary;
+
+      const trToEn: Record<string, string> = {
+        Girne: 'Kyrenia',
+        Lefkoşa: 'Nicosia',
+        Lefkosa: 'Nicosia',
+        Gazimağusa: 'Famagusta',
+        Gazimagusa: 'Famagusta',
+        Mağusa: 'Famagusta',
+        Magusa: 'Famagusta',
+        Güzelyurt: 'Morphou',
+        Guzelyurt: 'Morphou',
+        İskele: 'Iskele',
+        Iskele: 'Iskele',
+        Lefke: 'Lefke',
+        Karpaz: 'Karpas',
+      };
+
+      return trToEn[primary] || primary;
+    },
+    [i18n.resolvedLanguage, i18n.language]
+  );
+
+  const PREFETCH_RELATED_TOUR_IMAGES_COUNT = 2;
+
   // Prefetch related tour images for faster loading
   useEffect(() => {
     if (visible && relatedTours.length > 0) {
-      const imageUrls = relatedTours.map(t => t.image).filter(Boolean);
+      const imageUrls = relatedTours
+        .slice(0, PREFETCH_RELATED_TOUR_IMAGES_COUNT)
+        .map((t) => t.image)
+        .filter(Boolean);
       prefetchImages(imageUrls);
     }
   }, [visible, relatedTours]);
@@ -462,7 +497,7 @@ export default function TourDetailSheet({
                         </Text>
                         <View style={styles.upcomingMeta}>
                           <Text style={styles.upcomingLocation}>
-                            {relatedTour.location.split(',')[0]}
+                            {translatePrimaryLocation(relatedTour.location)}
                           </Text>
                         </View>
                       </View>
@@ -750,8 +785,10 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   bookButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 28,

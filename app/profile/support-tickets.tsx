@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { useThemeStore, useAuthStore } from '@/stores';
@@ -28,20 +29,20 @@ import { supabase } from '@/lib/supabase';
 
 // Ticket categories
 const TICKET_CATEGORIES = [
-  { id: 'general', label: 'Genel Soru' },
-  { id: 'booking', label: 'Rezervasyon' },
-  { id: 'technical', label: 'Teknik Destek' },
-  { id: 'feedback', label: 'Öneri / Şikayet' },
-  { id: 'payment', label: 'Ödeme' },
-  { id: 'other', label: 'Diğer' },
+  { id: 'general', labelKey: 'supportTickets.categories.general' },
+  { id: 'booking', labelKey: 'supportTickets.categories.booking' },
+  { id: 'technical', labelKey: 'supportTickets.categories.technical' },
+  { id: 'feedback', labelKey: 'supportTickets.categories.feedback' },
+  { id: 'payment', labelKey: 'supportTickets.categories.payment' },
+  { id: 'other', labelKey: 'supportTickets.categories.other' },
 ] as const;
 
 // Status labels
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  open: { label: 'Açık', color: '#3B82F6' },
-  in_progress: { label: 'İşlemde', color: '#F59E0B' },
-  resolved: { label: 'Çözüldü', color: '#22C55E' },
-  closed: { label: 'Kapatıldı', color: '#6B7280' },
+const STATUS_CONFIG: Record<string, { labelKey: string; color: string }> = {
+  open: { labelKey: 'supportTickets.status.open', color: '#3B82F6' },
+  in_progress: { labelKey: 'supportTickets.status.inProgress', color: '#F59E0B' },
+  resolved: { labelKey: 'supportTickets.status.resolved', color: '#22C55E' },
+  closed: { labelKey: 'supportTickets.status.closed', color: '#6B7280' },
 };
 
 interface Ticket {
@@ -70,6 +71,11 @@ export default function SupportTicketsScreen() {
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const { user } = useAuthStore();
+  const { t, i18n } = useTranslation();
+
+  const isEnglish = (i18n.resolvedLanguage || i18n.language || '')
+    .toLowerCase()
+    .startsWith('en');
 
   // State
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -145,15 +151,15 @@ export default function SupportTicketsScreen() {
   const handleCreateTicket = async () => {
     if (!user?.id) return;
     if (!selectedCategory) {
-      Alert.alert('Uyarı', 'Lütfen bir kategori seçin.');
+      Alert.alert(t('common.warning'), t('supportTickets.validation.selectCategory'));
       return;
     }
     if (!subject.trim()) {
-      Alert.alert('Uyarı', 'Lütfen bir konu girin.');
+      Alert.alert(t('common.warning'), t('supportTickets.validation.enterSubject'));
       return;
     }
     if (!message.trim()) {
-      Alert.alert('Uyarı', 'Lütfen mesajınızı yazın.');
+      Alert.alert(t('common.warning'), t('supportTickets.validation.enterMessage'));
       return;
     }
 
@@ -194,11 +200,11 @@ export default function SupportTicketsScreen() {
       fetchTickets();
       
       Alert.alert(
-        'Bilet Oluşturuldu',
-        `Bilet kodunuz: ${ticketData.ticket_code}\n\nEn kısa sürede size dönüş yapacağız.`
+        t('supportTickets.created.title'),
+        t('supportTickets.created.message', { code: ticketData.ticket_code })
       );
     } catch (error: any) {
-      Alert.alert('Hata', error.message || 'Bilet oluşturulamadı.');
+      Alert.alert(t('common.error'), error.message || t('supportTickets.errors.createFailed'));
     } finally {
       setIsCreating(false);
     }
@@ -225,7 +231,7 @@ export default function SupportTicketsScreen() {
       setReplyMessage('');
       fetchMessages(selectedTicket.id);
     } catch (error: any) {
-      Alert.alert('Hata', error.message || 'Mesaj gönderilemedi.');
+      Alert.alert(t('common.error'), error.message || t('supportTickets.errors.sendFailed'));
     } finally {
       setIsSendingReply(false);
     }
@@ -241,7 +247,7 @@ export default function SupportTicketsScreen() {
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString(isEnglish ? 'en-US' : 'tr-TR', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -252,7 +258,8 @@ export default function SupportTicketsScreen() {
 
   // Get category label
   const getCategoryLabel = (categoryId: string) => {
-    return TICKET_CATEGORIES.find(c => c.id === categoryId)?.label || categoryId;
+    const category = TICKET_CATEGORIES.find(c => c.id === categoryId);
+    return category ? t(category.labelKey) : categoryId;
   };
 
   return (
@@ -268,7 +275,7 @@ export default function SupportTicketsScreen() {
           <Text style={[styles.backButtonText, { color: colors.text }]}>‹</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Destek Biletleri
+          {t('supportTickets.title')}
         </Text>
         <TouchableOpacity
           style={[styles.createButton, { backgroundColor: colors.primary }]}
@@ -300,23 +307,23 @@ export default function SupportTicketsScreen() {
             <View style={styles.emptyState}>
               <View style={[styles.emptyIndicator, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)' }]} />
               <Text style={[styles.emptyTitle, { color: colors.text }]}>
-                Henüz bilet yok
+                {t('supportTickets.empty.title')}
               </Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                Yardıma mı ihtiyacınız var? Yeni bir destek bileti oluşturun.
+                {t('supportTickets.empty.subtitle')}
               </Text>
               <TouchableOpacity
                 style={[styles.emptyButton, { backgroundColor: colors.primary }]}
                 onPress={() => setShowCreateModal(true)}
               >
-                <Text style={styles.emptyButtonText}>Bilet Oluştur</Text>
+                <Text style={styles.emptyButtonText}>{t('supportTickets.actions.create')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {/* Info text */}
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                {tickets.length} bilet
+                {t('supportTickets.ticketCount', { count: tickets.length })}
               </Text>
 
               {/* Tickets list */}
@@ -345,7 +352,9 @@ export default function SupportTicketsScreen() {
                         styles.statusText,
                         { color: STATUS_CONFIG[ticket.status]?.color || '#6B7280' }
                       ]}>
-                        {STATUS_CONFIG[ticket.status]?.label || ticket.status}
+                        {STATUS_CONFIG[ticket.status]?.labelKey
+                          ? t(STATUS_CONFIG[ticket.status].labelKey)
+                          : ticket.status}
                       </Text>
                     </View>
                   </View>
@@ -377,9 +386,9 @@ export default function SupportTicketsScreen() {
         <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
             <TouchableOpacity onPress={() => setShowCreateModal(false)}>
-              <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>İptal</Text>
+              <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Yeni Bilet</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('supportTickets.create.title')}</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -395,7 +404,7 @@ export default function SupportTicketsScreen() {
               {/* Category Selection */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-                  KATEGORİ
+                  {t('supportTickets.form.categoryLabel')}
                 </Text>
                 <View style={styles.categoriesGrid}>
                   {TICKET_CATEGORIES.map((category) => {
@@ -420,7 +429,7 @@ export default function SupportTicketsScreen() {
                           styles.categoryChipText,
                           { color: isSelected ? '#fff' : colors.text }
                         ]}>
-                          {category.label}
+                          {t(category.labelKey)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -431,7 +440,7 @@ export default function SupportTicketsScreen() {
               {/* Subject */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-                  KONU
+                  {t('supportTickets.form.subjectLabel')}
                 </Text>
                 <TextInput
                   style={[
@@ -444,7 +453,7 @@ export default function SupportTicketsScreen() {
                   ]}
                   value={subject}
                   onChangeText={setSubject}
-                  placeholder="Kısa bir başlık yazın"
+                  placeholder={t('supportTickets.form.subjectPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
@@ -452,7 +461,7 @@ export default function SupportTicketsScreen() {
               {/* Message */}
               <View style={styles.formSection}>
                 <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-                  MESAJ
+                  {t('supportTickets.form.messageLabel')}
                 </Text>
                 <TextInput
                   style={[
@@ -466,7 +475,7 @@ export default function SupportTicketsScreen() {
                   ]}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="Sorununuzu veya sorunuzu detaylı açıklayın"
+                  placeholder={t('supportTickets.form.messagePlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={6}
@@ -494,7 +503,7 @@ export default function SupportTicketsScreen() {
                     styles.submitButtonText,
                     { color: (selectedCategory && subject && message) ? '#fff' : colors.textSecondary }
                   ]}>
-                    Bileti Oluştur
+                    {t('supportTickets.actions.submit')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -521,7 +530,7 @@ export default function SupportTicketsScreen() {
               setSelectedTicket(null);
               setTicketMessages([]);
             }}>
-              <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>Kapat</Text>
+              <Text style={[styles.modalCancel, { color: colors.textSecondary }]}>{t('common.close')}</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
               {selectedTicket?.ticket_code}
@@ -547,7 +556,7 @@ export default function SupportTicketsScreen() {
                   }
                 ]}>
                   <View style={styles.ticketInfoRow}>
-                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>Durum</Text>
+                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>{t('supportTickets.detail.status')}</Text>
                     <View style={[
                       styles.statusBadge,
                       { backgroundColor: `${STATUS_CONFIG[selectedTicket.status]?.color || '#6B7280'}15` }
@@ -556,18 +565,20 @@ export default function SupportTicketsScreen() {
                         styles.statusText,
                         { color: STATUS_CONFIG[selectedTicket.status]?.color || '#6B7280' }
                       ]}>
-                        {STATUS_CONFIG[selectedTicket.status]?.label || selectedTicket.status}
+                        {STATUS_CONFIG[selectedTicket.status]?.labelKey
+                          ? t(STATUS_CONFIG[selectedTicket.status].labelKey)
+                          : selectedTicket.status}
                       </Text>
                     </View>
                   </View>
                   <View style={styles.ticketInfoRow}>
-                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>Kategori</Text>
+                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>{t('supportTickets.detail.category')}</Text>
                     <Text style={[styles.ticketInfoValue, { color: colors.text }]}>
                       {getCategoryLabel(selectedTicket.category)}
                     </Text>
                   </View>
                   <View style={styles.ticketInfoRow}>
-                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>Oluşturulma</Text>
+                    <Text style={[styles.ticketInfoLabel, { color: colors.textSecondary }]}>{t('supportTickets.detail.createdAt')}</Text>
                     <Text style={[styles.ticketInfoValue, { color: colors.text }]}>
                       {formatDate(selectedTicket.created_at)}
                     </Text>
@@ -582,7 +593,7 @@ export default function SupportTicketsScreen() {
                 {/* Messages */}
                 <View style={styles.messagesSection}>
                   <Text style={[styles.messagesTitle, { color: colors.textSecondary }]}>
-                    MESAJLAR
+                    {t('supportTickets.detail.messagesTitle')}
                   </Text>
                   
                   {isLoadingMessages ? (
@@ -609,7 +620,7 @@ export default function SupportTicketsScreen() {
                             styles.messageSender,
                             { color: msg.is_admin ? '#3B82F6' : colors.text }
                           ]}>
-                            {msg.is_admin ? 'Destek Ekibi' : 'Siz'}
+                            {msg.is_admin ? t('supportTickets.messages.supportTeam') : t('supportTickets.messages.you')}
                           </Text>
                           <Text style={[styles.messageTime, { color: colors.textSecondary }]}>
                             {formatDate(msg.created_at)}
@@ -644,7 +655,7 @@ export default function SupportTicketsScreen() {
                     ]}
                     value={replyMessage}
                     onChangeText={setReplyMessage}
-                    placeholder="Mesajınızı yazın..."
+                    placeholder={t('supportTickets.reply.placeholder')}
                     placeholderTextColor={colors.textSecondary}
                     multiline
                   />
@@ -665,7 +676,7 @@ export default function SupportTicketsScreen() {
                         styles.sendButtonText,
                         { color: replyMessage.trim() ? '#fff' : colors.textSecondary }
                       ]}>
-                        Gönder
+                        {t('common.send')}
                       </Text>
                     )}
                   </TouchableOpacity>

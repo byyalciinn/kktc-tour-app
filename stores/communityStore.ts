@@ -26,8 +26,8 @@ async function enrichPostsWithRelations(posts: any[]): Promise<CommunityPostData
   const userIds = [...new Set(posts.map(p => p.user_id))];
   const tourIds = [...new Set(posts.filter(p => p.tour_id).map(p => p.tour_id))];
 
-  let profilesMap: Record<string, any> = {};
-  let toursMap: Record<string, any> = {};
+  const profilesMap: Record<string, any> = {};
+  const toursMap: Record<string, any> = {};
 
   // Fetch profiles
   if (userIds.length > 0) {
@@ -150,8 +150,15 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
     });
 
     try {
+      const userId = useAuthStore.getState().user?.id;
+      // Keep hidden posts list in sync for the current user.
+      // This prevents hidden posts from reappearing on refresh/app restart.
+      if (userId && (refresh || get().hiddenPostIds.length === 0)) {
+        await get().fetchHiddenPosts();
+      }
+
       // All users see approved posts only
-      let query = supabase
+      const query = supabase
         .from('community_posts')
         .select('*')
         .eq('status', 'approved')
@@ -162,14 +169,20 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
       if (error) throw error;
 
-      const enrichedData = await enrichPostsWithRelations(data || []);
+      // Filter out posts hidden by the current user (Not interested)
+      const { hiddenPostIds } = get();
+      const visibleData = hiddenPostIds.length > 0
+        ? (data || []).filter((post: any) => !hiddenPostIds.includes(post.id))
+        : (data || []);
+
+      const enrichedData = await enrichPostsWithRelations(visibleData);
       const posts = enrichedData.map(post => postDataToPost(post));
       
       set({ 
         posts, 
         isLoading: false, 
         isRefreshing: false,
-        hasMore: data.length === PAGE_SIZE,
+        hasMore: (data || []).length === PAGE_SIZE,
         page: 1,
       });
     } catch (error: any) {
@@ -193,7 +206,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       const to = from + PAGE_SIZE - 1;
 
       // All users see approved posts only
-      let query = supabase
+      const query = supabase
         .from('community_posts')
         .select('*')
         .eq('status', 'approved')
@@ -204,7 +217,13 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
       if (error) throw error;
 
-      const enrichedData = await enrichPostsWithRelations(data || []);
+      // Filter out hidden posts
+      const { hiddenPostIds } = get();
+      const visibleData = hiddenPostIds.length > 0
+        ? (data || []).filter((post: any) => !hiddenPostIds.includes(post.id))
+        : (data || []);
+
+      const enrichedData = await enrichPostsWithRelations(visibleData);
       const newPosts = enrichedData.map(post => postDataToPost(post));
       
       // Filter out duplicates
@@ -214,7 +233,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
       set({ 
         posts: [...posts, ...uniqueNewPosts],
         isLoadingMore: false,
-        hasMore: data.length === PAGE_SIZE,
+        hasMore: (data || []).length === PAGE_SIZE,
         page: page + 1,
       });
     } catch (error: any) {
@@ -441,7 +460,7 @@ export const useCommunityStore = create<CommunityState>((set, get) => ({
 
       // Fetch user profiles separately
       const userIds = [...new Set(data?.map(c => c.user_id) || [])];
-      let profilesMap: Record<string, any> = {};
+      const profilesMap: Record<string, any> = {};
 
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase

@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE public.tours
+  DROP COLUMN IF EXISTS price,
+  DROP COLUMN IF EXISTS currency;
+
+COMMIT;

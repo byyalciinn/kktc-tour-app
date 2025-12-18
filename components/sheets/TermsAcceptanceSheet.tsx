@@ -55,7 +55,9 @@ export default function TermsAcceptanceSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onCancel}
+      onRequestClose={() => {
+        onCancel?.();
+      }}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}

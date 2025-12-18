@@ -29,6 +29,9 @@ import { useLocation } from '@/hooks';
 import { LocationPermissionModal } from '@/components/ui';
 import CachedImage, { prefetchImages } from '@/components/ui/CachedImage';
 
+const PREFETCH_TOUR_IMAGES_COUNT = 3;
+const PREFETCH_HIGHLIGHTED_ROUTE_IMAGES_COUNT = 3;
+
 // Map Control Button Component - Premium Design
 interface MapControlButtonProps {
   icon: string;
@@ -170,9 +173,10 @@ const TourPreviewCard = memo(function TourPreviewCard({
         activeOpacity={0.8}
       >
         <CachedImage
-          uri={tour.image}
+          uri={tour.imageThumb || tour.image}
           style={styles.tourPreviewImage}
           fallbackIcon="map-outline"
+          priority="normal"
           skeletonColor={isDark ? '#374151' : '#E5E7EB'}
         />
         <View style={styles.tourPreviewInfo}>
@@ -258,7 +262,7 @@ const TourListItem = memo(function TourListItem({
       onPress={() => onPress(tour)}
     >
       <CachedImage 
-        uri={tour.image} 
+        uri={tour.imageThumb || tour.image} 
         style={styles.tourImage} 
         fallbackIcon="map-outline" 
         priority="normal"
@@ -631,8 +635,10 @@ export default function ExploreScreen() {
   // Prefetch tour images for faster loading
   useEffect(() => {
     if (tours.length > 0) {
-      // Prefetch first 10 tour images
-      const imageUrls = tours.slice(0, 10).map(tour => tour.image).filter(Boolean);
+      const imageUrls = tours
+        .slice(0, PREFETCH_TOUR_IMAGES_COUNT)
+        .map((tour) => tour.imageThumb || tour.image)
+        .filter(Boolean);
       prefetchImages(imageUrls);
     }
   }, [tours]);
@@ -640,7 +646,10 @@ export default function ExploreScreen() {
   // Prefetch route images
   useEffect(() => {
     if (highlightedRoutes.length > 0) {
-      const imageUrls = highlightedRoutes.map(route => route.coverImage).filter(Boolean);
+      const imageUrls = highlightedRoutes
+        .slice(0, PREFETCH_HIGHLIGHTED_ROUTE_IMAGES_COUNT)
+        .map((route) => route.coverImage)
+        .filter(Boolean);
       prefetchImages(imageUrls);
     }
   }, [highlightedRoutes]);
@@ -1242,7 +1251,7 @@ export default function ExploreScreen() {
                   activeOpacity={0.8}
                 >
                   <CachedImage 
-                    uri={tour.image} 
+                    uri={tour.imageThumb || tour.image} 
                     style={styles.viewAllTourImage} 
                     fallbackIcon="map-outline"
                     skeletonColor={isDark ? '#374151' : '#E5E7EB'}

@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
 import { useToast } from '@/components/ui';
@@ -25,6 +26,7 @@ export default function ChangePasswordScreen() {
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const toast = useToast();
+  const { t } = useTranslation();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -36,17 +38,17 @@ export default function ChangePasswordScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Lütfen tüm alanları doldurun');
+      toast.error(t('profileScreens.changePassword.errors.fillAllFields'));
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error('Yeni şifre en az 8 karakter olmalıdır');
+      toast.error(t('profileScreens.changePassword.errors.minLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Yeni şifreler eşleşmiyor');
+      toast.error(t('profileScreens.changePassword.errors.mismatch'));
       return;
     }
 
@@ -56,9 +58,9 @@ export default function ChangePasswordScreen() {
     setTimeout(() => {
       setIsLoading(false);
       Alert.alert(
-        'Başarılı',
-        'Şifreniz başarıyla değiştirildi.',
-        [{ text: 'Tamam', onPress: () => router.back() }]
+        t('common.success'),
+        t('profileScreens.changePassword.success'),
+        [{ text: t('common.done'), onPress: () => router.back() }]
       );
     }, 1500);
   };
@@ -78,7 +80,7 @@ export default function ChangePasswordScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Şifre Değiştir</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profileScreens.changePassword.header')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -109,7 +111,7 @@ export default function ChangePasswordScreen() {
               <Ionicons name="shield-checkmark" size={24} color={colors.primary} />
             </View>
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Güvenliğiniz için güçlü bir şifre seçin. En az 8 karakter, büyük/küçük harf ve rakam içermelidir.
+              {t('profileScreens.changePassword.info')}
             </Text>
           </View>
 
@@ -118,7 +120,7 @@ export default function ChangePasswordScreen() {
             {/* Current Password */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                Mevcut Şifre
+                {t('profileScreens.changePassword.currentPasswordLabel')}
               </Text>
               <View
                 style={[
@@ -131,7 +133,7 @@ export default function ChangePasswordScreen() {
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Mevcut şifrenizi girin"
+                  placeholder={t('profileScreens.changePassword.currentPasswordPlaceholder')}
                   placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showCurrentPassword}
                   value={currentPassword}
@@ -154,7 +156,7 @@ export default function ChangePasswordScreen() {
             {/* New Password */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                Yeni Şifre
+                {t('profileScreens.changePassword.newPasswordLabel')}
               </Text>
               <View
                 style={[
@@ -167,7 +169,7 @@ export default function ChangePasswordScreen() {
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Yeni şifrenizi girin"
+                  placeholder={t('profileScreens.changePassword.newPasswordPlaceholder')}
                   placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showNewPassword}
                   value={newPassword}
@@ -190,7 +192,7 @@ export default function ChangePasswordScreen() {
             {/* Confirm Password */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-                Yeni Şifre (Tekrar)
+                {t('profileScreens.changePassword.confirmPasswordLabel')}
               </Text>
               <View
                 style={[
@@ -203,7 +205,7 @@ export default function ChangePasswordScreen() {
               >
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Yeni şifrenizi tekrar girin"
+                  placeholder={t('profileScreens.changePassword.confirmPasswordPlaceholder')}
                   placeholderTextColor={isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)'}
                   secureTextEntry={!showConfirmPassword}
                   value={confirmPassword}
@@ -236,14 +238,17 @@ export default function ChangePasswordScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.submitButtonText}>
-              {isLoading ? 'Değiştiriliyor...' : 'Şifreyi Değiştir'}
+              {isLoading ? t('profileScreens.changePassword.loading') : t('profileScreens.changePassword.submit')}
             </Text>
           </TouchableOpacity>
 
           {/* Forgot Password Link */}
-          <TouchableOpacity style={styles.forgotLink}>
+          <TouchableOpacity
+            style={styles.forgotLink}
+            onPress={() => router.push('/profile/support-tickets')}
+          >
             <Text style={[styles.forgotLinkText, { color: colors.primary }]}>
-              Mevcut şifrenizi mi unuttunuz?
+              {t('profileScreens.changePassword.forgotPassword')}
             </Text>
           </TouchableOpacity>
         </ScrollView>

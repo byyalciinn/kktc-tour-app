@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Platform,
   Pressable,
-  useColorScheme,
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/stores';
 
 // Types
 export interface AnimatedFabItemProps {
@@ -42,6 +42,7 @@ interface AnimatedFabProps {
   backgroundColor?: string;
   style?: ViewStyle;
   minContentHeight?: number;
+  bottomOffset?: number;
 }
 
 // Animated Menu Item Component - separate component to use hooks properly
@@ -165,8 +166,9 @@ const AnimatedFab: React.FC<AnimatedFabProps> = ({
   backgroundColor,
   style,
   minContentHeight = 200,
+  bottomOffset = 0,
 }) => {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { colorScheme } = useThemeStore();
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
 
@@ -194,7 +196,6 @@ const AnimatedFab: React.FC<AnimatedFabProps> = ({
   const overlayAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: progress.value,
-      pointerEvents: isFabOpen ? 'auto' : 'none',
     };
   });
 
@@ -215,6 +216,7 @@ const AnimatedFab: React.FC<AnimatedFabProps> = ({
       <AnimatedPressable
         style={[styles.overlay, overlayAnimatedStyle]}
         onPress={onClickOutside}
+        pointerEvents={isFabOpen ? 'auto' : 'none'}
       >
         {Platform.OS === 'ios' ? (
           <BlurView
@@ -240,6 +242,7 @@ const AnimatedFab: React.FC<AnimatedFabProps> = ({
             menuAnimatedStyle,
             {
               minHeight: minContentHeight,
+              bottom: 80 + bottomOffset,
               backgroundColor: isDark ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)',
               borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
             },
@@ -271,6 +274,7 @@ const AnimatedFab: React.FC<AnimatedFabProps> = ({
           styles.fab,
           fabAnimatedStyle,
           {
+            bottom: bottomOffset,
             backgroundColor: backgroundColor || colors.primary,
             shadowColor: backgroundColor || colors.primary,
           },

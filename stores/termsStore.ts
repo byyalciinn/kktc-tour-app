@@ -6,6 +6,7 @@ const CURRENT_TERMS_VERSION = '1.0';
 interface TermsState {
   hasAcceptedTerms: boolean;
   isChecking: boolean;
+  checkedUserId: string | null;
   termsVersion: string | null;
   
   checkTermsAcceptance: (userId: string) => Promise<boolean>;
@@ -16,10 +17,11 @@ interface TermsState {
 export const useTermsStore = create<TermsState>((set, get) => ({
   hasAcceptedTerms: false,
   isChecking: true,
+  checkedUserId: null,
   termsVersion: null,
   
   checkTermsAcceptance: async (userId: string) => {
-    set({ isChecking: true });
+    set({ isChecking: true, hasAcceptedTerms: false, checkedUserId: null });
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -29,7 +31,7 @@ export const useTermsStore = create<TermsState>((set, get) => ({
       
       if (error) {
         console.error('[termsStore] Error checking terms:', error);
-        set({ hasAcceptedTerms: false, isChecking: false });
+        set({ hasAcceptedTerms: false, isChecking: false, checkedUserId: userId });
         return false;
       }
       
@@ -38,13 +40,14 @@ export const useTermsStore = create<TermsState>((set, get) => ({
       
       set({ 
         hasAcceptedTerms: accepted, 
+        checkedUserId: userId,
         termsVersion: data?.terms_version,
         isChecking: false 
       });
       return accepted;
     } catch (err) {
       console.error('[termsStore] Exception checking terms:', err);
-      set({ hasAcceptedTerms: false, isChecking: false });
+      set({ hasAcceptedTerms: false, isChecking: false, checkedUserId: userId });
       return false;
     }
   },
@@ -64,7 +67,7 @@ export const useTermsStore = create<TermsState>((set, get) => ({
         return { success: false, error: error.message };
       }
       
-      set({ hasAcceptedTerms: true, termsVersion: CURRENT_TERMS_VERSION });
+      set({ hasAcceptedTerms: true, checkedUserId: userId, termsVersion: CURRENT_TERMS_VERSION, isChecking: false });
       return { success: true };
     } catch (err) {
       console.error('[termsStore] Exception accepting terms:', err);
@@ -73,6 +76,6 @@ export const useTermsStore = create<TermsState>((set, get) => ({
   },
   
   reset: () => {
-    set({ hasAcceptedTerms: false, isChecking: true, termsVersion: null });
+    set({ hasAcceptedTerms: false, isChecking: true, checkedUserId: null, termsVersion: null });
   },
 }));

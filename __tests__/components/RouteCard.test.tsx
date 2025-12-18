@@ -63,6 +63,8 @@ jest.mock('react-i18next', () => ({
         'explore.themes.cultural': 'Cultural',
         'explore.themes.culture': 'Culture',
         'explore.difficulties.easy': 'Easy',
+        'duration.day_one': '1 Day',
+        'duration.day_other': `${opts?.count ?? ''} Days`,
       };
 
       if (opts?.count !== undefined) {
@@ -71,6 +73,10 @@ jest.mock('react-i18next', () => ({
       }
 
       return translations[key] || key;
+    },
+    i18n: {
+      language: 'en',
+      resolvedLanguage: 'en',
     },
   }),
 }));

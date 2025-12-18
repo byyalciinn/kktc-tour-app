@@ -137,7 +137,7 @@ async function imageToBase64(imageUri: string): Promise<string> {
     });
   } catch (error) {
     logger.error('Failed to convert image to base64', error);
-    throw new Error('Failed to process image');
+    throw new Error(i18n.t('scan.errors.imageProcessingFailed'));
   }
 }
 
@@ -160,11 +160,11 @@ function parseVisionResponse(content: string): VisionAnalysisResult {
 
     return {
       success: true,
-      placeName: parsed.placeName || 'Unknown Place',
+      placeName: parsed.placeName || i18n.t('scan.fallback.unknownPlace'),
       placeNameLocal: parsed.placeNameLocal,
       category: parsed.category || 'unknown',
       confidence: Math.min(1, Math.max(0, parsed.confidence || 0)),
-      description: parsed.description || 'No description available',
+      description: parsed.description || i18n.t('scan.fallback.noDescription'),
       historicalPeriod: parsed.historicalPeriod,
       yearBuilt: parsed.yearBuilt,
       architect: parsed.architect,
@@ -180,14 +180,14 @@ function parseVisionResponse(content: string): VisionAnalysisResult {
     logger.error('Failed to parse vision response', error);
     return {
       success: false,
-      placeName: 'Unknown',
+      placeName: i18n.t('scan.fallback.unknownPlace'),
       category: 'unknown',
       confidence: 0,
       description: content,
       significance: '',
       funFacts: [],
       visitTips: [],
-      error: 'Failed to parse analysis result',
+      error: i18n.t('scan.errors.parseError'),
     };
   }
 }

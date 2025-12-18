@@ -187,6 +187,7 @@ export default function CreatePostSheet({
                 .from('community')
                 .upload(fileName, decode(optimized.base64), {
                   contentType: 'image/jpeg',
+                  cacheControl: 'public, max-age=31536000, immutable',
                 });
 
               // Upload completed
