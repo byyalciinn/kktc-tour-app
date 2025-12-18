@@ -64,6 +64,7 @@ export default function CommunityScreen() {
     hasMore,
     fetchPosts,
     fetchMorePosts,
+    fetchHiddenPosts,
     toggleLike,
     setSelectedPost,
   } = useCommunityStore(
@@ -75,13 +76,14 @@ export default function CommunityScreen() {
       hasMore: state.hasMore,
       fetchPosts: state.fetchPosts,
       fetchMorePosts: state.fetchMorePosts,
+      fetchHiddenPosts: state.fetchHiddenPosts,
       toggleLike: state.toggleLike,
       setSelectedPost: state.setSelectedPost,
     }))
   );
 
   // Terms & Block stores (UGC Compliance)
-  const { hasAcceptedTerms, checkTermsAcceptance } = useTermsStore();
+  const { hasAcceptedTerms, checkTermsAcceptance, isChecking, checkedUserId } = useTermsStore();
   const { blockedUserIds, fetchBlockedUsers, blockUser } = useBlockStore();
 
   // Local state
@@ -92,6 +94,7 @@ export default function CommunityScreen() {
   const [isProfileSheetVisible, setIsProfileSheetVisible] = useState(false);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
   const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
+  const [shouldOpenCreateAfterTerms, setShouldOpenCreateAfterTerms] = useState(false);
 
   // Spin animation for refresh
   useEffect(() => {
@@ -121,8 +124,15 @@ export default function CommunityScreen() {
   // Load blocked users when user changes (UGC Compliance)
   useEffect(() => {
     if (user) {
+      fetchHiddenPosts();
       fetchBlockedUsers(user.id);
-      checkTermsAcceptance(user.id);
+      (async () => {
+        const accepted = await checkTermsAcceptance(user.id);
+        if (!accepted) {
+          setShouldOpenCreateAfterTerms(false);
+          setIsTermsSheetVisible(true);
+        }
+      })();
     }
   }, [user]);
 
@@ -183,6 +193,7 @@ export default function CommunityScreen() {
     if (!hasAcceptedTerms) {
       const accepted = await checkTermsAcceptance(user.id);
       if (!accepted) {
+        setShouldOpenCreateAfterTerms(true);
         setIsFabMenuOpen(false);
         setIsTermsSheetVisible(true);
         return;
@@ -196,7 +207,15 @@ export default function CommunityScreen() {
   // Handle terms acceptance
   const handleTermsAccepted = useCallback(() => {
     setIsTermsSheetVisible(false);
-    setIsCreateSheetVisible(true);
+    if (shouldOpenCreateAfterTerms) {
+      setIsCreateSheetVisible(true);
+    }
+    setShouldOpenCreateAfterTerms(false);
+  }, [shouldOpenCreateAfterTerms]);
+
+  const handleTermsCancelled = useCallback(() => {
+    setIsTermsSheetVisible(false);
+    setShouldOpenCreateAfterTerms(false);
   }, []);
 
   // FAB menu items
@@ -476,6 +495,30 @@ export default function CommunityScreen() {
     );
   }
 
+  // Prevent flashing UGC before terms check completes (UGC Compliance - Apple Guideline 1.2)
+  // Also guard against stale store state from a previous user session.
+  if (user && (isChecking || checkedUserId !== user.id)) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Terms gating for signed-in users (UGC Compliance - Apple Guideline 1.2)
+  if (user && !isChecking && !hasAcceptedTerms) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <TermsAcceptanceSheet
+          visible
+          onAccept={handleTermsAccepted}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -586,7 +629,7 @@ export default function CommunityScreen() {
       <TermsAcceptanceSheet
         visible={isTermsSheetVisible}
         onAccept={handleTermsAccepted}
-        onCancel={() => setIsTermsSheetVisible(false)}
+        onCancel={shouldOpenCreateAfterTerms ? handleTermsCancelled : undefined}
       />
     </View>
   );

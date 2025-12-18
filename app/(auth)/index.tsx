@@ -1090,7 +1090,7 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
           
           {/* Brand Name - Center */}
-          <Text style={styles.brandName}>Cpyrigo</Text>
+          <Text style={styles.brandName}>Cyprigo</Text>
           
           {/* Language Button - Right */}
           <TouchableOpacity

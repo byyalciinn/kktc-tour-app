@@ -120,6 +120,7 @@ function CommunityPostCardComponent({
   const likeAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateYAnim = useRef(new Animated.Value(30)).current;
+  const menuOpenRef = useRef(false);
   
   // Entry animation
   useEffect(() => {
@@ -210,6 +211,9 @@ function CommunityPostCardComponent({
 
   // Handle menu press
   const handleMenuPress = () => {
+    if (menuOpenRef.current) return;
+    menuOpenRef.current = true;
+
     if (Platform.OS === 'ios') {
       // UGC Compliance: Added Block User option (Apple Guideline 1.2)
       const options = isOwnPost
@@ -226,6 +230,8 @@ function CommunityPostCardComponent({
           destructiveButtonIndex,
         },
         (buttonIndex) => {
+          menuOpenRef.current = false;
+
           if (isOwnPost) {
             if (buttonIndex === 1) {
               // Delete
@@ -257,6 +263,8 @@ function CommunityPostCardComponent({
         }
       );
     } else {
+      menuOpenRef.current = false;
+
       // Android - use Alert
       if (isOwnPost) {
         Alert.alert(
@@ -315,33 +323,35 @@ function CommunityPostCardComponent({
     );
   };
 
-  const renderPostContextMenuIOS = () => {
-    if (!isExpoUIAvailable) return null;
+  const runAfterMenuDismiss = (fn: () => void) => {
+    setTimeout(fn, 250);
+  };
 
+  const renderPostContextMenuIOS = () => {
     return (
       <Host matchContents>
         <ContextMenu>
           <ContextMenu.Items>
             {isOwnPost ? (
               onDeletePress ? (
-                <Button systemImage="trash" onPress={confirmDeletePost}>
+                <Button systemImage="trash" onPress={() => runAfterMenuDismiss(confirmDeletePost)}>
                   {t('common.delete')}
                 </Button>
               ) : null
             ) : (
               <>
                 {onReportPress ? (
-                  <Button systemImage="flag" onPress={() => onReportPress?.(post)}>
+                  <Button systemImage="flag" onPress={() => runAfterMenuDismiss(() => onReportPress?.(post))}>
                     {t('community.report')}
                   </Button>
                 ) : null}
                 {onBlockUserPress ? (
-                  <Button systemImage="hand.raised" onPress={() => onBlockUserPress?.(post)}>
+                  <Button systemImage="hand.raised" onPress={() => runAfterMenuDismiss(() => onBlockUserPress?.(post))}>
                     {t('community.blockUser')}
                   </Button>
                 ) : null}
                 {onHidePress ? (
-                  <Button systemImage="eye.slash" onPress={() => onHidePress?.(post)}>
+                  <Button systemImage="eye.slash" onPress={() => runAfterMenuDismiss(() => onHidePress?.(post))}>
                     {t('community.notInterested')}
                   </Button>
                 ) : null}
@@ -371,7 +381,7 @@ function CommunityPostCardComponent({
         },
       ]}
     >
-      <TouchableOpacity
+      <View
         style={[
           styles.card,
           {
@@ -379,10 +389,6 @@ function CommunityPostCardComponent({
             borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
           },
         ]}
-        activeOpacity={1}
-        onPress={() => onPress(post)}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
       >
         {/* Header: User info + Menu */}
         <View style={styles.header}>
@@ -403,12 +409,12 @@ function CommunityPostCardComponent({
             </View>
           </View>
           {isExpoUIAvailable ? (
-            renderPostContextMenuIOS()
+            <View style={styles.expoUIMenuWrapper}>{renderPostContextMenuIOS()}</View>
           ) : (
             <TouchableOpacity 
               style={styles.menuButton}
               onPress={handleMenuPress}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
             >
               <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
@@ -432,7 +438,15 @@ function CommunityPostCardComponent({
         {hasImages && (
           <View style={styles.imagesContainer}>
             {post.images.length === 1 ? (
-              <OptimizedImage uri={post.images[0]} style={styles.singleImage} />
+              <TouchableOpacity
+                activeOpacity={0.95}
+                onPress={() => onPress(post)}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                delayPressIn={120}
+              >
+                <OptimizedImage uri={post.images[0]} style={styles.singleImage} />
+              </TouchableOpacity>
             ) : (
               <View>
                 <ScrollView
@@ -445,11 +459,19 @@ function CommunityPostCardComponent({
                   contentContainerStyle={styles.imageSliderContent}
                 >
                   {post.images.map((image, index) => (
-                    <OptimizedImage 
-                      key={index} 
-                      uri={image} 
-                      style={styles.sliderImage} 
-                    />
+                    <TouchableOpacity
+                      key={index}
+                      activeOpacity={0.95}
+                      onPress={() => onPress(post)}
+                      onPressIn={handlePressIn}
+                      onPressOut={handlePressOut}
+                      delayPressIn={120}
+                    >
+                      <OptimizedImage 
+                        uri={image} 
+                        style={styles.sliderImage} 
+                      />
+                    </TouchableOpacity>
                   ))}
                 </ScrollView>
                 {/* Pagination dots */}
@@ -529,7 +551,7 @@ function CommunityPostCardComponent({
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Animated.View>
   );
 }
@@ -592,6 +614,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expoUIMenuWrapper: {
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },

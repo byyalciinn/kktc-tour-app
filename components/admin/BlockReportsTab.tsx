@@ -492,14 +492,86 @@ export default function BlockReportsTab({ colors, isDark, insets }: BlockReports
                 </View>
               </View>
 
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                  Rapor Bilgisi
+                </Text>
+                <View
+                  style={[
+                    styles.sectionCardColumn,
+                    { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+                  ]}
+                >
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Durum</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {statusConfig[selectedReport.status]?.label || selectedReport.status}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Rapor ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.id}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Reporter ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.reporter_id}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Reported ID</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                      {selectedReport.reported_user_id}
+                    </Text>
+                  </View>
+                  {selectedReport.post_id && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Post ID</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.post_id}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedReport.comment_id && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Comment ID</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.comment_id}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedReport.reviewed_at && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>İncelenme</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}> {formatDate(selectedReport.reviewed_at)} </Text>
+                    </View>
+                  )}
+                  {selectedReport.reviewed_by && (
+                    <View style={styles.infoRow}>
+                      <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>İnceleyen</Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]} selectable>
+                        {selectedReport.reviewed_by}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
               {/* Description Section */}
               {selectedReport.description && (
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                     Detay
                   </Text>
-                  <View style={[styles.sectionCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Text style={[styles.descriptionText, { color: colors.text }]}>
+                  <View
+                    style={[
+                      styles.sectionCardColumn,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' },
+                    ]}
+                  >
+                    <Text style={[styles.descriptionText, { color: colors.text }]} selectable>
                       {selectedReport.description}
                     </Text>
                   </View>
@@ -797,6 +869,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
   },
+  sectionCardColumn: {
+    borderRadius: 14,
+    padding: 14,
+  },
   sectionAvatar: {
     width: 44,
     height: 44,
@@ -825,6 +901,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
     lineHeight: 22,
+    flexShrink: 1,
+    width: '100%',
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  infoLabel: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '600',
+  },
+  infoValue: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
   },
   
   // Actions
