@@ -445,3 +445,142 @@ export interface ModerationLog {
   reason?: string;
   createdAt: string;
 }
+
+// =============================================
+// MEETING SESSION TYPES
+// =============================================
+
+export type MeetingStatus = 'draft' | 'active' | 'ended' | 'cancelled';
+export type MeetingRole = 'host' | 'member';
+export type MeetingParticipantStatus = 'joined' | 'left' | 'removed';
+
+export interface MeetingSession {
+  id: string;
+  hostId: string;
+  title: string;
+  description?: string;
+  destinationText: string;
+  destinationLat?: number;
+  destinationLng?: number;
+  scheduledAt?: string;
+  status: MeetingStatus;
+  maxParticipants: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MeetingSessionData {
+  id: string;
+  host_id: string;
+  title: string;
+  description: string | null;
+  destination_text: string;
+  destination_lat: number | null;
+  destination_lng: number | null;
+  scheduled_at: string | null;
+  status: MeetingStatus;
+  max_participants: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const meetingSessionDataToSession = (data: MeetingSessionData): MeetingSession => ({
+  id: data.id,
+  hostId: data.host_id,
+  title: data.title,
+  description: data.description || undefined,
+  destinationText: data.destination_text,
+  destinationLat: data.destination_lat || undefined,
+  destinationLng: data.destination_lng || undefined,
+  scheduledAt: data.scheduled_at || undefined,
+  status: data.status,
+  maxParticipants: data.max_participants,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+});
+
+export interface MeetingParticipant {
+  id: string;
+  sessionId: string;
+  userId: string;
+  role: MeetingRole;
+  status: MeetingParticipantStatus;
+  joinedAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+}
+
+export interface MeetingParticipantData {
+  id: string;
+  session_id: string;
+  user_id: string;
+  role: MeetingRole;
+  status: MeetingParticipantStatus;
+  joined_at: string;
+  updated_at: string;
+  profiles?: {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
+export const meetingParticipantDataToParticipant = (
+  data: MeetingParticipantData
+): MeetingParticipant => ({
+  id: data.id,
+  sessionId: data.session_id,
+  userId: data.user_id,
+  role: data.role,
+  status: data.status,
+  joinedAt: data.joined_at,
+  updatedAt: data.updated_at,
+  user: data.profiles ? {
+    id: data.profiles.id,
+    fullName: data.profiles.full_name || 'User',
+    avatarUrl: data.profiles.avatar_url || undefined,
+  } : undefined,
+});
+
+export interface MeetingInvite {
+  id: string;
+  sessionId: string;
+  code: string;
+  expiresAt?: string;
+  revokedAt?: string;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export interface MeetingInviteData {
+  id: string;
+  session_id: string;
+  code: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export const meetingInviteDataToInvite = (data: MeetingInviteData): MeetingInvite => ({
+  id: data.id,
+  sessionId: data.session_id,
+  code: data.code,
+  expiresAt: data.expires_at || undefined,
+  revokedAt: data.revoked_at || undefined,
+  createdBy: data.created_by || undefined,
+  createdAt: data.created_at,
+});
+
+export interface CreateMeetingInput {
+  title: string;
+  description?: string;
+  destinationText: string;
+  destinationLat?: number;
+  destinationLng?: number;
+  scheduledAt?: string;
+}

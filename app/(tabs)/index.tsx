@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DestinationSearch, ProfileSheet, TourDetailSheet, NotificationSheet } from '@/components/sheets';
 import { useTranslation } from 'react-i18next';
-import { HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/components/ui';
+import { CachedImage, HomeScreenSkeleton, NoToursEmptyState, TourCardSkeleton } from '@/components/ui';
 import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 import { Colors } from '@/constants/Colors';
 import { Tour } from '@/types';
@@ -35,10 +35,11 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const spinAnim = useRef(new Animated.Value(0)).current;
-  const contentOpacity = useRef(new Animated.Value(1)).current;
   const refreshOpacity = useRef(new Animated.Value(0)).current;
   const refreshScale = useRef(new Animated.Value(0.8)).current;
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const categoryScrollRef = useRef<ScrollView>(null);
+  const categoryScrollOffset = useRef(0);
   
   // Debounce ref for category press
   const lastCategoryPressTime = useRef(0);
@@ -137,11 +138,11 @@ export default function HomeScreen() {
     tours, 
     categories, 
     selectedCategoryId, 
-    isLoading, 
+    isLoading,
     isRefreshing,
     isLoadingMore,
     hasMore,
-    fetchTours, 
+    fetchToursByCategory,
     fetchCategories, 
     setSelectedCategory,
     loadMoreTours,
@@ -230,7 +231,8 @@ export default function HomeScreen() {
       // Only update state if component is still mounted
       if (isMounted) {
         await fetchCategories();
-        await fetchTours();
+        const initialCategory = useTourStore.getState().selectedCategoryId;
+        await fetchToursByCategory(initialCategory);
       }
     };
     
@@ -294,26 +296,33 @@ export default function HomeScreen() {
     if (categoryId === selectedCategoryId || isTransitioning) return;
     
     setIsTransitioning(true);
-    
-    // Fade out tour cards only
-    Animated.timing(contentOpacity, {
-      toValue: 0.3,
-      duration: 100,
-      useNativeDriver: true,
-    }).start(() => {
-      // Change category (no LayoutAnimation - only tour cards fade)
-      setSelectedCategory(categoryId);
-      
-      // Fade in tour cards
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => {
-        setIsTransitioning(false);
+    setSelectedCategory(categoryId);
+  }, [selectedCategoryId, isTransitioning, setSelectedCategory]);
+
+  useEffect(() => {
+    if (isTransitioning && !isLoading) {
+      setIsTransitioning(false);
+    }
+  }, [isTransitioning, isLoading]);
+
+  const handleCategoryScroll = useCallback((event: any) => {
+    categoryScrollOffset.current = event.nativeEvent.contentOffset.x;
+  }, []);
+
+  const restoreCategoryScroll = useCallback((animated: boolean = false) => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollTo({
+        x: categoryScrollOffset.current,
+        y: 0,
+        animated,
       });
-    });
-  }, [selectedCategoryId, isTransitioning, contentOpacity, setSelectedCategory]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => restoreCategoryScroll(false));
+    return () => cancelAnimationFrame(frame);
+  }, [categories.length, selectedCategoryId, restoreCategoryScroll]);
 
   // Get active category index
   const activeCategoryIndex = categories.findIndex(c => c.id === selectedCategoryId);
@@ -344,9 +353,9 @@ export default function HomeScreen() {
 
   // Infinite scroll - load more tours when reaching end of list
   const handleLoadMore = useCallback(() => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoading || isRefreshing || isTransitioning || isLoadingMore || !hasMore) return;
     loadMoreTours();
-  }, [isLoadingMore, hasMore, loadMoreTours]);
+  }, [isLoading, isRefreshing, isTransitioning, isLoadingMore, hasMore, loadMoreTours]);
 
   // Footer component showing loading indicator when loading more
   const renderFooter = useCallback(() => {
@@ -374,15 +383,20 @@ export default function HomeScreen() {
 
   // Render tour card item for FlatList
   const renderTourCard = useCallback(({ item: tour }: { item: Tour }) => (
-    <Animated.View style={{ opacity: contentOpacity }}>
+    <View>
       <TouchableOpacity
         style={styles.tripCard}
         activeOpacity={0.95}
         onPress={() => handleTourPress(tour)}
       >
-      <Image
-        source={{ uri: tour.imageThumb || tour.image }}
+      <CachedImage
+        uri={tour.imageThumb || tour.image}
         style={styles.tripCardImage}
+        containerStyle={[styles.tripCardImageContainer, { backgroundColor: colors.background }]}
+        resizeMode="cover"
+        skeletonColor={colors.background}
+        fallbackIcon="image-outline"
+        fallbackIconColor={colors.textSecondary}
       />
       {/* Overlay gradient */}
       <View style={styles.tripCardGradient} />
@@ -410,8 +424,8 @@ export default function HomeScreen() {
         </View>
       </View>
       </TouchableOpacity>
-    </Animated.View>
-  ), [colors.text, getCategoryName, handleTourPress, t, contentOpacity]);
+    </View>
+  ), [colors.text, getCategoryName, handleTourPress, t]);
 
   // Header component for FlatList
   const ListHeader = useCallback(() => (
@@ -508,9 +522,13 @@ export default function HomeScreen() {
       
       {/* Category Icons Row */}
       <ScrollView
+        ref={categoryScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoryIconsContainer}
+        onScroll={handleCategoryScroll}
+        scrollEventThrottle={16}
+        onContentSizeChange={() => restoreCategoryScroll(false)}
       >
         {categories.map((category, index) => {
           const isActive = activeCategoryIndex === index;
@@ -822,7 +840,9 @@ const styles = StyleSheet.create({
   tripCardImage: {
     width: '100%',
     height: '100%',
-    position: 'absolute',
+  },
+  tripCardImageContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
   tripCardGradient: {
     ...StyleSheet.absoluteFillObject,

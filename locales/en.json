@@ -1016,6 +1016,84 @@
       "rejectReasonRequired": "Please enter a rejection reason"
     }
   },
+  "meeting": {
+    "fabMenu": {
+      "schedule": "Schedule Meetup",
+      "scheduleDesc": "Create an invite-only session."
+    },
+    "create": {
+      "title": "Create Session",
+      "subtitle": "Set a destination and invite up to 2 members.",
+      "submit": "Create Session",
+      "success": "Session created"
+    },
+    "form": {
+      "titleLabel": "Title",
+      "titlePlaceholder": "Give this meetup a title",
+      "destinationLabel": "Destination",
+      "destinationPlaceholder": "Where do you want to go?",
+      "descriptionLabel": "Notes (Optional)",
+      "descriptionPlaceholder": "Add a short plan or note",
+      "scheduledLabel": "Date & Time (Optional)",
+      "scheduledPlaceholder": "Select date & time",
+      "capacityLabel": "Capacity",
+      "capacityValue": "1 host + 2 members"
+    },
+    "validation": {
+      "titleRequired": "Title is required",
+      "destinationRequired": "Destination is required",
+      "scheduledInvalid": "Enter a valid date and time"
+    },
+    "errors": {
+      "createFailed": "Failed to create session",
+      "joinFailed": "Failed to join session",
+      "inviteMissing": "Invite code not found",
+      "sessionNotFound": "Session not found",
+      "updateFailed": "Failed to update session"
+    },
+    "list": {
+      "title": "Your Sessions",
+      "emptyTitle": "No sessions yet",
+      "emptySubtitle": "Start a new meetup to invite friends.",
+      "newButton": "Start New Session",
+      "newConfirmTitle": "Start a new session?",
+      "newConfirmMessage": "You can start a new session after ending the current one.",
+      "newConfirmAction": "Continue",
+      "open": "Open",
+      "invite": "Invite",
+      "noDate": "No date set"
+    },
+    "invite": {
+      "title": "Invite",
+      "codeLabel": "Invite Code",
+      "linkCopied": "Invite link copied",
+      "share": "Share Invite",
+      "missing": "Invite code is not available."
+    },
+    "join": {
+      "title": "Join Session",
+      "subtitle": "Use your invite code to join.",
+      "button": "Join",
+      "loginRequired": "Sign in to join this session."
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "ended": "Ended",
+      "cancelled": "Cancelled"
+    },
+    "participants": {
+      "title": "Participants",
+      "anonymous": "Member",
+      "host": "Host",
+      "member": "Member"
+    },
+    "actions": {
+      "start": "Start Session",
+      "end": "End Session",
+      "leave": "Leave Session"
+    }
+  },
   "supportTickets": {
     "title": "Support Tickets",
     "empty": {

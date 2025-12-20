@@ -1004,6 +1004,84 @@
       "rejectReasonRequired": "Lütfen bir red nedeni girin"
     }
   },
+  "meeting": {
+    "fabMenu": {
+      "schedule": "Buluşma Ayarla",
+      "scheduleDesc": "Davetle katılım için oturum oluştur."
+    },
+    "create": {
+      "title": "Oturum Oluştur",
+      "subtitle": "Bir destinasyon belirle ve en fazla 2 üye davet et.",
+      "submit": "Oturum Oluştur",
+      "success": "Oturum oluşturuldu"
+    },
+    "form": {
+      "titleLabel": "Başlık",
+      "titlePlaceholder": "Buluşma için bir başlık yazın",
+      "destinationLabel": "Gidilecek Yer",
+      "destinationPlaceholder": "Nereye gitmek istiyorsunuz?",
+      "descriptionLabel": "Notlar (İsteğe Bağlı)",
+      "descriptionPlaceholder": "Kısa bir plan ya da not ekleyin",
+      "scheduledLabel": "Tarih & Saat (İsteğe Bağlı)",
+      "scheduledPlaceholder": "Tarih ve saat seçin",
+      "capacityLabel": "Kapasite",
+      "capacityValue": "1 oda sahibi + 2 üye"
+    },
+    "validation": {
+      "titleRequired": "Başlık zorunlu",
+      "destinationRequired": "Gidilecek yer zorunlu",
+      "scheduledInvalid": "Geçerli bir tarih ve saat girin"
+    },
+    "errors": {
+      "createFailed": "Oturum oluşturulamadı",
+      "joinFailed": "Oturuma katılınamadı",
+      "inviteMissing": "Davet kodu bulunamadı",
+      "sessionNotFound": "Oturum bulunamadı",
+      "updateFailed": "Oturum güncellenemedi"
+    },
+    "list": {
+      "title": "Oturumlarım",
+      "emptyTitle": "Henüz oturum yok",
+      "emptySubtitle": "Yeni bir buluşma başlatın.",
+      "newButton": "Yeni Oturum Başlat",
+      "newConfirmTitle": "Yeni oturum başlatılsın mı?",
+      "newConfirmMessage": "Mevcut oturumu sonlandırdıktan sonra yeni bir oturum başlatabilirsiniz.",
+      "newConfirmAction": "Devam Et",
+      "open": "Aç",
+      "invite": "Davet Et",
+      "noDate": "Tarih belirlenmedi"
+    },
+    "invite": {
+      "title": "Davet",
+      "codeLabel": "Davet Kodu",
+      "linkCopied": "Davet linki kopyalandı",
+      "share": "Davet Paylaş",
+      "missing": "Davet kodu bulunamadı."
+    },
+    "join": {
+      "title": "Oturuma Katıl",
+      "subtitle": "Davet kodunuz ile katılın.",
+      "button": "Katıl",
+      "loginRequired": "Bu oturuma katılmak için giriş yapın."
+    },
+    "status": {
+      "draft": "Taslak",
+      "active": "Aktif",
+      "ended": "Bitti",
+      "cancelled": "İptal"
+    },
+    "participants": {
+      "title": "Katılımcılar",
+      "anonymous": "Üye",
+      "host": "Oda Sahibi",
+      "member": "Üye"
+    },
+    "actions": {
+      "start": "Oturumu Başlat",
+      "end": "Oturumu Bitir",
+      "leave": "Oturumdan Ayrıl"
+    }
+  },
   "supportTickets": {
     "title": "Destek Biletleri",
     "empty": {

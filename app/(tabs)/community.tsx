@@ -22,11 +22,11 @@ import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useCommunityStore, useAuthStore, useThemeStore, useShallow, useTermsStore, useBlockStore } from '@/stores';
-import { CommunityPost, CommunityPostType } from '@/types';
+import { useCommunityStore, useAuthStore, useThemeStore, useShallow, useTermsStore, useBlockStore, useMeetingStore } from '@/stores';
+import { CommunityPost, CommunityPostType, MeetingSession } from '@/types';
 import { getAvatarUrl } from '@/lib/avatarService';
 import { CommunityPostCard } from '@/components/cards';
-import { CreatePostSheet, PostDetailSheet, ProfileSheet, TermsAcceptanceSheet } from '@/components/sheets';
+import { CreatePostSheet, CreateMeetingSheet, MeetingInviteSheet, MeetingListSheet, PostDetailSheet, ProfileSheet, TermsAcceptanceSheet } from '@/components/sheets';
 import { AnimatedFab, AnimatedFabItemProps } from '@/components/ui';
 import { useOptimizedList, LIST_PRESETS } from '@/hooks';
 
@@ -82,6 +82,20 @@ export default function CommunityScreen() {
     }))
   );
 
+  const {
+    sessions: meetingSessions,
+    isLoading: isMeetingLoading,
+    fetchMySessions,
+    fetchInviteCode,
+  } = useMeetingStore(
+    useShallow((state) => ({
+      sessions: state.sessions,
+      isLoading: state.isLoading,
+      fetchMySessions: state.fetchMySessions,
+      fetchInviteCode: state.fetchInviteCode,
+    }))
+  );
+
   // Terms & Block stores (UGC Compliance)
   const { hasAcceptedTerms, checkTermsAcceptance, isChecking, checkedUserId } = useTermsStore();
   const { blockedUserIds, fetchBlockedUsers, blockUser } = useBlockStore();
@@ -95,6 +109,11 @@ export default function CommunityScreen() {
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
   const [isTermsSheetVisible, setIsTermsSheetVisible] = useState(false);
   const [shouldOpenCreateAfterTerms, setShouldOpenCreateAfterTerms] = useState(false);
+  const [isMeetingListVisible, setIsMeetingListVisible] = useState(false);
+  const [isMeetingCreateVisible, setIsMeetingCreateVisible] = useState(false);
+  const [isMeetingInviteVisible, setIsMeetingInviteVisible] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingSession | null>(null);
+  const [meetingInviteCode, setMeetingInviteCode] = useState<string | null>(null);
 
   // Spin animation for refresh
   useEffect(() => {
@@ -204,6 +223,18 @@ export default function CommunityScreen() {
     setIsCreateSheetVisible(true);
   }, [user, hasAcceptedTerms, checkTermsAcceptance, t]);
 
+  const handleMeetingPress = useCallback(async () => {
+    if (!user) return;
+    setIsFabMenuOpen(false);
+
+    const sessions = await fetchMySessions(user.id);
+    if (sessions.length === 0) {
+      setIsMeetingCreateVisible(true);
+    } else {
+      setIsMeetingListVisible(true);
+    }
+  }, [user, fetchMySessions]);
+
   // Handle terms acceptance
   const handleTermsAccepted = useCallback(() => {
     setIsTermsSheetVisible(false);
@@ -220,6 +251,13 @@ export default function CommunityScreen() {
 
   // FAB menu items
   const fabMenuItems: AnimatedFabItemProps[] = useMemo(() => [
+    {
+      id: 'meeting',
+      icon: 'calendar-outline',
+      label: t('meeting.fabMenu.schedule'),
+      description: t('meeting.fabMenu.scheduleDesc'),
+      onPress: handleMeetingPress,
+    },
     {
       id: 'photo',
       icon: 'camera-outline',
@@ -245,12 +283,40 @@ export default function CommunityScreen() {
       disabled: true,
       badge: t('common.soon'),
     },
-  ], [t, handleCreatePress]);
+  ], [t, handleCreatePress, handleMeetingPress]);
 
   const handlePostCreated = useCallback(() => {
     setIsCreateSheetVisible(false);
     // Refresh to show new post (will be pending, but user can see their own)
   }, []);
+
+  const handleMeetingCreated = useCallback((session: MeetingSession, inviteCode: string) => {
+    setSelectedMeeting(session);
+    setMeetingInviteCode(inviteCode);
+    setIsMeetingInviteVisible(true);
+  }, []);
+
+  const handleOpenMeetingSession = useCallback((session: MeetingSession) => {
+    setIsMeetingListVisible(false);
+    router.push(`/session/${session.id}` as any);
+  }, []);
+
+  const handleStartNewMeeting = useCallback(() => {
+    setIsMeetingListVisible(false);
+    setIsMeetingCreateVisible(true);
+  }, []);
+
+  const handleShowMeetingInvite = useCallback(async (session: MeetingSession) => {
+    setIsMeetingListVisible(false);
+    setSelectedMeeting(session);
+    const code = await fetchInviteCode(session.id);
+    if (!code) {
+      Alert.alert(t('common.error'), t('meeting.invite.missing'));
+      return;
+    }
+    setMeetingInviteCode(code);
+    setIsMeetingInviteVisible(true);
+  }, [fetchInviteCode, t]);
 
   // Handle avatar press - open profile sheet
   const handleAvatarPress = useCallback(() => {
@@ -601,6 +667,36 @@ export default function CommunityScreen() {
           />
         </View>
       )}
+
+      {/* Meeting List Sheet */}
+      <MeetingListSheet
+        visible={isMeetingListVisible}
+        sessions={meetingSessions}
+        isLoading={isMeetingLoading}
+        onClose={() => setIsMeetingListVisible(false)}
+        onStartNew={handleStartNewMeeting}
+        onOpenSession={handleOpenMeetingSession}
+        onShowInvite={handleShowMeetingInvite}
+      />
+
+      {/* Create Meeting Sheet */}
+      <CreateMeetingSheet
+        visible={isMeetingCreateVisible}
+        onClose={() => setIsMeetingCreateVisible(false)}
+        onCreated={handleMeetingCreated}
+      />
+
+      {/* Meeting Invite Sheet */}
+      <MeetingInviteSheet
+        visible={isMeetingInviteVisible}
+        inviteCode={meetingInviteCode}
+        sessionTitle={selectedMeeting?.title}
+        onClose={() => {
+          setIsMeetingInviteVisible(false);
+          setMeetingInviteCode(null);
+          setSelectedMeeting(null);
+        }}
+      />
 
       {/* Create Post Sheet */}
       <CreatePostSheet

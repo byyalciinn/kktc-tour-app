@@ -83,6 +83,9 @@ export {
   selectError as selectCommunityError,
 } from './communityStore';
 
+// Meeting store
+export { useMeetingStore } from './meetingStore';
+
 // Onboarding store
 export { useOnboardingStore } from './onboardingStore';
 

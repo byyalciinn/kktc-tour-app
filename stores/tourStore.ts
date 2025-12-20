@@ -19,6 +19,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 // Track the latest category fetch request to prevent race conditions
 let latestCategoryFetchId = 0;
+let latestPaginationFetchId = 0;
 
 // Realtime subscription channel
 let toursChannel: RealtimeChannel | null = null;
@@ -123,7 +124,15 @@ export const useTourStore = create<TourState>((set, get) => ({
   setTours: (tours) => set({ tours }),
   setCategories: (categories) => set({ categories }),
   setSelectedCategory: (categoryId) => {
-    set({ selectedCategoryId: categoryId });
+    set({
+      selectedCategoryId: categoryId,
+      tours: [],
+      currentPage: 0,
+      hasMore: true,
+      totalCount: 0,
+      isLoadingMore: false,
+      error: null,
+    });
     // Fetch tours for the new category
     get().fetchToursByCategory(categoryId);
   },
@@ -345,23 +354,27 @@ export const useTourStore = create<TourState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const { data, error } = await getToursByCategory(categoryId);
+      const result = await getToursPaginated(0, TOURS_PAGE_SIZE, categoryId);
 
       // Only update state if this is still the latest request
       if (requestId !== latestCategoryFetchId) {
         return; // Stale request, ignore results
       }
 
-      if (error) {
-        set({ error, isLoading: false });
+      if (result.error) {
+        set({ error: result.error, isLoading: false });
         return;
       }
 
-      const tours = data.map(tourDataToTour);
+      const tours = result.data.map(tourDataToTour);
       set({ 
         tours,
         isLoading: false,
         lastFetched: Date.now(),
+        currentPage: 0,
+        hasMore: result.hasMore,
+        totalCount: result.totalCount,
+        isLoadingMore: false,
       });
     } catch (err: any) {
       // Only update state if this is still the latest request
@@ -423,16 +436,23 @@ export const useTourStore = create<TourState>((set, get) => ({
 
   // Load more tours (pagination)
   loadMoreTours: async () => {
-    const { isLoadingMore, hasMore, currentPage, selectedCategoryId, tours } = get();
+    const { isLoadingMore, hasMore, currentPage, selectedCategoryId, tours, isLoading, isRefreshing } = get();
     
     // Skip if already loading or no more data
-    if (isLoadingMore || !hasMore) return;
+    if (isLoading || isRefreshing || isLoadingMore || !hasMore) return;
 
     set({ isLoadingMore: true });
 
     try {
+      const requestId = ++latestPaginationFetchId;
+      const categoryId = selectedCategoryId;
       const nextPage = currentPage + 1;
-      const result = await getToursPaginated(nextPage, TOURS_PAGE_SIZE, selectedCategoryId);
+      const result = await getToursPaginated(nextPage, TOURS_PAGE_SIZE, categoryId);
+
+      if (requestId !== latestPaginationFetchId || categoryId !== get().selectedCategoryId) {
+        set({ isLoadingMore: false });
+        return;
+      }
 
       if (result.error) {
         set({ error: result.error, isLoadingMore: false });

@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ContextMenu, Button, Host } from '@expo/ui/swift-ui';
+import { BlurView } from 'expo-blur';
 import Constants from 'expo-constants';
 import { requireNativeViewManager } from 'expo-modules-core';
 
@@ -96,6 +97,7 @@ function CommunityPostCardComponent({
   const isDark = colorScheme === 'dark';
   const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
+  const menuIconColor = isDark ? '#F8D66C' : '#F2C94C';
 
   const isExpoGo =
     (Constants as any)?.executionEnvironment === 'storeClient' ||
@@ -327,6 +329,30 @@ function CommunityPostCardComponent({
     setTimeout(fn, 250);
   };
 
+  const renderMenuButtonContent = () => (
+    <>
+      {Platform.OS === 'ios' ? (
+        <BlurView
+          intensity={isDark ? 28 : 40}
+          tint={isDark ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: isDark
+                ? 'rgba(20,20,20,0.45)'
+                : 'rgba(255,255,255,0.75)',
+            },
+          ]}
+        />
+      )}
+      <Ionicons name="ellipsis-horizontal" size={22} color={menuIconColor} />
+    </>
+  );
+
   const renderPostContextMenuIOS = () => {
     return (
       <Host matchContents>
@@ -359,7 +385,9 @@ function CommunityPostCardComponent({
             )}
           </ContextMenu.Items>
           <ContextMenu.Trigger>
-            <Button systemImage="ellipsis" variant="plain" />
+            <View style={[styles.menuButton, isDark ? styles.menuButtonDark : styles.menuButtonLight]}>
+              {renderMenuButtonContent()}
+            </View>
           </ContextMenu.Trigger>
         </ContextMenu>
       </Host>
@@ -412,11 +440,11 @@ function CommunityPostCardComponent({
             <View style={styles.expoUIMenuWrapper}>{renderPostContextMenuIOS()}</View>
           ) : (
             <TouchableOpacity 
-              style={styles.menuButton}
+              style={[styles.menuButton, isDark ? styles.menuButtonDark : styles.menuButtonLight]}
               onPress={handleMenuPress}
-              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+              {renderMenuButtonContent()}
             </TouchableOpacity>
           )}
         </View>
@@ -611,15 +639,32 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   menuButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  menuButtonLight: {
+    borderColor: 'rgba(255,255,255,0.65)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+  },
+  menuButtonDark: {
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    shadowColor: '#000',
+    shadowOpacity: 0.28,
   },
   expoUIMenuWrapper: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
