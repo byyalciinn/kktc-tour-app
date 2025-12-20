@@ -26,7 +26,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { Colors } from '@/constants/Colors';
-import { useThemeStore, useAuthStore } from '@/stores';
+import { useThemeStore, useAuthStore, useSubscriptionStore, selectIsPremium } from '@/stores';
+import { PaywallSheet } from '@/components/ui';
 import { useScanStore } from '@/stores/scanStore';
 
 const { width, height } = Dimensions.get('window');
@@ -59,9 +60,10 @@ export default function ScanScreen() {
   } = useScanStore();
 
   // Auth for premium check and guest mode
-  const { user, profile } = useAuthStore();
+  const { user } = useAuthStore();
   const isGuest = !user;
-  const isPremium = profile?.member_class !== 'Normal';
+  const isPremium = useSubscriptionStore(selectIsPremium);
+  const [showPaywall, setShowPaywall] = useState(false);
   
   // Remaining scans and cooldown
   const remainingScans = getRemainingScans(isPremium);
@@ -227,10 +229,7 @@ export default function ScanScreen() {
 
     // Check scan limit for free users
     if (!canScan(isPremium)) {
-      Alert.alert(
-        t('scan.limitReached'),
-        cooldownText ? t('scan.waitCooldown', { time: cooldownText }) : t('scan.tryAgainLater')
-      );
+      setShowPaywall(true);
       return;
     }
 
@@ -253,10 +252,7 @@ export default function ScanScreen() {
   const handleGallery = useCallback(async () => {
     // Check scan limit for free users
     if (!canScan(isPremium)) {
-      Alert.alert(
-        t('scan.limitReached'),
-        cooldownText ? t('scan.waitCooldown', { time: cooldownText }) : t('scan.tryAgainLater')
-      );
+      setShowPaywall(true);
       return;
     }
 
@@ -467,19 +463,17 @@ export default function ScanScreen() {
               <Text style={styles.instructionText}>{t('scan.placeInFrame')}</Text>
             </BlurView>
             {/* Remaining scans indicator */}
-            {!isPremium && (
-              <View style={styles.remainingScansContainer}>
-                <BlurView intensity={50} tint="dark" style={styles.remainingScansBlur}>
-                  <Ionicons name="scan-outline" size={16} color="#FFF" />
-                  <Text style={styles.remainingScansText}>
-                    {cooldownText 
-                      ? t('scan.cooldownActive', { time: cooldownText })
-                      : t('scan.remainingScans', { count: remainingScans })
-                    }
-                  </Text>
-                </BlurView>
-              </View>
-            )}
+            <View style={styles.remainingScansContainer}>
+              <BlurView intensity={50} tint="dark" style={styles.remainingScansBlur}>
+                <Ionicons name="scan-outline" size={16} color="#FFF" />
+                <Text style={styles.remainingScansText}>
+                  {cooldownText 
+                    ? t('scan.cooldownActive', { time: cooldownText })
+                    : t('scan.remainingScans', { count: remainingScans })
+                  }
+                </Text>
+              </BlurView>
+            </View>
           </View>
         </View>
 
@@ -538,6 +532,11 @@ export default function ScanScreen() {
         </View>
       </View>
 
+      <PaywallSheet
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        trigger="scan"
+      />
     </View>
   );
 }

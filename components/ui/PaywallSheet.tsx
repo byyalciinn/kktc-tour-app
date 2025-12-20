@@ -95,7 +95,8 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   }, [visible]);
 
   const handleSubscribe = useCallback(async () => {
-    const { success } = await subscribe(selectedPlan);
+    const plan = selectedPlan === 'yearly' ? 'gold_yearly' : 'gold_monthly';
+    const { success } = await subscribe(plan);
     if (success) {
       onClose();
     }
@@ -109,8 +110,8 @@ export const PaywallSheet: React.FC<PaywallSheetProps> = ({
   }, [restorePurchases, onClose]);
 
   // Calculate savings for yearly plan
-  const monthlyCost = PLANS.monthly.price;
-  const yearlyCost = PLANS.yearly.price;
+  const monthlyCost = PLANS.gold_monthly.price;
+  const yearlyCost = PLANS.gold_yearly.price;
   const yearlyMonthlyCost = yearlyCost / 12;
   const savingsPercent = Math.round(((monthlyCost * 12 - yearlyCost) / (monthlyCost * 12)) * 100);
 

@@ -97,6 +97,9 @@
       "router": {},
       "eas": {
         "projectId": "1481da07-e53c-4ec9-b30c-1a540536129e"
+      },
+      "revenuecat": {
+        "iosApiKey": "REVENUECAT_IOS_API_KEY"
       }
     }
   }

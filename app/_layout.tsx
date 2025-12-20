@@ -1,7 +1,7 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore } from '@/stores';
+import { useAuthStore, useThemeStore, useOnboardingStore, useTwoFactorStore, useSubscriptionStore } from '@/stores';
 import { Toast, ErrorBoundary, LoadingScreen } from '@/components/ui';
 
 // Lazy load i18n to prevent startup crashes
@@ -23,6 +23,7 @@ export default function RootLayout() {
   
   // Zustand auth store
   const { user, loading, initialized, initialize } = useAuthStore();
+  const { initializeRevenueCat, setAppUserId } = useSubscriptionStore();
   
   // Onboarding store
   const { hasSeenIntro, isCheckingIntro, checkIntroStatus } = useOnboardingStore();
@@ -41,6 +42,18 @@ export default function RootLayout() {
     }, 50);
     return () => clearTimeout(timer);
   }, []);
+
+  // Initialize RevenueCat after app is ready (iOS only)
+  useEffect(() => {
+    if (!isAppReady) return;
+    initializeRevenueCat();
+  }, [isAppReady, initializeRevenueCat]);
+
+  // Sync RevenueCat user identity with Supabase auth user
+  useEffect(() => {
+    if (!isAppReady) return;
+    setAppUserId(user?.id ?? null);
+  }, [isAppReady, user?.id, setAppUserId]);
   
   // Initialize push notifications only when app is ready and user exists
   useEffect(() => {

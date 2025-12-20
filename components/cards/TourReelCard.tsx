@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Tour } from '@/types';
 import { useFavoritesStore } from '@/stores/favoritesStore';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, FREE_TIER_LIMITS } from '@/stores';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -36,8 +37,15 @@ const TourReelCard: React.FC<TourReelCardProps> = ({ tour, onDetailPress }) => {
 
   const handleFavoritePress = useCallback(async () => {
     if (!user?.id) return;
-    await toggleFavorite(user.id, tour);
-  }, [user?.id, tour, toggleFavorite]);
+    const { requiresUpgrade, error } = await toggleFavorite(user.id, tour);
+    if (requiresUpgrade) {
+      Alert.alert(
+        t('paywall.favoriteLimitReached', { limit: FREE_TIER_LIMITS.maxFavorites })
+      );
+    } else if (error) {
+      Alert.alert(t('common.error'), error);
+    }
+  }, [user?.id, tour, toggleFavorite, t]);
 
   const handleDetailPress = useCallback(() => {
     onDetailPress(tour);

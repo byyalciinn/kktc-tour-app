@@ -143,14 +143,6 @@ export default function ProfileSheet({ visible, onClose }: ProfileSheetProps) {
 
   const handleNavigate = (route: string) => {
     if (route) {
-      // Show "coming soon" alert for membership card
-      if (route === '/profile/membership-card') {
-        Alert.alert(
-          t('common.info'),
-          t('common.comingSoon')
-        );
-        return;
-      }
       closeSheet();
       router.push(route as any);
     }

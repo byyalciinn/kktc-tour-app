@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '@/constants/Colors';
-import { useAuthStore, useThemeStore } from '@/stores';
+import {
+  useAuthStore,
+  useThemeStore,
+  useSubscriptionStore,
+  selectCurrentPlan,
+} from '@/stores';
 
 // Membership tier accent colors - subtle and elegant
 const tierAccents: Record<string, { primary: string; secondary: string; bg: string }> = {
@@ -34,6 +39,8 @@ export default function MyPanelScreen() {
   const isDark = colorScheme === 'dark';
   const { t } = useTranslation();
   const { profile } = useAuthStore();
+  const currentPlan = useSubscriptionStore(selectCurrentPlan);
+  const planExpiresAt = useSubscriptionStore((state) => state.expiresAt);
 
   const memberClass = profile?.member_class || 'Normal';
   const tierColors = tierAccents[memberClass] || tierAccents.Normal;
@@ -64,6 +71,21 @@ export default function MyPanelScreen() {
         return t('profile.normalMember');
     }
   };
+
+  const getPlanLabel = (): string => {
+    switch (currentPlan) {
+      case 'gold_monthly':
+        return t('profile.planGoldMonthly');
+      case 'gold_yearly':
+        return t('profile.planGoldYearly');
+      case 'business_monthly':
+        return t('profile.planBusinessMonthly');
+      default:
+        return t('profile.planFree');
+    }
+  };
+
+  const planExpiryLabel = planExpiresAt ? formatDate(planExpiresAt) : t('profile.noEndDate');
 
   // Membership start date (using created_at from profile)
   const membershipStartDate = formatDate(profile?.created_at);
@@ -184,6 +206,40 @@ export default function MyPanelScreen() {
               </Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>
                 {getMembershipLabel()}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+              ]}
+            />
+
+            {/* Current Plan Row */}
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                {t('profile.currentPlan')}
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>
+                {getPlanLabel()}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                styles.divider,
+                { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' },
+              ]}
+            />
+
+            {/* Plan Expiry Row */}
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                {t('profile.planExpiry')}
+              </Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>
+                {planExpiryLabel}
               </Text>
             </View>
 

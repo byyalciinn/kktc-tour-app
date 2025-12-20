@@ -70,12 +70,13 @@ export default function SupportTicketsScreen() {
   const colors = Colors[colorScheme];
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const { t, i18n } = useTranslation();
 
   const isEnglish = (i18n.resolvedLanguage || i18n.language || '')
     .toLowerCase()
     .startsWith('en');
+  const isGoldMember = profile?.member_class === 'Gold';
 
   // State
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -286,6 +287,11 @@ export default function SupportTicketsScreen() {
       </View>
 
       {/* Content */}
+      {isGoldMember && (
+        <View style={[styles.priorityBadge, { backgroundColor: isDark ? 'rgba(217, 167, 77, 0.18)' : 'rgba(217, 167, 77, 0.15)' }]}>
+          <Text style={styles.priorityBadgeText}>{t('supportTickets.priorityBadge')}</Text>
+        </View>
+      )}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -777,6 +783,23 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '600',
     color: '#fff',
+  },
+  priorityBadge: {
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(217, 167, 77, 0.35)',
+  },
+  priorityBadgeText: {
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    color: '#D9A74D',
   },
 
   // Info text

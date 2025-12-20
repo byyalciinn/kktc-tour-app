@@ -3,13 +3,26 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './authStore';
 import { createLogger } from '@/lib/logger';
+import {
+  addCustomerInfoListener,
+  configureRevenueCat,
+  fetchOfferings,
+  getProductIdForPlan,
+  purchaseRevenueCatPackage,
+  restoreRevenueCatPurchases,
+  setRevenueCatUser,
+  REVENUECAT_ENTITLEMENTS,
+  REVENUECAT_PRODUCT_IDS,
+  type RevenueCatPlan,
+} from '@/lib/revenuecat';
+import type { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 
 const subscriptionLogger = createLogger('Subscription');
 
 /**
  * Subscription plan types
  */
-export type SubscriptionPlan = 'free' | 'monthly' | 'yearly';
+export type SubscriptionPlan = 'free' | RevenueCatPlan;
 
 /**
  * Subscription status
@@ -39,6 +52,8 @@ interface SubscriptionState {
   expiresAt: string | null;
   trialEndsAt: string | null;
   isLoading: boolean;
+  isInitialized: boolean;
+  offerings: PurchasesOfferings | null;
 
   // Computed
   isPremium: () => boolean;
@@ -53,6 +68,10 @@ interface SubscriptionState {
   subscribe: (plan: SubscriptionPlan) => Promise<{ success: boolean; error: string | null }>;
   cancelSubscription: () => Promise<{ success: boolean; error: string | null }>;
   restorePurchases: () => Promise<{ success: boolean; error: string | null }>;
+  initializeRevenueCat: (appUserId?: string | null) => Promise<void>;
+  setAppUserId: (appUserId?: string | null) => Promise<void>;
+  loadOfferings: () => Promise<PurchasesOfferings | null>;
+  syncFromCustomerInfo: (customerInfo: CustomerInfo | null) => void;
   reset: () => void;
 }
 
@@ -70,8 +89,8 @@ export const PLANS: Record<SubscriptionPlan, PlanInfo> = {
       'membership.basicAccess',
     ],
   },
-  monthly: {
-    id: 'monthly',
+  gold_monthly: {
+    id: 'gold_monthly',
     price: 149.99,
     currency: 'TRY',
     period: 'month',
@@ -81,8 +100,8 @@ export const PLANS: Record<SubscriptionPlan, PlanInfo> = {
       'membership.prioritySupport',
     ],
   },
-  yearly: {
-    id: 'yearly',
+  gold_yearly: {
+    id: 'gold_yearly',
     price: 999.99,
     currency: 'TRY',
     period: 'year',
@@ -92,6 +111,19 @@ export const PLANS: Record<SubscriptionPlan, PlanInfo> = {
       'membership.adFree',
       'membership.prioritySupport',
       'membership.specialDiscounts',
+    ],
+  },
+  business_monthly: {
+    id: 'business_monthly',
+    price: 0,
+    currency: 'TRY',
+    period: 'month',
+    features: [
+      'membership.unlimitedFavorites',
+      'membership.adFree',
+      'membership.prioritySupport',
+      'membership.specialDiscounts',
+      'membership.businessSupport',
     ],
   },
 };
@@ -115,6 +147,8 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       expiresAt: null,
       trialEndsAt: null,
       isLoading: false,
+      isInitialized: false,
+      offerings: null,
 
       // Check if user has premium access (Gold or Business member_class)
       isPremium: () => {
@@ -191,7 +225,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         trialEnd.setDate(trialEnd.getDate() + 7);
         
         set({
-          currentPlan: 'yearly',
+          currentPlan: 'gold_yearly',
           status: 'trial',
           trialEndsAt: trialEnd.toISOString(),
           expiresAt: trialEnd.toISOString(),
@@ -199,25 +233,42 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       // Subscribe to a plan
-      // Note: This is a placeholder - actual subscription should be handled by your payment provider
       subscribe: async (plan) => {
         set({ isLoading: true });
         
         try {
           subscriptionLogger.info('Subscription requested for plan:', plan);
-          
-          // TODO: Implement your payment provider integration here
-          // For now, just update local state
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + (plan === 'yearly' ? 12 : 1));
-          
-          set({
-            currentPlan: plan,
-            status: 'active',
-            expiresAt: expiresAt.toISOString(),
-            isLoading: false,
-          });
 
+          if (plan === 'free') {
+            set({
+              currentPlan: 'free',
+              status: 'active',
+              expiresAt: null,
+              trialEndsAt: null,
+              isLoading: false,
+            });
+            return { success: true, error: null };
+          }
+
+          const offerings = get().offerings ?? await get().loadOfferings();
+          const productId = getProductIdForPlan(plan);
+          const availablePackages = offerings?.current?.availablePackages ?? [];
+          const selectedPackage = availablePackages.find(
+            (pkg: PurchasesPackage) => pkg.product.identifier === productId
+          );
+
+          if (!selectedPackage) {
+            set({ isLoading: false });
+            return {
+              success: false,
+              error: 'RevenueCat offering not found for selected plan.',
+            };
+          }
+
+          const customerInfo = await purchaseRevenueCatPackage(selectedPackage);
+          get().syncFromCustomerInfo(customerInfo);
+
+          set({ isLoading: false });
           return { success: true, error: null };
         } catch (error: any) {
           subscriptionLogger.error('Subscription error:', error);
@@ -248,24 +299,92 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       },
 
       // Restore purchases
-      // Note: This is a placeholder - implement with your payment provider
       restorePurchases: async () => {
         set({ isLoading: true });
         
         try {
           subscriptionLogger.info('Restore purchases requested');
-          
-          // TODO: Implement your payment provider's restore logic here
-          // For now, just return success with no changes
-          
+
+          const customerInfo = await restoreRevenueCatPurchases();
+          get().syncFromCustomerInfo(customerInfo);
           set({ isLoading: false });
-          subscriptionLogger.info('No active purchases to restore');
           return { success: true, error: null };
         } catch (error: any) {
           subscriptionLogger.error('Restore purchases error:', error);
           set({ isLoading: false });
           return { success: false, error: error.message };
         }
+      },
+
+      initializeRevenueCat: async (appUserId?: string | null) => {
+        if (get().isInitialized) return;
+
+        const configured = await configureRevenueCat(appUserId);
+        if (!configured) return;
+
+        addCustomerInfoListener((customerInfo) => {
+          get().syncFromCustomerInfo(customerInfo);
+        });
+
+        const offerings = await get().loadOfferings();
+        set({ isInitialized: true, offerings });
+      },
+
+      setAppUserId: async (appUserId?: string | null) => {
+        if (!get().isInitialized) {
+          await get().initializeRevenueCat(appUserId);
+          return;
+        }
+
+        await setRevenueCatUser(appUserId);
+      },
+
+      loadOfferings: async () => {
+        const offerings = await fetchOfferings();
+        set({ offerings });
+        return offerings;
+      },
+
+      syncFromCustomerInfo: (customerInfo) => {
+        if (!customerInfo) return;
+
+        const entitlements = customerInfo.entitlements?.active ?? {};
+        const hasBusiness = Boolean(entitlements[REVENUECAT_ENTITLEMENTS.business]);
+        const hasGold = Boolean(entitlements[REVENUECAT_ENTITLEMENTS.gold]);
+        const activeSubscriptions = customerInfo.activeSubscriptions ?? [];
+
+        let nextPlan: SubscriptionPlan = 'free';
+        let expiresAt: string | null = null;
+        let status: SubscriptionStatus = 'active';
+        let trialEndsAt: string | null = null;
+
+        if (hasBusiness) {
+          nextPlan = 'business_monthly';
+          expiresAt = entitlements[REVENUECAT_ENTITLEMENTS.business]?.expirationDate ?? null;
+        } else if (hasGold) {
+          if (activeSubscriptions.includes(REVENUECAT_PRODUCT_IDS.gold_yearly)) {
+            nextPlan = 'gold_yearly';
+          } else if (activeSubscriptions.includes(REVENUECAT_PRODUCT_IDS.gold_monthly)) {
+            nextPlan = 'gold_monthly';
+          } else {
+            nextPlan = 'gold_monthly';
+          }
+          const goldEntitlement = entitlements[REVENUECAT_ENTITLEMENTS.gold];
+          expiresAt = goldEntitlement?.expirationDate ?? null;
+          if (goldEntitlement?.periodType === 'trial') {
+            status = 'trial';
+            trialEndsAt = goldEntitlement?.expirationDate ?? null;
+          }
+        } else {
+          status = 'expired';
+        }
+
+        set({
+          currentPlan: nextPlan,
+          status,
+          expiresAt,
+          trialEndsAt,
+        });
       },
 
       // Reset store (on logout)
@@ -275,6 +394,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
         expiresAt: null,
         trialEndsAt: null,
         isLoading: false,
+        offerings: null,
       }),
     }),
     {

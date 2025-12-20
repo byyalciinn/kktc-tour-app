@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
   Animated,
   Dimensions,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors } from '@/constants/Colors';
 import { useAuthStore, useThemeStore, useSubscriptionStore } from '@/stores';
@@ -105,9 +108,12 @@ export default function MembershipCardScreen() {
   const insets = useSafeAreaInsets();
   const isDark = colorScheme === 'dark';
   const profile = useAuthStore((state) => state.profile);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const { t } = useTranslation();
   const { subscribe, restorePurchases, isLoading: isRestoreLoading } = useSubscriptionStore();
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const [showSuccessSheet, setShowSuccessSheet] = useState(false);
+  const [successPlan, setSuccessPlan] = useState<MembershipLevel>('Gold');
 
   // Billing period toggle - default to monthly
   const [isAnnual, setIsAnnual] = useState(false);
@@ -115,6 +121,16 @@ export default function MembershipCardScreen() {
   // Current plan index for horizontal scroll
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  const successAnim = useRef(new Animated.Value(0)).current;
+  const successCtaScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(successAnim, {
+      toValue: showSuccessSheet ? 1 : 0,
+      duration: showSuccessSheet ? 260 : 200,
+      useNativeDriver: true,
+    }).start();
+  }, [showSuccessSheet, successAnim]);
 
   // Map member_class to level
   const mapMemberClass = (
@@ -135,15 +151,20 @@ export default function MembershipCardScreen() {
     setIsPurchasing(true);
     try {
       // Subscribe to the selected plan
-      const plan = isAnnual ? 'yearly' : 'monthly';
+      const plan = level === 'Business'
+        ? 'business_monthly'
+        : isAnnual
+        ? 'gold_yearly'
+        : 'gold_monthly';
       const result = await subscribe(plan);
       
       if (result.success) {
-        Alert.alert(
-          t('common.success'),
-          t('membership.purchaseSuccess'),
-          [{ text: t('common.done') }]
-        );
+        setSuccessPlan(level);
+        setShowSuccessSheet(true);
+        // Webhook -> Supabase update is async, so refresh after a short delay.
+        setTimeout(() => {
+          refreshProfile();
+        }, 1500);
       } else if (result.error) {
         console.log('[MembershipCard] Subscription error:', result.error);
         Alert.alert(
@@ -173,6 +194,9 @@ export default function MembershipCardScreen() {
           t('membership.restoreSuccess'),
           [{ text: t('common.done') }]
         );
+        setTimeout(() => {
+          refreshProfile();
+        }, 1500);
       } else if (error) {
         Alert.alert(
           t('common.error'),
@@ -183,6 +207,43 @@ export default function MembershipCardScreen() {
     } catch (error) {
       console.error('[MembershipCard] Restore error:', error);
     }
+  };
+
+  const handleCancelMembership = () => {
+    const iosUrl = 'itms-apps://apps.apple.com/account/subscriptions';
+    const webUrl = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/account/subscriptions'
+      : 'https://play.google.com/store/account/subscriptions';
+
+    Alert.alert(
+      t('membership.cancelTitle'),
+      t('membership.cancelMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('membership.openSubscriptions'),
+          onPress: async () => {
+            try {
+              if (Platform.OS === 'ios') {
+                const canOpenIos = await Linking.canOpenURL(iosUrl);
+                if (canOpenIos) {
+                  await Linking.openURL(iosUrl);
+                  return;
+                }
+              }
+              const canOpenWeb = await Linking.canOpenURL(webUrl);
+              if (canOpenWeb) {
+                await Linking.openURL(webUrl);
+                return;
+              }
+            } catch {
+              // fallthrough
+            }
+            Alert.alert(t('common.error'), t('membership.openSubscriptionsError'));
+          },
+        },
+      ]
+    );
   };
 
   // Page indicator dots
@@ -466,6 +527,7 @@ export default function MembershipCardScreen() {
                 },
               ]}
               activeOpacity={0.9}
+              onPress={handleCancelMembership}
             >
               <Text
                 style={[
@@ -591,6 +653,94 @@ export default function MembershipCardScreen() {
       >
         {membershipLevels.map((level, index) => renderPlanCard(level, index))}
       </Animated.ScrollView>
+
+      <Modal
+        visible={showSuccessSheet}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowSuccessSheet(false)}
+      >
+        <Animated.View
+          style={[
+            styles.successBackdrop,
+            { opacity: successAnim },
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setShowSuccessSheet(false)}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.successSheet,
+            {
+              paddingBottom: insets.bottom + 24,
+              transform: [
+                {
+                  translateY: successAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [320, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#15120E', '#20180F', '#2A1D10']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.successHeader}
+          >
+            <Text style={styles.successTitle}>
+              {t('membership.activationTitle', { plan: planConfigs[successPlan].name })}
+            </Text>
+            <Text style={styles.successSubtitle}>
+              {t('membership.activationSubtitle')}
+            </Text>
+          </LinearGradient>
+
+          <View style={styles.successContent}>
+            <Text style={styles.successBenefitsTitle}>
+              {t('membership.activationBenefitsTitle', { plan: planConfigs[successPlan].name })}
+            </Text>
+            {planConfigs[successPlan].benefits
+              .filter((benefit) => benefit.included)
+              .map((benefit, index) => (
+                <View key={`${benefit.text}-${index}`} style={styles.successBenefitRow}>
+                  <View style={styles.successBullet} />
+                  <Text style={styles.successBenefitText}>{benefit.text}</Text>
+                </View>
+              ))}
+          </View>
+
+          <Animated.View style={{ transform: [{ scale: successCtaScale }] }}>
+            <TouchableOpacity
+              style={styles.successCta}
+              onPress={() => {
+                Animated.sequence([
+                  Animated.timing(successCtaScale, {
+                    toValue: 0.96,
+                    duration: 120,
+                    useNativeDriver: true,
+                  }),
+                  Animated.timing(successCtaScale, {
+                    toValue: 1,
+                    duration: 160,
+                    useNativeDriver: true,
+                  }),
+                ]).start(() => setShowSuccessSheet(false));
+              }}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.successCtaText}>{t('membership.activationCta')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -841,5 +991,83 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
     fontWeight: '500',
+  },
+  successBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  successSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: '#0B0B0B',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,215,128,0.18)',
+    overflow: 'hidden',
+  },
+  successHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 26,
+    paddingBottom: 18,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'sans-serif',
+    fontWeight: '700',
+    color: '#F7E6C3',
+  },
+  successSubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  successContent: {
+    paddingHorizontal: 24,
+    paddingTop: 18,
+  },
+  successBenefitsTitle: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    color: '#F7E6C3',
+    marginBottom: 10,
+  },
+  successBenefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  successBullet: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#F4D58D',
+    marginRight: 12,
+  },
+  successBenefitText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    color: 'rgba(255,255,255,0.82)',
+  },
+  successCta: {
+    marginTop: 10,
+    marginHorizontal: 24,
+    marginBottom: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#F6D68B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCtaText: {
+    fontSize: 16,
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Text' : 'sans-serif',
+    fontWeight: '600',
+    color: '#1B1406',
   },
 });

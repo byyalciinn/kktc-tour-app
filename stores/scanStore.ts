@@ -7,8 +7,9 @@ import i18n from 'i18next';
 import { analyzeImage, VisionAnalysisResult } from '@/lib/visionService';
 import { logger } from '@/lib/logger';
 
-// Free tier scan limit
+// Scan limits
 const FREE_SCAN_LIMIT = 3;
+const PREMIUM_SCAN_LIMIT = 10;
 const COOLDOWN_HOURS = 24;
 
 interface ScanState {
@@ -174,24 +175,24 @@ export const useScanStore = create<ScanState>((set, get) => ({
 
   // Check if user can scan
   canScan: (isPremium: boolean) => {
-    if (isPremium) return true;
+    const limit = isPremium ? PREMIUM_SCAN_LIMIT : FREE_SCAN_LIMIT;
     
     // Reset if cooldown expired
     get().resetIfCooldownExpired();
     
     const { scanCount } = get();
-    return scanCount < FREE_SCAN_LIMIT;
+    return scanCount < limit;
   },
 
   // Get remaining scans for free users
   getRemainingScans: (isPremium: boolean) => {
-    if (isPremium) return Infinity;
+    const limit = isPremium ? PREMIUM_SCAN_LIMIT : FREE_SCAN_LIMIT;
     
     // Reset if cooldown expired
     get().resetIfCooldownExpired();
     
     const { scanCount } = get();
-    return Math.max(0, FREE_SCAN_LIMIT - scanCount);
+    return Math.max(0, limit - scanCount);
   },
 }));
 
